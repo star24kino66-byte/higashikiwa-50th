@@ -1093,6 +1093,13 @@ img.clickable-photo{cursor:zoom-in;}
         <div class="admin-form-row">
           <input type="text" id="gNote" placeholder="ハイライトコメント（任意）" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
         </div>
+        <div class="admin-form-row">
+          <div style="font-size:12px;color:#555;padding:6px 0;flex:1;">試合ステータス：</div>
+          <select id="gStatus" style="flex:2;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
+            <option value="live">📡 速報中（試合中）</option>
+            <option value="done">✅ 完了</option>
+          </select>
+        </div>
         <button class="ubtn" id="gameSubmitBtn" onclick="addGame()">試合結果を登録</button>
         <button id="gameCancelBtn" onclick="cancelEditGame()" style="display:none;width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#888;font-size:14px;cursor:pointer;">キャンセル（新規入力に戻る）</button>
         <div id="gameAddStatus" style="font-size:12px;color:#666;margin-top:.5rem;"></div>
@@ -1277,7 +1284,8 @@ function dbRowToGame(r){
     note: r.note||'',
     block_id: r.block_id||null,
     match_id: r.match_id||null,
-    first_bat: r.first_bat||'A'
+    first_bat: r.first_bat||'A',
+    status: r.status||'live'
   };
 }
 
@@ -1738,7 +1746,7 @@ function openModal(type){
     title.textContent='投稿写真 一覧';
     renderPhotoModalList();
   } else if(type==='games'){
-    title.textContent='全試合結果（全'+GAMES.length+'試合）';
+    title.textContent='試合結果';
     renderGamesModalList();
   }
   overlay.classList.add('open');
@@ -1746,6 +1754,108 @@ function openModal(type){
 function renderGamesModalList(){
   const list=document.getElementById('modalList');
   list.innerHTML='';
+
+  // ① ブロックプルダウン
+  const pdWrap=document.createElement('div');
+  pdWrap.style.cssText='margin-bottom:14px;';
+
+  if(BLOCKS.length>0){
+    const sel=document.createElement('select');
+    sel.id='modalBlockSelect';
+    sel.style.cssText='width:100%;font-size:14px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;';
+    sel.innerHTML=BLOCKS.map((b,i)=>`<option value="${b.id}">${b.name}</option>`).join('');
+    sel.onchange=()=>renderGamesModalBlock(sel.value);
+    pdWrap.appendChild(sel);
+  } else {
+    pdWrap.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:.5rem 0;">トーナメントブロックがまだありません</div>';
+  }
+  list.appendChild(pdWrap);
+
+  // ② トーナメント表エリア
+  const tWrap=document.createElement('div');
+  tWrap.id='modalTournamentWrap';
+  tWrap.style.cssText='margin-bottom:16px;';
+  list.appendChild(tWrap);
+
+  // ③ 仕切り
+  const sep=document.createElement('div');
+  sep.style.cssText='border-top:1px solid #e0e2ea;margin-bottom:14px;';
+  list.appendChild(sep);
+
+  // ④ 試合結果一覧エリア
+  const gWrap=document.createElement('div');
+  gWrap.id='modalGamesList';
+  list.appendChild(gWrap);
+
+  // 初期表示
+  if(BLOCKS.length>0) renderGamesModalBlock(BLOCKS[0].id);
+  else renderGamesModalBlock(null);
+}
+
+function renderGamesModalBlock(blockId){
+  // トーナメント表
+  const tWrap=document.getElementById('modalTournamentWrap');
+  if(tWrap){
+    if(blockId){
+      const block=BLOCKS.find(b=>b.id===blockId);
+      tWrap.innerHTML=`<div style="font-size:12px;font-weight:700;color:#c9a227;margin-bottom:8px;">🏆 トーナメント表</div>
+        <div id="modalTournamentView"></div>`;
+      if(block){
+        document.getElementById('modalTournamentView').innerHTML=renderBlockTournament(block);
+      }
+    } else {
+      tWrap.innerHTML='';
+    }
+  }
+
+  // 試合結果一覧
+  const gWrap=document.getElementById('modalGamesList');
+  if(!gWrap) return;
+
+  const blockGames=blockId
+    ? GAMES.filter(g=>g.block_id===blockId)
+    : GAMES;
+
+  if(blockGames.length===0){
+    gWrap.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">この試合結果はまだありません</div>';
+    return;
+  }
+
+  const viewedBefore=getViewedGames();
+  gWrap.innerHTML='<div style="font-size:12px;font-weight:700;color:#1a3260;margin-bottom:10px;">📋 試合結果一覧</div>'+
+    blockGames.map(g=>{
+      markGameViewed(g.id);
+      const wasViewed=viewedBefore.includes(g.id);
+      const innings=g.scoreA.length;
+      let theadCols='',bodyA='',bodyB='';
+      for(let i=0;i<innings;i++){
+        theadCols+=`<th>${i+1}</th>`;
+        bodyA+=`<td>${g.scoreA[i]}</td>`;
+        bodyB+=`<td>${g.scoreB[i]}</td>`;
+      }
+      const totalA=g.scoreA.length?g.scoreA.reduce((a,b)=>a+b,0):'-';
+      const totalB=g.scoreB.length?g.scoreB.reduce((a,b)=>a+b,0):'-';
+      const statusBadge=g.status==='live'
+        ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
+        :'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
+      const tableHtml=innings>0?`
+        <table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:11px;">
+          <thead><tr><th></th>${theadCols}<th class="sep"></th><th class="tr">R</th></tr></thead>
+          <tbody>
+            <tr><td class="tn ta">${g.teamA}</td>${bodyA}<td class="sep"></td><td class="tr">${totalA}</td></tr>
+            <tr><td class="tn tb">${g.teamB}</td>${bodyB}<td class="sep"></td><td class="tr">${totalB}</td></tr>
+          </tbody>
+        </table>`:`<div style="font-size:12px;color:#9fb0d0;text-align:center;padding:.6rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`;
+      return `<div class="game-modal-row">
+        <div class="game-meta">
+          <div><span class="game-round">${g.round}</span>${statusBadge}${wasViewed?'<span class="viewed-badge">確認済み</span>':'<span class="viewed-badge" style="color:#f8c8e0;background:rgba(216,51,132,.18);">NEW</span>'}</div>
+          <span class="game-date">${g.date}</span>
+        </div>
+        ${tableHtml}
+        ${g.note?`<div class="sbhl" style="margin-top:8px;">${g.note}</div>`:''}
+      </div>`;
+    }).join('');
+}
 
   // ① トーナメント表をモーダル先頭に表示
   const twrap=document.createElement('div');
@@ -3493,17 +3603,30 @@ function renderLatestScoreboard(){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">試合結果はまだ登録されていません</div>';
     return;
   }
-  // スコアあり（進行中・完了）を先、未実施を後ろに
-  const sorted=[...GAMES].sort((a,b)=>{
-    const aHas=a.scoreA&&a.scoreA.length>0?0:1;
-    const bHas=b.scoreA&&b.scoreA.length>0?0:1;
-    return aHas-bHas;
-  });
-  el.innerHTML=sorted.map(g=>{
+  // 速報中（live）の試合を優先表示、なければ最新の完了試合1件
+  const liveGames=GAMES.filter(g=>g.status==='live');
+  const doneGames=GAMES.filter(g=>g.status==='done');
+
+  let displayGames=[];
+  if(liveGames.length>0){
+    displayGames=liveGames;
+  } else if(doneGames.length>0){
+    // 最新の完了試合1件
+    displayGames=[doneGames[doneGames.length-1]];
+  }
+
+  if(displayGames.length===0){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">試合結果はまだ登録されていません</div>';
+    return;
+  }
+
+  el.innerHTML=displayGames.map(g=>{
     if(g.scoreA&&g.scoreA.length>0){
-      return buildScoreboardHTML(g);
+      const badge=g.status==='live'
+        ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;animation:pulse 1.5s infinite;">📡 速報中</span>'
+        :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">✅ 完了</span>';
+      return buildScoreboardHTML(g, badge);
     }
-    // 未実施はコンパクト表示
     return `<div class="sb" style="margin-bottom:8px;">
       <div class="sbh" style="font-size:11px;">★ ${g.round} — ${g.date} ★</div>
       <div style="text-align:center;padding:.5rem 0;font-size:13px;color:#9fb0d0;">
@@ -3515,7 +3638,7 @@ function renderLatestScoreboard(){
   }).join('');
 }
 
-function buildScoreboardHTML(g){
+function buildScoreboardHTML(g, badge=''){
   const innings=g.scoreA.length;
   const totalA=g.scoreA.reduce((a,b)=>a+b,0);
   const totalB=g.scoreB.reduce((a,b)=>a+b,0);
@@ -3540,7 +3663,7 @@ function buildScoreboardHTML(g){
   const extA=hasExt?`<td class="sb-ext-wrap" style="padding:0;"><div class="sb-ext-scroll"><table class="sb-ext-table"><tbody><tr>${rowAExt}</tr></tbody></table></div></td>`:'';
   const extB=hasExt?`<td class="sb-ext-wrap" style="padding:0;"><div class="sb-ext-scroll"><table class="sb-ext-table"><tbody><tr>${rowBExt}</tr></tbody></table></div></td>`:'';
   return `
-    <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}${badge}</div>
     <div class="sb">
       <div class="sbh">★ ${g.round} ★</div>
       <table style="width:100%;table-layout:fixed;">
@@ -3883,6 +4006,20 @@ function setGameFormMode(mode, g=null){
     document.getElementById('gScoreA').value=(g.scoreA||[]).join(',');
     document.getElementById('gScoreB').value=(g.scoreB||[]).join(',');
     document.getElementById('gNote').value=g.note||'';
+    if(document.getElementById('gStatus')) document.getElementById('gStatus').value=g.status||'live';
+    // ブロック・対戦カードも復元
+    if(g.block_id){
+      document.getElementById('gBlock').value=g.block_id;
+      onBlockChange();
+      if(g.match_id){
+        // match_idに対応するoptionを選択
+        const matchSel=document.getElementById('gMatch');
+        Array.from(matchSel.options).forEach(opt=>{
+          if(opt.value.includes(g.match_id)) matchSel.value=opt.value;
+        });
+        onMatchChange();
+      }
+    }
     _editingGameId=g.id;
     // フォームまでスクロール
     document.getElementById('gameFormTitle').scrollIntoView({behavior:'smooth',block:'start'});
@@ -3914,6 +4051,7 @@ async function addGame(){
   const blockId=document.getElementById('gBlock').value;
   const matchVal=document.getElementById('gMatch').value;
   const firstBat=document.getElementById('gFirstBat')?document.getElementById('gFirstBat').value:'A';
+  const status=document.getElementById('gStatus')?document.getElementById('gStatus').value:'live';
 
   if(!teamA||!teamB){alert('チーム名を入力してください');return;}
 
@@ -3936,7 +4074,8 @@ async function addGame(){
     note,
     block_id:blockId||null,
     match_id:matchId||null,
-    first_bat:firstBat
+    first_bat:firstBat,
+    status:status
   };
 
   if(_editingGameId){
@@ -4023,6 +4162,7 @@ function renderGameAdmin(){
       <div class="pending-card-header">
         <span class="pending-tag">${g.round}</span>
         <span style="font-size:10px;color:#aaa;">${g.date}</span>
+        ${g.status==='live'?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">📡 速報中</span>':'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">✅ 完了</span>'}
         ${isEditing?'<span style="font-size:10px;color:#1a3260;font-weight:700;">編集中</span>':''}
       </div>
       <div class="pending-info" style="font-size:14px;font-weight:700;margin:.3rem 0;">
