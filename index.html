@@ -3590,13 +3590,25 @@ function generateBracket(n){
   const rounds=[];
   let matchCount=n/2;
   let roundNum=1;
-  const roundNames={1:'1回戦',2:'2回戦',4:'準々決勝',8:'準決勝',16:'決勝'};
+  const totalRounds=Math.log2(n);
+  // ラウンド名：最終ラウンドから逆算
+  // totalRounds=3(8チーム)→1回戦/準決勝/決勝
+  // totalRounds=2(4チーム)→1回戦/決勝
+  // totalRounds=4(16チーム)→1回戦/2回戦/準決勝/決勝
+  const roundNamesByOrder={};
+  roundNamesByOrder[totalRounds]='決勝';
+  roundNamesByOrder[totalRounds-1]='準決勝';
+  roundNamesByOrder[totalRounds-2]='準々決勝';
+  for(let i=1;i<=totalRounds-3;i++) roundNamesByOrder[i]=i+'回戦';
+  if(totalRounds===1) roundNamesByOrder[1]='決勝';
+  if(totalRounds===2){roundNamesByOrder[1]='1回戦';roundNamesByOrder[2]='決勝';}
+
   while(matchCount>=1){
     const matches=[];
     for(let i=0;i<matchCount;i++){
       matches.push({id:`m${roundNum}_${i}`,top:null,bottom:null,topFirst:true});
     }
-    const name=roundNames[matchCount]||(roundNum+'回戦');
+    const name=roundNamesByOrder[roundNum]||(roundNum+'回戦');
     rounds.push({round:name,matches});
     matchCount=matchCount/2;
     roundNum++;
