@@ -219,6 +219,29 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .tlabel{font-size:10px;color:#888;text-align:center;margin-bottom:4px;}
 @keyframes pl{0%,100%{stroke-opacity:1;}50%{stroke-opacity:.3;}}
 .wl{animation:pl 1.4s ease-in-out infinite;}
+/* ===== トーナメント表 ===== */
+.bt-wrap{width:100%;}
+.bt-pc{display:flex;align-items:center;overflow-x:auto;padding:1rem 0;gap:0;}
+.bt-col{display:flex;flex-direction:column;align-items:center;min-width:100px;}
+.bt-col-label{font-size:10px;color:#888;margin-bottom:8px;text-align:center;font-weight:600;}
+.bt-col-matches{display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.bt-match{display:flex;flex-direction:column;align-items:stretch;gap:3px;width:100px;}
+.bt-connector-col{width:32px;display:flex;align-items:center;justify-content:center;align-self:stretch;position:relative;}
+.bt-connector-col::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#d63384,#c8a84b);transform:translateY(-50%);}
+.bt-cell{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#f4f6fa;color:#444;white-space:nowrap;text-align:center;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.bt-cell.bt-won{background:#1a3260;color:#fff;border-color:#d63384;font-weight:700;}
+.bt-score{font-size:11px;opacity:.85;font-weight:700;}
+.bt-vs{font-size:9px;color:#bbb;text-align:center;line-height:1;}
+.bt-champion{background:linear-gradient(135deg,#1a3260,#5a0030);color:#e8c96b;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;text-align:center;min-width:90px;line-height:1.6;}
+.bt-edit-input{width:100%;font-size:11px;border:none;background:transparent;color:inherit;outline:none;text-align:center;min-width:60px;}
+.bt-cell.bt-won .bt-edit-input{color:#fff;}
+.bt-sp{display:none;}
+.bt-sp-round{margin-bottom:12px;}
+.bt-sp-round-label{font-size:11px;font-weight:700;color:#1a3260;padding:4px 10px;background:#eef1fa;border-radius:6px;margin-bottom:6px;display:inline-block;}
+.bt-sp-match{margin-bottom:8px;}
+.bt-sp-teams{display:flex;flex-direction:column;gap:3px;border:1px solid #e0e2ea;border-radius:10px;overflow:hidden;}
+.bt-sp-arrow{font-size:10px;color:#d63384;text-align:center;margin-top:4px;}
+@media(max-width:600px){.bt-pc{display:none;}.bt-sp{display:block;}}
 
 /* MESSAGES */
 .cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;}
@@ -1040,7 +1063,6 @@ img.clickable-photo{cursor:zoom-in;}
         <button class="ubtn" onclick="createBlock()">ブロックを作成</button>
         <div id="blockCreateStatus" style="font-size:12px;color:#666;margin-top:.5rem;"></div>
       </div>
-
       <div class="admin-form-title" style="margin:.5rem 0 .6rem;">📋 ブロック一覧</div>
       <div id="blockAdminList"></div>
     </div>
@@ -1094,7 +1116,7 @@ img.clickable-photo{cursor:zoom-in;}
           <input type="text" id="gNote" placeholder="ハイライトコメント（任意）" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
         </div>
         <div class="admin-form-row">
-          <div style="font-size:12px;color:#555;padding:6px 0;flex:1;">試合ステータス：</div>
+          <div style="font-size:12px;color:#555;padding:6px 0;flex:1;">ステータス：</div>
           <select id="gStatus" style="flex:2;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
             <option value="live">📡 速報中（試合中）</option>
             <option value="done">✅ 完了</option>
@@ -1268,7 +1290,7 @@ img.clickable-photo{cursor:zoom-in;}
 const STORAGE_KEY='higashikiwa_viewed_games';
 // Supabaseから読み込む（初期は空、loadGamesFromSupabase()で取得）
 let GAMES=[];
-let BLOCKS=[]; // トーナメントブロック一覧
+let BLOCKS=[];
 
 // DBレコード→コード内形式に変換
 function dbRowToGame(r){
@@ -1294,7 +1316,7 @@ async function loadGamesFromSupabase(){
   if(error){ console.error('games読み込みエラー:',JSON.stringify(error)); return; }
   GAMES=(data||[]).map(dbRowToGame);
   renderLatestScoreboard();
-  renderTournamentView();
+  renderAllTournamentBlocks();
 }
 
 async function loadBlocksFromSupabase(){
@@ -1758,12 +1780,11 @@ function renderGamesModalList(){
   // ① ブロックプルダウン
   const pdWrap=document.createElement('div');
   pdWrap.style.cssText='margin-bottom:14px;';
-
   if(BLOCKS.length>0){
     const sel=document.createElement('select');
     sel.id='modalBlockSelect';
     sel.style.cssText='width:100%;font-size:14px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;';
-    sel.innerHTML=BLOCKS.map((b,i)=>`<option value="${b.id}">${b.name}</option>`).join('');
+    sel.innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
     sel.onchange=()=>renderGamesModalBlock(sel.value);
     pdWrap.appendChild(sel);
   } else {
@@ -1787,13 +1808,11 @@ function renderGamesModalList(){
   gWrap.id='modalGamesList';
   list.appendChild(gWrap);
 
-  // 初期表示
   if(BLOCKS.length>0) renderGamesModalBlock(BLOCKS[0].id);
   else renderGamesModalBlock(null);
 }
 
 function renderGamesModalBlock(blockId){
-  // トーナメント表
   const tWrap=document.getElementById('modalTournamentWrap');
   if(tWrap){
     if(blockId){
@@ -1801,20 +1820,17 @@ function renderGamesModalBlock(blockId){
       tWrap.innerHTML=`<div style="font-size:12px;font-weight:700;color:#c9a227;margin-bottom:8px;">🏆 トーナメント表</div>
         <div id="modalTournamentView"></div>`;
       if(block){
-        document.getElementById('modalTournamentView').innerHTML=renderBlockTournament(block);
+        const tv=document.getElementById('modalTournamentView');
+        if(tv) tv.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.4rem;">🏟 ${block.name}</div>`+renderBlockTournament(block,false);
       }
     } else {
       tWrap.innerHTML='';
     }
   }
 
-  // 試合結果一覧
   const gWrap=document.getElementById('modalGamesList');
   if(!gWrap) return;
-
-  const blockGames=blockId
-    ? GAMES.filter(g=>g.block_id===blockId)
-    : GAMES;
+  const blockGames=blockId?GAMES.filter(g=>g.block_id===blockId):GAMES;
 
   if(blockGames.length===0){
     gWrap.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">この試合結果はまだありません</div>';
@@ -1825,7 +1841,6 @@ function renderGamesModalBlock(blockId){
   gWrap.innerHTML='<div style="font-size:12px;font-weight:700;color:#1a3260;margin-bottom:10px;">📋 試合結果一覧</div>'+
     blockGames.map(g=>{
       markGameViewed(g.id);
-      const wasViewed=viewedBefore.includes(g.id);
       const innings=g.scoreA.length;
       let theadCols='',bodyA='',bodyB='';
       for(let i=0;i<innings;i++){
@@ -1838,27 +1853,33 @@ function renderGamesModalBlock(blockId){
       const statusBadge=g.status==='live'
         ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
         :'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
+      const aWon=typeof totalA==='number'&&typeof totalB==='number'&&totalA>totalB;
+      const bWon=typeof totalA==='number'&&typeof totalB==='number'&&totalB>totalA;
       const tableHtml=innings>0?`
-        <table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:11px;">
-          <thead><tr><th></th>${theadCols}<th class="sep"></th><th class="tr">R</th></tr></thead>
-          <tbody>
-            <tr><td class="tn ta">${g.teamA}</td>${bodyA}<td class="sep"></td><td class="tr">${totalA}</td></tr>
-            <tr><td class="tn tb">${g.teamB}</td>${bodyB}<td class="sep"></td><td class="tr">${totalB}</td></tr>
-          </tbody>
-        </table>`:`<div style="font-size:12px;color:#9fb0d0;text-align:center;padding:.6rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`;
+        <div class="sb" style="margin-bottom:0;">
+          <table>
+            <thead><tr><th></th>${theadCols}<th class="sep"></th><th class="tr" style="font-size:11px;padding-left:6px;">R</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="tn ta" style="${aWon?'font-weight:900;':''}">${g.teamA}</td>${bodyA}<td class="sep"></td>
+                <td class="tr" style="font-size:18px;font-weight:900;padding-left:8px;${aWon?'color:#f8c8e0;':''}">${totalA}</td>
+              </tr>
+              <tr>
+                <td class="tn tb" style="${bWon?'font-weight:900;':''}">${g.teamB}</td>${bodyB}<td class="sep"></td>
+                <td class="tr" style="font-size:18px;font-weight:900;padding-left:8px;${bWon?'color:#a0c8ff;':''}">${totalB}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`:`<div style="font-size:12px;color:#9fb0d0;text-align:center;padding:.6rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`;
       return `<div class="game-modal-row">
         <div class="game-meta">
-          <div><span class="game-round">${g.round}</span>${statusBadge}${wasViewed?'<span class="viewed-badge">確認済み</span>':'<span class="viewed-badge" style="color:#f8c8e0;background:rgba(216,51,132,.18);">NEW</span>'}</div>
+          <div><span class="game-round">${g.round}</span>${statusBadge}</div>
           <span class="game-date">${g.date}</span>
         </div>
         ${tableHtml}
         ${g.note?`<div class="sbhl" style="margin-top:8px;">${g.note}</div>`:''}
       </div>`;
     }).join('');
-}
-
-  // ① トーナメント表をモーダル先頭に表示
-  const twrap=document.createElement('div');
   twrap.style.cssText='margin-bottom:16px;';
   const tLabel=document.createElement('div');
   tLabel.style.cssText='font-size:12px;font-weight:700;color:#c9a227;margin-bottom:8px;';
@@ -3603,27 +3624,22 @@ function renderLatestScoreboard(){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">試合結果はまだ登録されていません</div>';
     return;
   }
-  // 速報中（live）の試合を優先表示、なければ最新の完了試合1件
   const liveGames=GAMES.filter(g=>g.status==='live');
   const doneGames=GAMES.filter(g=>g.status==='done');
-
   let displayGames=[];
   if(liveGames.length>0){
     displayGames=liveGames;
   } else if(doneGames.length>0){
-    // 最新の完了試合1件
     displayGames=[doneGames[doneGames.length-1]];
   }
-
   if(displayGames.length===0){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">試合結果はまだ登録されていません</div>';
     return;
   }
-
   el.innerHTML=displayGames.map(g=>{
     if(g.scoreA&&g.scoreA.length>0){
       const badge=g.status==='live'
-        ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;animation:pulse 1.5s infinite;">📡 速報中</span>'
+        ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">📡 速報中</span>'
         :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">✅ 完了</span>';
       return buildScoreboardHTML(g, badge);
     }
@@ -3682,250 +3698,6 @@ function buildScoreboardHTML(g, badge=''){
       </table>
       ${g.note?`<div class="sbhl" style="margin-top:10px;">${g.note}</div>`:''}
     </div>`;
-}
-
-/* -- トーナメントブロック管理 -- */
-
-// ブロック作成
-async function createBlock(){
-  const name=document.getElementById('blockName').value.trim();
-  const teamCount=parseInt(document.getElementById('blockTeamCount').value);
-  const status=document.getElementById('blockCreateStatus');
-  if(!name){status.textContent='ブロック名を入力してください';return;}
-
-  // トーナメント枠を自動生成
-  const bracket=generateBracket(teamCount);
-  const id='block_'+Date.now();
-  const sortOrder=BLOCKS.length;
-
-  const {error}=await sb.from('tournament_blocks').insert({
-    id, name, sort_order:sortOrder, bracket:JSON.stringify(bracket)
-  });
-  if(error){status.textContent='エラー:'+error.message;return;}
-  status.textContent='✅ 作成しました';
-  document.getElementById('blockName').value='';
-  await loadBlocksFromSupabase();
-  setTimeout(()=>{status.textContent='';},2000);
-}
-
-// トーナメント枠を自動生成（n チーム）
-function generateBracket(n){
-  const rounds=[];
-  let matchCount=n/2;
-  let roundNum=1;
-  const totalRounds=Math.log2(n);
-  // ラウンド名：最終ラウンドから逆算
-  // totalRounds=3(8チーム)→1回戦/準決勝/決勝
-  // totalRounds=2(4チーム)→1回戦/決勝
-  // totalRounds=4(16チーム)→1回戦/2回戦/準決勝/決勝
-  const roundNamesByOrder={};
-  roundNamesByOrder[totalRounds]='決勝';
-  roundNamesByOrder[totalRounds-1]='準決勝';
-  roundNamesByOrder[totalRounds-2]='準々決勝';
-  for(let i=1;i<=totalRounds-3;i++) roundNamesByOrder[i]=i+'回戦';
-  if(totalRounds===1) roundNamesByOrder[1]='決勝';
-  if(totalRounds===2){roundNamesByOrder[1]='1回戦';roundNamesByOrder[2]='決勝';}
-
-  while(matchCount>=1){
-    const matches=[];
-    for(let i=0;i<matchCount;i++){
-      matches.push({id:`m${roundNum}_${i}`,top:null,bottom:null,topFirst:true});
-    }
-    const name=roundNamesByOrder[roundNum]||(roundNum+'回戦');
-    rounds.push({round:name,matches});
-    matchCount=matchCount/2;
-    roundNum++;
-  }
-  return rounds;
-}
-
-// 管理画面ブロック一覧描画
-function renderBlockAdminList(){
-  const el=document.getElementById('blockAdminList');
-  if(!el) return;
-  if(BLOCKS.length===0){
-    el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem;">ブロックがまだありません</div>';
-    return;
-  }
-  el.innerHTML=BLOCKS.map(b=>{
-    const bracket=typeof b.bracket==='string'?JSON.parse(b.bracket):b.bracket;
-    const rounds=bracket||[];
-    return `<div style="border:1px solid #e0e2ea;border-radius:10px;margin-bottom:10px;overflow:hidden;">
-      <div style="background:#1a3260;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
-        <span>${b.name}</span>
-        <button onclick="deleteBlock('${b.id}')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button>
-      </div>
-      ${rounds.map(r=>`
-        <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;">
-          <div style="font-size:11px;color:#888;margin-bottom:4px;">${r.round}</div>
-          ${r.matches.map((m,mi)=>`
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-              <input type="text" value="${m.top||''}" placeholder="チーム（上）"
-                onchange="updateMatchTeam('${b.id}','${r.round}',${mi},'top',this.value)"
-                style="flex:1;font-size:12px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;">
-              <span style="font-size:10px;color:#aaa;">vs</span>
-              <input type="text" value="${m.bottom||''}" placeholder="チーム（下）"
-                onchange="updateMatchTeam('${b.id}','${r.round}',${mi},'bottom',this.value)"
-                style="flex:1;font-size:12px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;">
-            </div>
-          `).join('')}
-        </div>
-      `).join('')}
-      <div style="padding:6px 12px;">
-        <button onclick="saveBlockBracket('${b.id}')" style="width:100%;padding:7px;border-radius:8px;border:1px solid #1a3260;background:#fff;color:#1a3260;font-size:12px;cursor:pointer;">💾 チーム名を保存</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// チーム名変更
-function updateMatchTeam(blockId,round,matchIdx,side,value){
-  const block=BLOCKS.find(b=>b.id===blockId);
-  if(!block) return;
-  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
-  const r=bracket.find(r=>r.round===round);
-  if(!r) return;
-  r.matches[matchIdx][side]=value||null;
-  block.bracket=bracket;
-}
-
-// ブロック枠組みを保存
-async function saveBlockBracket(blockId){
-  const block=BLOCKS.find(b=>b.id===blockId);
-  if(!block) return;
-  const bracket=typeof block.bracket==='string'?block.bracket:JSON.stringify(block.bracket);
-  const {error}=await sb.from('tournament_blocks').update({bracket}).eq('id',blockId);
-  if(error){alert('保存エラー:'+error.message);return;}
-  alert('✅ 保存しました');
-  await loadBlocksFromSupabase();
-}
-
-// ブロック削除
-async function deleteBlock(blockId){
-  if(!confirm('このブロックを削除しますか？')) return;
-  const {error}=await sb.from('tournament_blocks').delete().eq('id',blockId);
-  if(error){alert('削除エラー:'+error.message);return;}
-  await loadBlocksFromSupabase();
-}
-
-// 試合管理フォームのブロック選択肢を更新
-function populateBlockSelect(){
-  const sel=document.getElementById('gBlock');
-  if(!sel) return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">ブロックを選択</option>'+
-    BLOCKS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
-  if(cur) sel.value=cur;
-}
-
-// ブロック選択時に対戦カード選択肢を更新
-function onBlockChange(){
-  const blockId=document.getElementById('gBlock').value;
-  const matchSel=document.getElementById('gMatch');
-  const firstBatRow=document.getElementById('firstBatRow');
-  matchSel.innerHTML='<option value="">対戦カードを選択</option>';
-  firstBatRow.style.display='none';
-  if(!blockId) return;
-  const block=BLOCKS.find(b=>b.id===blockId);
-  if(!block) return;
-  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
-  bracket.forEach(r=>{
-    r.matches.forEach((m,mi)=>{
-      const top=m.top||'（未定）';
-      const bottom=m.bottom||'（未定）';
-      matchSel.innerHTML+=`<option value="${r.round}__${mi}__${m.id}">${r.round}：${top} vs ${bottom}</option>`;
-    });
-  });
-}
-
-// 対戦カード選択時にチーム名を自動入力
-function onMatchChange(){
-  const blockId=document.getElementById('gBlock').value;
-  const matchVal=document.getElementById('gMatch').value;
-  const firstBatRow=document.getElementById('firstBatRow');
-  if(!blockId||!matchVal){firstBatRow.style.display='none';return;}
-  const [round,matchIdx]=matchVal.split('__');
-  const block=BLOCKS.find(b=>b.id===blockId);
-  if(!block) return;
-  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
-  const r=bracket.find(r=>r.round===round);
-  if(!r) return;
-  const m=r.matches[parseInt(matchIdx)];
-  document.getElementById('gTeamA').value=m.top||'';
-  document.getElementById('gTeamB').value=m.bottom||'';
-  document.getElementById('gRound').value=round;
-  // 先攻後攻選択肢を更新
-  const firstBatSel=document.getElementById('gFirstBat');
-  firstBatSel.innerHTML=
-    `<option value="A">${m.top||'チームA（上）'}（先攻）</option>`+
-    `<option value="B">${m.bottom||'チームB（下）'}（先攻）</option>`;
-  firstBatRow.style.display='flex';
-}
-
-// 公開側：全ブロックのトーナメント表を描画
-function renderAllTournamentBlocks(){
-  const el=document.getElementById('tournamentView');
-  if(!el) return;
-  if(BLOCKS.length===0){
-    el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">トーナメント表はまだ作成されていません</div>';
-    return;
-  }
-  el.innerHTML=BLOCKS.map(b=>renderBlockTournament(b)).join('');
-}
-
-// 1ブロック分のトーナメント表HTML生成
-function renderBlockTournament(block){
-  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
-  const rounds=bracket||[];
-
-  // このブロックの試合結果を取得
-  const blockGames=GAMES.filter(g=>g.block_id===block.id);
-
-  let html=`<div style="margin-bottom:1.5rem;">
-    <div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.6rem;padding-left:4px;">🏟 ${block.name}</div>
-    <div class="tw" style="overflow-x:auto;display:flex;align-items:center;gap:0;">`;
-
-  rounds.forEach((r,ri)=>{
-    html+=`<div><div class="tlabel">${r.round}</div><div class="tr2">`;
-    r.matches.forEach((m,mi)=>{
-      // この試合の結果を検索
-      const game=blockGames.find(g=>g.match_id===m.id);
-      const totalA=game&&game.scoreA.length?game.scoreA.reduce((a,b)=>a+b,0):null;
-      const totalB=game&&game.scoreB.length?game.scoreB.reduce((a,b)=>a+b,0):null;
-      const aWon=totalA!==null&&totalB!==null&&totalA>totalB;
-      const bWon=totalA!==null&&totalB!==null&&totalB>totalA;
-      const topName=m.top||'—';
-      const bottomName=m.bottom||'—';
-      html+=`<div class="tm">
-        <div class="tt${aWon?' w':''}">${topName}${totalA!==null?` <span style="font-size:10px;opacity:.8;">${totalA}</span>`:''}</div>
-        <div class="tt${bWon?' w':''}">${bottomName}${totalB!==null?` <span style="font-size:10px;opacity:.8;">${totalB}</span>`:''}</div>
-      </div>`;
-    });
-    html+='</div></div>';
-    if(ri<rounds.length-1){
-      const h=Math.max(r.matches.length*55,44);
-      html+=`<div class="tcon"><svg width="24" height="${h}" viewBox="0 0 24 ${h}"><line x1="0" y1="${h/2}" x2="24" y2="${h/2}" stroke="#d63384" stroke-width="2" class="wl"/></svg></div>`;
-    }
-  });
-
-  // 優勝チーム表示
-  const finalRound=rounds[rounds.length-1];
-  if(finalRound&&finalRound.matches.length===1){
-    const fm=finalRound.matches[0];
-    const game=blockGames.find(g=>g.match_id===fm.id);
-    if(game){
-      const totalA=game.scoreA.reduce((a,b)=>a+b,0);
-      const totalB=game.scoreB.reduce((a,b)=>a+b,0);
-      if(totalA!==totalB){
-        const winner=totalA>totalB?fm.top:fm.bottom;
-        html+=`<div class="tcon"><svg width="24" height="44" viewBox="0 0 24 44"><line x1="0" y1="22" x2="24" y2="22" stroke="#c8a84b" stroke-width="2.5" class="wl"/></svg></div>`;
-        html+=`<div><div class="tlabel">優勝</div><div class="tfin">${winner}<br><span style="font-size:10px;color:rgba(232,201,107,.75);">🏆 CHAMPION</span></div></div>`;
-      }
-    }
-  }
-
-  html+='</div></div>';
-  return html;
 }
 
 /* -- トーナメント表（ラウンドごとにグループ化して描画） -- */
@@ -4006,20 +3778,6 @@ function setGameFormMode(mode, g=null){
     document.getElementById('gScoreA').value=(g.scoreA||[]).join(',');
     document.getElementById('gScoreB').value=(g.scoreB||[]).join(',');
     document.getElementById('gNote').value=g.note||'';
-    if(document.getElementById('gStatus')) document.getElementById('gStatus').value=g.status||'live';
-    // ブロック・対戦カードも復元
-    if(g.block_id){
-      document.getElementById('gBlock').value=g.block_id;
-      onBlockChange();
-      if(g.match_id){
-        // match_idに対応するoptionを選択
-        const matchSel=document.getElementById('gMatch');
-        Array.from(matchSel.options).forEach(opt=>{
-          if(opt.value.includes(g.match_id)) matchSel.value=opt.value;
-        });
-        onMatchChange();
-      }
-    }
     _editingGameId=g.id;
     // フォームまでスクロール
     document.getElementById('gameFormTitle').scrollIntoView({behavior:'smooth',block:'start'});
@@ -4064,7 +3822,6 @@ async function addGame(){
     dateLabel=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
   }
 
-  // match_idをmatchValから取得
   const matchId=matchVal?matchVal.split('__')[2]||null:null;
 
   const record={
@@ -4088,7 +3845,6 @@ async function addGame(){
     document.getElementById('gameAddStatus').textContent='✅ 登録しました';
   }
 
-  // 勝者を次のラウンドに自動繰り上げ
   if(blockId&&matchId&&scoreA.length&&scoreB.length){
     await autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB);
   }
@@ -4100,18 +3856,255 @@ async function addGame(){
   setTimeout(()=>{document.getElementById('gameAddStatus').textContent='';},3000);
 }
 
-/* -- 勝者自動繰り上げ -- */
-async function autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB){
-  const totalA=scoreA.reduce((a,b)=>a+b,0);
-  const totalB=scoreB.reduce((a,b)=>a+b,0);
-  if(totalA===totalB) return; // 同点の場合はスキップ
-  const winner=totalA>totalB?teamA:teamB;
+/* -- トーナメントブロック管理 -- */
+async function createBlock(){
+  const name=document.getElementById('blockName').value.trim();
+  const teamCount=parseInt(document.getElementById('blockTeamCount').value);
+  const status=document.getElementById('blockCreateStatus');
+  if(!name){status.textContent='ブロック名を入力してください';return;}
+  const bracket=generateBracket(teamCount);
+  const id='block_'+Date.now();
+  const {error}=await sb.from('tournament_blocks').insert({id,name,sort_order:BLOCKS.length,bracket:JSON.stringify(bracket)});
+  if(error){status.textContent='エラー:'+error.message;return;}
+  status.textContent='✅ 作成しました';
+  document.getElementById('blockName').value='';
+  await loadBlocksFromSupabase();
+  setTimeout(()=>{status.textContent='';},2000);
+}
 
+function generateBracket(n){
+  const rounds=[];
+  let matchCount=n/2;
+  let roundNum=1;
+  const totalRounds=Math.log2(n);
+  const nameMap={};
+  nameMap[totalRounds]='決勝';
+  nameMap[totalRounds-1]='準決勝';
+  nameMap[totalRounds-2]='準々決勝';
+  for(let i=1;i<=totalRounds-3;i++) nameMap[i]=i+'回戦';
+  if(totalRounds===1) nameMap[1]='決勝';
+  if(totalRounds===2){nameMap[1]='1回戦';nameMap[2]='決勝';}
+  while(matchCount>=1){
+    const matches=[];
+    for(let i=0;i<matchCount;i++){
+      matches.push({id:`m${roundNum}_${i}`,top:null,bottom:null,topFirst:true});
+    }
+    rounds.push({round:nameMap[roundNum]||(roundNum+'回戦'),matches});
+    matchCount=matchCount/2;
+    roundNum++;
+  }
+  return rounds;
+}
+
+function renderBlockAdminList(){
+  const el=document.getElementById('blockAdminList');
+  if(!el) return;
+  if(BLOCKS.length===0){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem;">ブロックがまだありません</div>';
+    return;
+  }
+  el.innerHTML=BLOCKS.map(b=>`
+    <div style="border:1px solid #e0e2ea;border-radius:10px;margin-bottom:14px;overflow:hidden;">
+      <div style="background:#1a3260;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>🏟 ${b.name}</span>
+        <button onclick="deleteBlock('${b.id}')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button>
+      </div>
+      <div style="padding:10px 12px;">
+        <div style="font-size:11px;color:#888;margin-bottom:6px;">チーム名をタップして直接編集できます</div>
+        ${renderBlockTournament(b, true)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBlockTournament(block, editable=false){
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const rounds=bracket||[];
+  const blockGames=GAMES.filter(g=>g.block_id===block.id);
+
+  function getMatchInfo(m){
+    const game=blockGames.find(g=>g.match_id===m.id);
+    const totalA=game&&game.scoreA.length?game.scoreA.reduce((a,b)=>a+b,0):null;
+    const totalB=game&&game.scoreB.length?game.scoreB.reduce((a,b)=>a+b,0):null;
+    const aWon=totalA!==null&&totalB!==null&&totalA>totalB;
+    const bWon=totalA!==null&&totalB!==null&&totalB>totalA;
+    return {totalA,totalB,aWon,bWon};
+  }
+
+  function teamCell(name,won,score,side,blockId,roundName,matchIdx,editable){
+    const scoreStr=score!==null?`<span class="bt-score">${score}</span>`:'';
+    const wonClass=won?' bt-won':'';
+    if(editable){
+      return `<div class="bt-cell${wonClass}">
+        <input class="bt-edit-input" value="${name||''}" placeholder="チーム名"
+          onchange="inlineBracketEdit('${blockId}','${roundName}',${matchIdx},'${side}',this.value)">
+        ${scoreStr}
+      </div>`;
+    }
+    return `<div class="bt-cell${wonClass}">${name||'—'}${scoreStr}</div>`;
+  }
+
+  let pcHtml=`<div class="bt-pc">`;
+  rounds.forEach((r,ri)=>{
+    const spacer=Math.pow(2,ri)*10;
+    pcHtml+=`<div class="bt-col"><div class="bt-col-label">${r.round}</div><div class="bt-col-matches" style="gap:${spacer}px;">`;
+    r.matches.forEach((m,mi)=>{
+      const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
+      pcHtml+=`<div class="bt-match">
+        ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
+        <div class="bt-vs">vs</div>
+        ${teamCell(m.bottom,bWon,totalB,'bottom',block.id,r.round,mi,editable)}
+      </div>`;
+    });
+    pcHtml+=`</div></div>`;
+    if(ri<rounds.length-1) pcHtml+=`<div class="bt-connector-col"></div>`;
+  });
+  const finalRound=rounds[rounds.length-1];
+  if(finalRound&&finalRound.matches.length===1){
+    const fm=finalRound.matches[0];
+    const {aWon,bWon}=getMatchInfo(fm);
+    const winner=aWon?fm.top:bWon?fm.bottom:null;
+    if(winner){
+      pcHtml+=`<div class="bt-connector-col"></div>
+        <div class="bt-col"><div class="bt-col-label">優勝</div>
+        <div class="bt-col-matches"><div class="bt-champion">🏆<br>${winner}</div></div></div>`;
+    }
+  }
+  pcHtml+=`</div>`;
+
+  let spHtml=`<div class="bt-sp">`;
+  rounds.forEach((r,ri)=>{
+    spHtml+=`<div class="bt-sp-round"><div class="bt-sp-round-label">${r.round}</div>`;
+    r.matches.forEach((m,mi)=>{
+      const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
+      spHtml+=`<div class="bt-sp-match">
+        <div class="bt-sp-teams">
+          ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
+          <div class="bt-vs">vs</div>
+          ${teamCell(m.bottom,bWon,totalB,'bottom',block.id,r.round,mi,editable)}
+        </div>
+        ${ri<rounds.length-1?'<div class="bt-sp-arrow">↓ 勝者が進出</div>':''}
+      </div>`;
+    });
+    spHtml+=`</div>`;
+  });
+  if(finalRound&&finalRound.matches.length===1){
+    const fm=finalRound.matches[0];
+    const {aWon,bWon}=getMatchInfo(fm);
+    const winner=aWon?fm.top:bWon?fm.bottom:null;
+    if(winner){
+      spHtml+=`<div class="bt-sp-round"><div class="bt-sp-round-label">優勝</div><div class="bt-champion">🏆 ${winner}</div></div>`;
+    }
+  }
+  spHtml+=`</div>`;
+
+  const saveBtn=editable?`<button onclick="saveBlockBracket('${block.id}')" style="width:100%;margin-top:8px;padding:7px;border-radius:8px;border:1px solid #1a3260;background:#fff;color:#1a3260;font-size:12px;cursor:pointer;">💾 修正を保存</button>`:'';
+  return `<div class="bt-wrap">${pcHtml}${spHtml}${saveBtn}</div>`;
+}
+
+function inlineBracketEdit(blockId,round,matchIdx,side,value){
   const block=BLOCKS.find(b=>b.id===blockId);
   if(!block) return;
   const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const r=bracket.find(r=>r.round===round);
+  if(!r) return;
+  r.matches[parseInt(matchIdx)][side]=value||null;
+  block.bracket=bracket;
+}
 
-  // matchIdがどのラウンド・何番目かを特定
+async function saveBlockBracket(blockId){
+  const block=BLOCKS.find(b=>b.id===blockId);
+  if(!block) return;
+  const bracket=typeof block.bracket==='string'?block.bracket:JSON.stringify(block.bracket);
+  const {error}=await sb.from('tournament_blocks').update({bracket}).eq('id',blockId);
+  if(error){alert('保存エラー:'+error.message);return;}
+  alert('✅ 保存しました');
+  await loadBlocksFromSupabase();
+}
+
+async function deleteBlock(blockId){
+  if(!confirm('このブロックを削除しますか？')) return;
+  const {error}=await sb.from('tournament_blocks').delete().eq('id',blockId);
+  if(error){alert('削除エラー:'+error.message);return;}
+  await loadBlocksFromSupabase();
+}
+
+function populateBlockSelect(){
+  const sel=document.getElementById('gBlock');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">ブロックを選択</option>'+
+    BLOCKS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+
+function onBlockChange(){
+  const blockId=document.getElementById('gBlock').value;
+  const matchSel=document.getElementById('gMatch');
+  const firstBatRow=document.getElementById('firstBatRow');
+  matchSel.innerHTML='<option value="">対戦カードを選択</option>';
+  firstBatRow.style.display='none';
+  if(!blockId) return;
+  const block=BLOCKS.find(b=>b.id===blockId);
+  if(!block) return;
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const blockGames=GAMES.filter(g=>g.block_id===blockId);
+  bracket.forEach(r=>{
+    r.matches.forEach((m,mi)=>{
+      const top=m.top||'（未定）';
+      const bottom=m.bottom||'（未定）';
+      const existingGame=blockGames.find(g=>g.match_id===m.id);
+      const statusMark=existingGame?(existingGame.status==='done'?'✅ ':'📡 '):'';
+      matchSel.innerHTML+=`<option value="${r.round}__${mi}__${m.id}">${statusMark}${r.round}：${top} vs ${bottom}</option>`;
+    });
+  });
+}
+
+function onMatchChange(){
+  const blockId=document.getElementById('gBlock').value;
+  const matchVal=document.getElementById('gMatch').value;
+  const firstBatRow=document.getElementById('firstBatRow');
+  if(!blockId||!matchVal){firstBatRow.style.display='none';return;}
+  const [round,matchIdx]=matchVal.split('__');
+  const block=BLOCKS.find(b=>b.id===blockId);
+  if(!block) return;
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const r=bracket.find(r=>r.round===round);
+  if(!r) return;
+  const m=r.matches[parseInt(matchIdx)];
+  document.getElementById('gTeamA').value=m.top||'';
+  document.getElementById('gTeamB').value=m.bottom||'';
+  document.getElementById('gRound').value=round;
+  const firstBatSel=document.getElementById('gFirstBat');
+  firstBatSel.innerHTML=
+    `<option value="A">${m.top||'チームA（上）'}（先攻）</option>`+
+    `<option value="B">${m.bottom||'チームB（下）'}（先攻）</option>`;
+  firstBatRow.style.display='flex';
+}
+
+function renderAllTournamentBlocks(){
+  const el=document.getElementById('tournamentView');
+  if(!el) return;
+  if(BLOCKS.length===0){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">トーナメント表はまだ作成されていません</div>';
+    return;
+  }
+  el.innerHTML=BLOCKS.map(b=>`
+    <div style="margin-bottom:1.5rem;">
+      <div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.6rem;padding-left:4px;">🏟 ${b.name}</div>
+      ${renderBlockTournament(b,false)}
+    </div>
+  `).join('');
+}
+
+async function autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB){
+  const totalA=scoreA.reduce((a,b)=>a+b,0);
+  const totalB=scoreB.reduce((a,b)=>a+b,0);
+  if(totalA===totalB) return;
+  const winner=totalA>totalB?teamA:teamB;
+  const block=BLOCKS.find(b=>b.id===blockId);
+  if(!block) return;
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
   let foundRoundIdx=-1,foundMatchIdx=-1;
   bracket.forEach((r,ri)=>{
     r.matches.forEach((m,mi)=>{
@@ -4120,16 +4113,12 @@ async function autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB){
   });
   if(foundRoundIdx===-1) return;
   const nextRoundIdx=foundRoundIdx+1;
-  if(nextRoundIdx>=bracket.length) return; // 決勝の場合は繰り上げなし
-
-  // 次のラウンドの対応する枠に勝者を入れる（2試合→1試合なので偶数が上、奇数が下）
+  if(nextRoundIdx>=bracket.length) return;
   const nextMatchIdx=Math.floor(foundMatchIdx/2);
   const side=foundMatchIdx%2===0?'top':'bottom';
   bracket[nextRoundIdx].matches[nextMatchIdx][side]=winner;
-
-  // Supabaseに保存
   const {error}=await sb.from('tournament_blocks').update({bracket:JSON.stringify(bracket)}).eq('id',blockId);
-  if(error){console.error('自動繰り上げエラー:',error.message);}
+  if(error) console.error('自動繰り上げエラー:',error.message);
 }
 
 /* -- 試合削除 -- */
