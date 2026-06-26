@@ -2228,7 +2228,7 @@ async function bulkApproveCheers(){
 }
 async function bulkRejectCheers(){
   if(!confirm('承認待ちメッセージを全件却下しますか？')) return;
-  for(const c of pendingCheers){ await sb.from('messages').update({'status':'rejected'}).eq('id',c._id); }
+  for(const c of pendingCheers){ await sb.from('messages').delete().eq('id',c._id); }
   await loadCheersFromSupabase(); renderAdminAll();
 }
 async function bulkApproveSelectedCheers(){
@@ -2240,7 +2240,7 @@ async function bulkApproveSelectedCheers(){
 async function bulkRejectSelectedCheers(){
   const ids=[...document.querySelectorAll('.cheer-check:checked')].map(c=>c.dataset.id);
   if(!ids.length){ alert('選択されていません'); return; }
-  for(const id of ids){ await sb.from('messages').update({'status':'rejected'}).eq('id',id); }
+  for(const id of ids){ await sb.from('messages').delete().eq('id',id); }
   await loadCheersFromSupabase(); renderAdminAll();
 }
 function renderApprovedPhotoList(){
@@ -2368,14 +2368,14 @@ async function approveCheer(id){
 }
 async function rejectCheer(id){
   if(!confirm('このメッセージを却下します。よろしいですか？')) return;
-  const {error}=await sb.from('messages').update({'status':'rejected'}).eq('id',id);
+  const {error}=await sb.from('messages').delete().eq('id',id);
   if(error){ alert('却下に失敗しました：'+error.message); return; }
   await loadCheersFromSupabase();
   renderAdminAll();
 }
 async function unpublishCheer(id){
   if(!confirm('このメッセージの掲載を取り下げます。よろしいですか？')) return;
-  const {error}=await sb.from('messages').update({'status':'rejected'}).eq('id',id);
+  const {error}=await sb.from('messages').delete().eq('id',id);
   if(error){ alert('取り下げに失敗しました：'+error.message); return; }
   await loadCheersFromSupabase();
   const i=CHEERS.findIndex(c=>c._id===id);
