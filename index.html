@@ -130,7 +130,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 /* ALBUM SLIDESHOW */
 .album-slideshow{display:flex;align-items:center;gap:8px;margin-top:.8rem;}
 .album-slide-wrap{flex:1;border-radius:14px;overflow:hidden;background:#f0f2f8;position:relative;}
-.album-slide-img{width:100%;height:220px;object-fit:cover;display:block;cursor:zoom-in;}
+.album-slide-img{width:100%;height:220px;object-fit:contain;display:block;cursor:zoom-in;background:#111;}
 .album-slide-info{padding:.7rem 1rem;background:#fff;border-top:1px solid #eee;}
 .album-slide-title{font-size:14px;font-weight:700;color:#1a3260;}
 .album-slide-caption{font-size:12px;color:#666;margin-top:3px;}
@@ -259,7 +259,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 /* 特別協賛 固定バナー */
 .sp-fixed{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:56px;box-shadow:0 -2px 12px rgba(0,0,0,.25);}
 /* 上部バナー */
-.sp-top{position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;min-height:48px;box-shadow:0 2px 8px rgba(0,0,0,.2);max-width:none;margin:0;border-radius:0;}
+.sp-top{position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:56px;box-shadow:0 2px 12px rgba(0,0,0,.25);max-width:none;margin:0;border-radius:0;}
 .sp-fixed-badge{background:#c9a227;color:#1b2a4a;font-size:9px;font-weight:800;letter-spacing:.08em;padding:2px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0;align-self:flex-start;margin-top:2px;}
 .sp-fixed-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .sp-fixed-name{font-size:13px;font-weight:700;color:#fff;line-height:1.3;word-break:break-all;}
@@ -648,6 +648,24 @@ img.clickable-photo{cursor:zoom-in;}
 <div class="page-view" id="page-donation">
 <div class="wrap" style="padding-top:.4rem;">
 
+  <!-- 活動アルバム -->
+  <div class="sc" id="albumSection" style="display:none;">
+    <div class="sl">📸 活動アルバム</div>
+    <p style="font-size:12px;color:#888;margin-bottom:1rem;">東岐波クラブの活動の様子をご覧ください。</p>
+    <div class="album-slideshow">
+      <button class="album-arrow album-prev" onclick="albumPrev()">&#8592;</button>
+      <div class="album-slide-wrap">
+        <img id="albumSlideImg" src="" alt="" class="album-slide-img clickable-photo" onclick="openLightbox(this.src)">
+        <div class="album-slide-info">
+          <div class="album-slide-title" id="albumSlideTitle"></div>
+          <div class="album-slide-caption" id="albumSlideCaption"></div>
+          <div class="album-slide-counter" id="albumSlideCounter"></div>
+        </div>
+      </div>
+      <button class="album-arrow album-next" onclick="albumNext()">&#8594;</button>
+    </div>
+  </div>
+
   <div class="sc">
     <div class="sl">寄付金メーター</div>
     <div class="dh">
@@ -683,23 +701,6 @@ img.clickable-photo{cursor:zoom-in;}
       <button class="more-btn" onclick="openModal('sponsor')">協賛企業一覧をすべて見る</button>
     </div>
 
-    <!-- 活動アルバム -->
-    <div class="sc" id="albumSection" style="display:none;">
-      <div class="sl">📸 活動アルバム</div>
-      <p style="font-size:12px;color:#888;margin-bottom:1rem;">東岐波クラブの活動の様子をご覧ください。</p>
-      <div class="album-slideshow">
-        <button class="album-arrow album-prev" onclick="albumPrev()">&#8592;</button>
-        <div class="album-slide-wrap">
-          <img id="albumSlideImg" src="" alt="" class="album-slide-img clickable-photo" onclick="openLightbox(this.src)">
-          <div class="album-slide-info">
-            <div class="album-slide-title" id="albumSlideTitle"></div>
-            <div class="album-slide-caption" id="albumSlideCaption"></div>
-            <div class="album-slide-counter" id="albumSlideCounter"></div>
-          </div>
-        </div>
-        <button class="album-arrow album-next" onclick="albumNext()">&#8594;</button>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -955,7 +956,16 @@ img.clickable-photo{cursor:zoom-in;}
           <input type="file" id="albumFile" accept="image/*" style="display:none;" onchange="updateAlbumFileName(this)">
         </div>
         <button class="ubtn" onclick="addAlbumPhoto()">追加する</button>
-        <div id="albumAddStatus" style="font-size:12px;color:#666;margin-top:.5rem;"></div>
+        <div id="albumAddStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
+      </div>
+      <div class="admin-form-card" style="margin-top:.8rem;">
+        <div class="admin-form-title">⏱ スライド切り替え間隔</div>
+        <div class="fr" style="align-items:center;gap:8px;">
+          <input type="number" id="albumIntervalInput" min="1" max="30" value="3" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#555;">秒ごとに自動切り替え（1〜30秒）</span>
+        </div>
+        <button class="ubtn" style="margin-top:.5rem;" onclick="saveAlbumInterval()">保存する</button>
+        <div id="albumIntervalStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
       </div>
       <div class="admin-form-title" style="margin:.5rem 0 .6rem;">📋 登録済み写真（登録順）</div>
       <div id="albumAdminList"></div>
@@ -2554,10 +2564,19 @@ async function loadAlbumFromSupabase(){
   renderAlbumAdmin();
 }
 
-function renderAlbumSlideshow(){
+let _albumTimer=null;
+let _albumInterval=3;
+
+function startAlbumTimer(){
+  if(_albumTimer) clearInterval(_albumTimer);
+  if(ALBUM_PHOTOS.length<=1) return;
+  _albumTimer=setInterval(()=>{ albumIdx=(albumIdx+1)%ALBUM_PHOTOS.length; renderAlbumSlideshow(false); },_albumInterval*1000);
+}
+
+function renderAlbumSlideshow(resetTimer=true){
   const section=document.getElementById('albumSection');
   if(!section) return;
-  if(ALBUM_PHOTOS.length===0){ section.style.display='none'; return; }
+  if(ALBUM_PHOTOS.length===0){ section.style.display='none'; if(_albumTimer){clearInterval(_albumTimer);_albumTimer=null;} return; }
   section.style.display='';
   albumIdx=Math.min(albumIdx,ALBUM_PHOTOS.length-1);
   const p=ALBUM_PHOTOS[albumIdx];
@@ -2565,17 +2584,30 @@ function renderAlbumSlideshow(){
   document.getElementById('albumSlideTitle').textContent=p.title||'';
   document.getElementById('albumSlideCaption').textContent=p.caption||'';
   document.getElementById('albumSlideCounter').textContent=(albumIdx+1)+' / '+ALBUM_PHOTOS.length;
+  if(resetTimer) startAlbumTimer();
 }
 
 function albumPrev(){
   if(ALBUM_PHOTOS.length===0) return;
   albumIdx=(albumIdx-1+ALBUM_PHOTOS.length)%ALBUM_PHOTOS.length;
-  renderAlbumSlideshow();
+  renderAlbumSlideshow(true);
 }
 function albumNext(){
   if(ALBUM_PHOTOS.length===0) return;
   albumIdx=(albumIdx+1)%ALBUM_PHOTOS.length;
-  renderAlbumSlideshow();
+  renderAlbumSlideshow(true);
+}
+
+async function saveAlbumInterval(){
+  const v=parseInt(document.getElementById('albumIntervalInput').value,10);
+  if(!v||v<1||v>30){ alert('1〜30秒の範囲で入力してください'); return; }
+  _albumInterval=v;
+  const {error}=await sb.from('settings').upsert({key:'album_interval',value:String(v)});
+  const s=document.getElementById('albumIntervalStatus');
+  if(error){ s.textContent='❌ 保存失敗：'+error.message; return; }
+  s.textContent='✅ 保存しました！';
+  setTimeout(()=>{ s.textContent=''; },3000);
+  startAlbumTimer();
 }
 
 function updateAlbumFileName(input){
@@ -2883,6 +2915,11 @@ async function loadSettingsFromSupabase(){
     if(row.key==='photo_end')   PERIODS.photo.end  =row.value||'';
     if(row.key==='best_shots'){
       try{ bestShots=JSON.parse(row.value)||{}; }catch(e){ bestShots={}; }
+    }
+    if(row.key==='album_interval'){
+      _albumInterval=parseInt(row.value,10)||3;
+      const el=document.getElementById('albumIntervalInput');
+      if(el) el.value=_albumInterval;
     }
   });
 }
