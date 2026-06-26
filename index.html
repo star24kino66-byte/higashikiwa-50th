@@ -1571,6 +1571,7 @@ function startSpBanner(){
 function showSpSlide(sponsors){
   if(_spBannerDismissed) return;
   const banner=document.getElementById('spFixedBanner');
+  const topBanner=document.getElementById('spTopBanner');
   // 下部：_spIdx番目
   const sBot=sponsors[_spIdx % sponsors.length];
   document.getElementById('spFixedName').textContent=sBot.name;
@@ -1581,11 +1582,13 @@ function showSpSlide(sponsors){
   const sTop=sponsors[(_spIdx+1) % sponsors.length];
   document.getElementById('spTopName').textContent=sTop.name;
   document.getElementById('spTopMsg').textContent=sTop.note||`${sTop.name}より子どもたちへ応援のメッセージ`;
+  if(topBanner){topBanner.classList.remove('fade-out');topBanner.classList.add('fade-in');}
   // 8秒後にフェードアウト→次へ
   if(_spTimer) clearTimeout(_spTimer);
   _spTimer=setTimeout(()=>{
     banner.classList.remove('fade-in');
     banner.classList.add('fade-out');
+    if(topBanner){topBanner.classList.remove('fade-in');topBanner.classList.add('fade-out');}
     setTimeout(()=>{
       _spIdx++;
       showSpSlide(sponsors);
