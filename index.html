@@ -948,7 +948,6 @@ img.clickable-photo{cursor:zoom-in;}
       <button class="admin-close" onclick="closeAdminPanel()">← トップへ戻る</button>
     </div>
     <div class="admin-tabs">
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">📷 フォトベスト9</span>
         <div class="admin-tab-group-btns">
@@ -957,7 +956,6 @@ img.clickable-photo{cursor:zoom-in;}
           <button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button>
         </div>
       </div>
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">💬 応援メッセージ</span>
         <div class="admin-tab-group-btns">
@@ -965,7 +963,6 @@ img.clickable-photo{cursor:zoom-in;}
           <button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button>
         </div>
       </div>
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">⚾ 試合・トーナメント</span>
         <div class="admin-tab-group-btns">
@@ -973,7 +970,6 @@ img.clickable-photo{cursor:zoom-in;}
           <button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント管理</button>
         </div>
       </div>
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">👥 選手・大会情報</span>
         <div class="admin-tab-group-btns">
@@ -981,7 +977,6 @@ img.clickable-photo{cursor:zoom-in;}
           <button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">📋 大会要綱CSV</button>
         </div>
       </div>
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">💰 寄付金・協賛</span>
         <div class="admin-tab-group-btns">
@@ -989,14 +984,12 @@ img.clickable-photo{cursor:zoom-in;}
           <button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button>
         </div>
       </div>
-
       <div class="admin-tab-group">
         <span class="admin-tab-group-label">⚙️ サイト設定</span>
         <div class="admin-tab-group-btns">
           <button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button>
         </div>
       </div>
-
     </div>
     <div class="admin-section on" id="pendingPhotos"><div id="pendingPhotoList"></div></div>
     <div class="admin-section" id="pendingCheers"><div id="pendingCheerList"></div></div>
@@ -1880,17 +1873,36 @@ function renderGamesModalBlock(blockId){
   gWrap.innerHTML='<div style="font-size:12px;font-weight:700;color:#1a3260;margin-bottom:10px;">📋 試合結果一覧</div>';
   blockGames.forEach(g=>{
     markGameViewed(g.id);
+    const totalA=g.scoreA.length?g.scoreA.reduce((a,b)=>a+b,0):null;
+    const totalB=g.scoreB.length?g.scoreB.reduce((a,b)=>a+b,0):null;
+    const aWon=totalA!==null&&totalB!==null&&totalA>totalB;
+    const bWon=totalA!==null&&totalB!==null&&totalB>totalA;
     const statusBadge=g.status==='live'
-      ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
-      :'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
+      ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
+      :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
+    const scoreStr=totalA!==null
+      ?`<span style="font-weight:900;font-size:14px;color:${aWon?'#f8c8e0':'#dde'}">${totalA}</span>`+
+       `<span style="color:#c9a227;margin:0 4px;font-size:11px;">-</span>`+
+       `<span style="font-weight:900;font-size:14px;color:${bWon?'#a0c8ff':'#dde'}">${totalB}</span>`
+      :'<span style="font-size:11px;color:#9fb0d0;">未実施</span>';
     const row=document.createElement('div');
-    row.className='game-modal-row';
-    const metaHtml=`<div class="game-meta"><div><span class="game-round">${g.round}</span>${statusBadge}</div><span class="game-date">${g.date}</span></div>`;
-    if(g.scoreA&&g.scoreA.length>0){
-      row.innerHTML=metaHtml+buildScoreboardHTML(g,'');
-    } else {
-      row.innerHTML=metaHtml+`<div style="font-size:12px;color:#9fb0d0;text-align:center;padding:.6rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`;
-    }
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0c1a30;border-radius:8px;margin-bottom:5px;';
+    row.innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="game-round">${g.round}</span>${statusBadge}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#dde;">
+          <span style="${aWon?'color:#f8c8e0;font-weight:900;':''}">${g.teamA}</span>
+          <span style="color:#666;margin:0 4px;font-weight:400;">vs</span>
+          <span style="${bWon?'color:#a0c8ff;font-weight:900;':''}">${g.teamB}</span>
+        </div>
+        ${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:1px;">${g.note}</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div>${scoreStr}</div>
+        <div style="font-size:10px;color:#7b8fa8;margin-top:2px;">${g.date||''}</div>
+      </div>`;
     gWrap.appendChild(row);
   });
 }
@@ -3623,7 +3635,6 @@ function buildScoreboardHTML(g, badge=''){
   const totalB=g.scoreB.reduce((a,b)=>a+b,0);
   const aWon=totalA>totalB;
   const bWon=totalB>totalA;
-  // 全イニングを同一テーブルで統一表示
   let ths='',rowA='',rowB='';
   for(let i=0;i<innings;i++){
     ths+=`<th>${i+1}</th>`;
@@ -3941,13 +3952,12 @@ function renderBlockTournament(block, editable=false){
   const SVG_W=36;
 
   let pcHtml=`<div class="bt-pc">`;
-  const LABEL_H=22; // bt-col-label の高さ分オフセット
+  const LABEL_H=22;
   rounds.forEach((r,ri)=>{
     const {totalH,matchYs}=layout[ri];
-    const topOffset=(maxH-totalH)/2; // このラウンドを上下中央に配置するオフセット
+    const topOffset=(maxH-totalH)/2;
     pcHtml+=`<div class="bt-col">`;
     pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
-    // bt-col-matchesは全ラウンドmaxH固定、マッチはtopOffset込みで絶対配置
     pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
     r.matches.forEach((m,mi)=>{
       const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
@@ -3963,19 +3973,21 @@ function renderBlockTournament(block, editable=false){
     // SVGコネクタ（最終ラウンド以外）
     if(ri<rounds.length-1){
       const nextLayout=layout[ri+1];
-      const svgH=LABEL_H+maxH; // ラベル高さ込みの総高さ
+      const svgH=LABEL_H+maxH;
       let paths='';
       r.matches.forEach((m,mi)=>{
         const {aWon,bWon}=getMatchInfo(m);
         const won=aWon||bWon;
-        // Y座標はLABEL_H + topOffset + matchY + マッチ中央
         const thisMidY=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi]+MATCH_H/2;
         const nextMi=Math.floor(mi/2);
         const nextMidY=LABEL_H+(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi]+MATCH_H/2;
+        // 横線の色：勝者がいれば実線、未確定は点線
         const stroke=won?'#d63384':'#cbd0e0';
         const dasharray=won?'':'4,3';
         const opacity=won?'1':'0.5';
+        // 左端から中間まで横線
         paths+=`<line x1="0" y1="${thisMidY}" x2="${SVG_W/2}" y2="${thisMidY}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${dasharray}" opacity="${opacity}"/>`;
+        // 縦線（上下の兄弟マッチを繋ぐ）
         if(mi%2===0){
           const sibMi=mi+1;
           if(sibMi<r.matches.length){
@@ -3987,8 +3999,9 @@ function renderBlockTournament(block, editable=false){
             const vopacity=(won&&sibWon)?'1':'0.5';
             paths+=`<line x1="${SVG_W/2}" y1="${thisMidY}" x2="${SVG_W/2}" y2="${sibMidY}" stroke="${vstroke}" stroke-width="1.5" stroke-dasharray="${vdash}" opacity="${vopacity}"/>`;
           }
+          // 縦線中央から右端へ
           const {aWon:saWon2,bWon:sbWon2}=r.matches[mi+1]?getMatchInfo(r.matches[mi+1]):{aWon:false,bWon:false};
-          const bothWon=won&&(saWon2||sbWon2);
+          const bothWon=(won)&&(saWon2||sbWon2);
           const hstroke=bothWon?'#d63384':'#cbd0e0';
           const hdash=bothWon?'':'4,3';
           const hopacity=bothWon?'1':'0.5';
