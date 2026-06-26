@@ -129,9 +129,9 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 
 /* ALBUM SLIDESHOW */
 .album-slideshow{display:flex;align-items:center;gap:8px;margin-top:.8rem;}
-.album-slide-wrap{flex:1;border-radius:14px;overflow:hidden;background:#f0f2f8;position:relative;}
-.album-slide-img{width:100%;height:220px;object-fit:cover;display:block;cursor:zoom-in;}
-.album-slide-info{padding:.7rem 1rem;background:#fff;border-top:1px solid #eee;border-radius:0 0 14px 14px;}
+.album-slide-wrap{flex:1;border-radius:14px;overflow:hidden;background:#111;position:relative;}
+.album-slide-img{width:100%;height:220px;object-fit:contain;display:block;cursor:zoom-in;background:#111;}
+.album-slide-info{padding:.5rem .8rem;background:#fff;border-radius:0 0 14px 14px;}
 .album-slide-title{font-size:14px;font-weight:700;color:#1a3260;}
 .album-slide-caption{font-size:12px;color:#666;margin-top:3px;}
 .album-slide-counter{font-size:11px;color:#aaa;margin-top:4px;text-align:right;}
@@ -259,7 +259,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 /* 特別協賛 固定バナー */
 .sp-fixed{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:56px;box-shadow:0 -2px 12px rgba(0,0,0,.25);}
 /* 上部バナー */
-.sp-top{position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;min-height:48px;box-shadow:0 2px 8px rgba(0,0,0,.2);max-width:none;margin:0;border-radius:0;}
+.sp-top{position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;min-height:56px;box-shadow:0 2px 12px rgba(0,0,0,.25);max-width:none;margin:0;border-radius:0;}
 .sp-fixed-badge{background:#c9a227;color:#1b2a4a;font-size:9px;font-weight:800;letter-spacing:.08em;padding:2px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0;align-self:flex-start;margin-top:2px;}
 .sp-fixed-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .sp-fixed-name{font-size:13px;font-weight:700;color:#fff;line-height:1.3;word-break:break-all;}
@@ -308,16 +308,16 @@ img.clickable-photo{cursor:zoom-in;}
 .admin-tab.on{background:#1a3260;color:#fff;border-color:#1a3260;}
 .admin-section{display:none;}
 .admin-section.on{display:block;}
-.pending-card{background:#fff;border-radius:12px;border:1px solid #e0e2ea;padding:1rem;margin-bottom:.8rem;}
+.pending-card{background:#fff;border:1px solid #e0e2ea;border-radius:8px;padding:.45rem .6rem;margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
 .pending-card.best-shot-card{border:2px solid #c9a227;background:#fffdf0;}
-.pending-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;}
-.pending-tag{font-size:10px;font-weight:700;background:#fff3cd;color:#856404;padding:3px 9px;border-radius:999px;}
-.pending-tag.msg{background:#fdf0f7;color:#993356;}
-.pending-info{font-size:13px;color:#444;line-height:1.6;}
-.pending-img{width:100%;border-radius:8px;margin:.5rem 0;max-height:200px;object-fit:cover;}
-.pending-actions{display:flex;gap:8px;margin-top:.7rem;}
-.btn-approve{flex:1;background:#1a3260;color:#fff;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer;min-height:44px;}
-.btn-reject{flex:1;background:#fff;color:#d63384;border:2px solid #f0a0c8;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer;min-height:44px;}
+.pending-card-header{display:none;}
+.pending-tag{font-size:10px;font-weight:700;background:#e8eaf6;color:#3949ab;border-radius:4px;padding:1px 5px;flex-shrink:0;}
+.pending-tag.msg{background:#e8f5e9;color:#2e7d32;}
+.pending-info{font-size:12px;color:#444;line-height:1.4;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.pending-img{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+.pending-actions{display:flex;gap:5px;flex-shrink:0;}
+.btn-approve{background:#1a3260;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-reject{background:#fff;color:#d63384;border:1.5px solid #f0a0c8;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
 .pending-count{background:#d63384;color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:4px;}
 .admin-login{max-width:320px;margin:4rem auto;background:#fff;border-radius:14px;padding:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,.1);}
 .admin-login h2{font-size:16px;font-weight:700;color:#1a3260;margin-bottom:1rem;text-align:center;}
@@ -648,6 +648,24 @@ img.clickable-photo{cursor:zoom-in;}
 <div class="page-view" id="page-donation">
 <div class="wrap" style="padding-top:.4rem;">
 
+  <!-- 活動アルバム -->
+  <div class="sc" id="albumSection" style="display:none;">
+    <div class="sl">📸 活動アルバム</div>
+    <p style="font-size:12px;color:#888;margin-bottom:1rem;">東岐波クラブの活動の様子をご覧ください。</p>
+    <div class="album-slideshow">
+      <button class="album-arrow album-prev" onclick="albumPrev()">&#8592;</button>
+      <div class="album-slide-wrap">
+        <img id="albumSlideImg" src="" alt="" class="album-slide-img clickable-photo" onclick="openLightbox(this.src)">
+        <div class="album-slide-info">
+          <div class="album-slide-title" id="albumSlideTitle"></div>
+          <div class="album-slide-caption" id="albumSlideCaption"></div>
+          <div class="album-slide-counter" id="albumSlideCounter"></div>
+        </div>
+      </div>
+      <button class="album-arrow album-next" onclick="albumNext()">&#8594;</button>
+    </div>
+  </div>
+
   <div class="sc">
     <div class="sl">寄付金メーター</div>
     <div class="dh">
@@ -683,23 +701,6 @@ img.clickable-photo{cursor:zoom-in;}
       <button class="more-btn" onclick="openModal('sponsor')">協賛企業一覧をすべて見る</button>
     </div>
 
-    <!-- 活動アルバム -->
-    <div class="sc" id="albumSection" style="display:none;">
-      <div class="sl">📸 活動アルバム</div>
-      <p style="font-size:12px;color:#888;margin-bottom:1rem;">東岐波クラブの活動の様子をご覧ください。</p>
-      <div class="album-slideshow">
-        <button class="album-arrow album-prev" onclick="albumPrev()">&#8592;</button>
-        <div class="album-slide-wrap">
-          <img id="albumSlideImg" src="" alt="" class="album-slide-img clickable-photo" onclick="openLightbox(this.src)">
-          <div class="album-slide-info">
-            <div class="album-slide-title" id="albumSlideTitle"></div>
-            <div class="album-slide-caption" id="albumSlideCaption"></div>
-            <div class="album-slide-counter" id="albumSlideCounter"></div>
-          </div>
-        </div>
-        <button class="album-arrow album-next" onclick="albumNext()">&#8594;</button>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -955,7 +956,16 @@ img.clickable-photo{cursor:zoom-in;}
           <input type="file" id="albumFile" accept="image/*" style="display:none;" onchange="updateAlbumFileName(this)">
         </div>
         <button class="ubtn" onclick="addAlbumPhoto()">追加する</button>
-        <div id="albumAddStatus" style="font-size:12px;color:#666;margin-top:.5rem;"></div>
+        <div id="albumAddStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
+      </div>
+      <div class="admin-form-card" style="margin-top:.8rem;">
+        <div class="admin-form-title">⏱ スライド切り替え間隔</div>
+        <div class="fr" style="align-items:center;gap:8px;">
+          <input type="number" id="albumIntervalInput" min="1" max="30" value="3" style="width:80px;text-align:center;">
+          <span style="font-size:13px;color:#555;">秒ごとに自動切り替え（1〜30秒）</span>
+        </div>
+        <button class="ubtn" style="margin-top:.5rem;" onclick="saveAlbumInterval()">保存する</button>
+        <div id="albumIntervalStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
       </div>
       <div class="admin-form-title" style="margin:.5rem 0 .6rem;">📋 登録済み写真（登録順）</div>
       <div id="albumAdminList"></div>
@@ -1303,57 +1313,7 @@ function animateMeter(){
   if(goalLabel) goalLabel.textContent='目標 ¥'+goal.toLocaleString('ja-JP');
 }
 // MESSAGES（宛先＋30字以内、3列で流れる）
-const CHEERS=[
-  {team:'東岐波A',name:'田中 翔太',msg:'最後まで全力で！絶対勝てる、信じてる！',from:'保護者'},
-  {team:'東岐波A',name:'山本 蓮',msg:'エースの投球、楽しみにしてます！',from:'OB'},
-  {team:'東岐波A',name:'佐藤 颯',msg:'スタンドから全力で応援するよ！',from:'保護者'},
-  {team:'東岐波A',name:'鈴木 陸斗',msg:'練習の成果を出し切ってこい！',from:'コーチ'},
-  {team:'東岐波A',name:'高橋 悠人',msg:'笑顔で楽しんでプレーしてね！',from:'OB保護者'},
-  {team:'東岐波A',name:'渡辺 大和',msg:'チームの絆で乗り越えよう！',from:'保護者'},
-  {team:'東岐波A',name:'中村 結斗',msg:'1球入魂、応援してるぞ！',from:'コーチ'},
-  {team:'東岐波A',name:'小林 陽向',msg:'バッティング絶好調！期待してる！',from:'保護者'},
-  {team:'東岐波A',name:'加藤 玲央',msg:'最高の思い出を作ろうね！',from:'保護者'},
-  {team:'東岐波A',name:'吉田 大翔',msg:'走攻守、全部見せてくれ！',from:'コーチ'},
-  {team:'東岐波A',name:'松本 駿',msg:'今までの努力は無駄じゃない！',from:'OB保護者'},
-  {team:'東岐波A',name:'伊藤 蒼',msg:'守備の要、頼りにしてます！',from:'OB'},
-  {team:'東岐波A',name:'清水 光',msg:'キャッチャーのリードに期待！',from:'保護者'},
-  {team:'東岐波A',name:'木村 空',msg:'外野から大きな声で！',from:'保護者'},
-  {team:'東岐波A',name:'林 虎太郎',msg:'50周年の大舞台、楽しんで！',from:'保護者'},
-  {team:'タイガース',name:'木下 壮',msg:'全力で楽しんでね！',from:'保護者'},
-  {team:'タイガース',name:'坂本 悠',msg:'怪我なく元気にプレーしてほしい',from:'OB'},
-  {team:'タイガース',name:'西村 太一',msg:'頑張れ！応援してるよ！',from:'保護者'},
-  {team:'タイガース',name:'森 翼',msg:'全力プレーを見せてくれ',from:'コーチ'},
-  {team:'タイガース',name:'村上 颯',msg:'チーム一丸で戦おう！',from:'OB保護者'},
-  {team:'ライオンズ',name:'斉藤 豪',msg:'50周年おめでとうございます！',from:'保護者'},
-  {team:'ライオンズ',name:'川口 輝',msg:'輝け！グラウンドの星！',from:'OB'},
-  {team:'ライオンズ',name:'上田 凛',msg:'熱い試合をありがとう！',from:'保護者'},
-  {team:'ライオンズ',name:'前田 匠',msg:'全力でいこう！',from:'コーチ'},
-  {team:'ライオンズ',name:'谷 優斗',msg:'大きく羽ばたけ！',from:'OB保護者'},
-  {team:'東岐波A',name:'田中 翔太',msg:'ピンチをチャンスに変えよう！',from:'OB'},
-  {team:'東岐波A',name:'山本 蓮',msg:'9回まで諦めないで！',from:'保護者'},
-  {team:'東岐波A',name:'佐藤 颯',msg:'みんなの笑顔が一番の応援！',from:'OB保護者'},
-  {team:'東岐波A',name:'鈴木 陸斗',msg:'全員でグラウンドを盛り上げよう！',from:'保護者'},
-  {team:'東岐波A',name:'高橋 悠人',msg:'思い切りバットを振れ！',from:'コーチ'},
-  {team:'タイガース',name:'岡本 陸',msg:'一生懸命やれば必ず伝わる！',from:'保護者'},
-  {team:'タイガース',name:'中島 蓮',msg:'勝っても負けても成長が大事！',from:'OB'},
-  {team:'タイガース',name:'藤田 海斗',msg:'元気なプレーを見せてね！',from:'保護者'},
-  {team:'ライオンズ',name:'岩崎 健',msg:'野球が大好きな気持ちを大切に！',from:'保護者'},
-  {team:'ライオンズ',name:'小山 颯',msg:'楽しんでプレーするのが一番！',from:'OB保護者'},
-  {team:'東岐波A',name:'渡辺 大和',msg:'仲間を信じて全力投球！',from:'保護者'},
-  {team:'東岐波A',name:'中村 結斗',msg:'ヒーローになれ！',from:'OB'},
-  {team:'東岐波A',name:'小林 陽向',msg:'君の笑顔が勝利の原動力！',from:'保護者'},
-  {team:'東岐波A',name:'加藤 玲央',msg:'何事も諦めないで！',from:'保護者'},
-  {team:'東岐波A',name:'吉田 大翔',msg:'東岐波魂を見せてくれ！',from:'コーチ'},
-  {team:'東岐波A',name:'松本 駿',msg:'仲間との絆は一生の宝物だよ！',from:'OB保護者'},
-  {team:'タイガース',name:'橋本 大輝',msg:'試合を楽しんでね！',from:'保護者'},
-  {team:'タイガース',name:'石田 光',msg:'光り輝くプレーを！',from:'OB'},
-  {team:'タイガース',name:'浜田 空',msg:'大きく空へ羽ばたけ！',from:'保護者'},
-  {team:'ライオンズ',name:'三浦 陽',msg:'陽のように明るくプレーしてね！',from:'保護者'},
-  {team:'ライオンズ',name:'今井 航',msg:'大空高く飛び立て！',from:'OB保護者'},
-  {team:'東岐波A',name:'清水 光',msg:'光るプレーで会場を沸かせて！',from:'OB'},
-  {team:'東岐波A',name:'木村 空',msg:'大空に向かって力強く！',from:'保護者'},
-  {team:'東岐波A',name:'林 虎太郎',msg:'虎のような粘り強さで！',from:'コーチ'},
-];
+const CHEERS=[];
 function buildCheerCol(trackId,list){
   const track=document.getElementById(trackId);
   [...list,...list].forEach(c=>{
@@ -2195,62 +2155,123 @@ async function renderAdminAll(){
 function renderPendingPhotoList(){
   const list=document.getElementById('pendingPhotoList');
   if(pendingPhotos.length===0){ list.innerHTML='<div class="admin-empty">承認待ちの写真はありません</div>'; return; }
-  list.innerHTML='';
+  let html=`<div style="margin-bottom:.5rem;display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="btn-approve" onclick="bulkApprovePhotos()">✅ 全件承認</button>
+    <button class="btn-reject" onclick="bulkRejectPhotos()">❌ 全件却下</button>
+    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedPhotos()">選択を承認</button>
+    <button class="btn-reject" onclick="bulkRejectSelectedPhotos()">選択を却下</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr style="background:#f0f2f8;"><th style="width:28px;padding:4px;"><input type="checkbox" id="photoCheckAll" onchange="toggleAllPhotoChecks(this)"></th><th style="padding:4px;text-align:left;">写真</th><th style="padding:4px;text-align:left;">賞</th><th style="padding:4px;text-align:left;">タイトル・投稿者</th><th style="padding:4px;text-align:left;">日時</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   pendingPhotos.forEach(p=>{
-    const card=document.createElement('div');
-    card.className='pending-card';
-    card.innerHTML=`
-      <div class="pending-card-header">
-        <span class="pending-tag">${catLabel[p.cat]||p.cat}</span>
-        <span style="font-size:10px;color:#aaa;">${new Date(p.submittedAt).toLocaleString('ja-JP')}</span>
-      </div>
-      ${(p.thumb && (p.thumb.startsWith('data:') || p.thumb.startsWith('http')))?`<img class="pending-img clickable-photo" src="${p.thumb}" onclick="openLightbox(this.src)">`:'<div style="font-size:40px;text-align:center;padding:.6rem 0;">📷（画像なし）</div>'}
-      <div class="pending-info"><b>${p.n}</b>（投稿者：${p.author||'-'}${p.team?`／${p.team}`:''}）</div>
-      <div class="pending-actions">
-        <button class="btn-approve" onclick="approvePhoto('${p._id}')">承認して掲載</button>
+    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="openLightbox('${p.thumb}')">`:'📷';
+    const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    html+=`<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:4px;text-align:center;"><input type="checkbox" class="photo-check" data-id="${p._id}"></td>
+      <td style="padding:4px;">${thumb}</td>
+      <td style="padding:4px;"><span class="pending-tag">${catLabel[p.cat]||p.cat}</span></td>
+      <td style="padding:4px;"><b>${p.n||'無題'}</b><br><span style="color:#888;">${p.author||'-'}${p.team?'／'+p.team:''}</span></td>
+      <td style="padding:4px;color:#aaa;white-space:nowrap;">${dt}</td>
+      <td style="padding:4px;white-space:nowrap;">
+        <button class="btn-approve" onclick="approvePhoto('${p._id}')">承認</button>
         <button class="btn-reject" onclick="rejectPhoto('${p._id}')">却下</button>
-      </div>`;
-    list.appendChild(card);
+      </td></tr>`;
   });
+  html+='</tbody></table>';
+  list.innerHTML=html;
+}
+function toggleAllPhotoChecks(cb){ document.querySelectorAll('.photo-check').forEach(c=>c.checked=cb.checked); }
+async function bulkApprovePhotos(){
+  if(!confirm('承認待ち写真を全件承認しますか？')) return;
+  for(const p of pendingPhotos){ await sb.from('photos').update({status:'approved'}).eq('id',p._id); }
+  await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
+}
+async function bulkRejectPhotos(){
+  if(!confirm('承認待ち写真を全件却下しますか？')) return;
+  for(const p of pendingPhotos){ await sb.from('photos').update({status:'rejected'}).eq('id',p._id); }
+  await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
+}
+async function bulkApproveSelectedPhotos(){
+  const ids=[...document.querySelectorAll('.photo-check:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ alert('選択されていません'); return; }
+  for(const id of ids){ await sb.from('photos').update({status:'approved'}).eq('id',id); }
+  await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
+}
+async function bulkRejectSelectedPhotos(){
+  const ids=[...document.querySelectorAll('.photo-check:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ alert('選択されていません'); return; }
+  for(const id of ids){ await sb.from('photos').update({status:'rejected'}).eq('id',id); }
+  await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
 }
 function renderPendingCheerList(){
   const list=document.getElementById('pendingCheerList');
   if(pendingCheers.length===0){ list.innerHTML='<div class="admin-empty">承認待ちのメッセージはありません</div>'; return; }
-  list.innerHTML='';
+  let html=`<div style="margin-bottom:.5rem;display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="btn-approve" onclick="bulkApproveCheers()">✅ 全件承認</button>
+    <button class="btn-reject" onclick="bulkRejectCheers()">❌ 全件却下</button>
+    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedCheers()">選択を承認</button>
+    <button class="btn-reject" onclick="bulkRejectSelectedCheers()">選択を却下</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr style="background:#f0f2f8;"><th style="width:28px;padding:4px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="padding:4px;text-align:left;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;">投稿者</th><th style="padding:4px;text-align:left;">日時</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   pendingCheers.forEach(c=>{
-    const card=document.createElement('div');
-    card.className='pending-card';
-    card.innerHTML=`
-      <div class="pending-card-header">
-        <span class="pending-tag msg">応援メッセージ</span>
-        <span style="font-size:10px;color:#aaa;">${new Date(c.submittedAt).toLocaleString('ja-JP')}</span>
-      </div>
-      <div class="pending-info"><b>${c.name} さんへ</b><br>${c.msg}<br><span style="color:#999;">${c.from} より</span></div>
-      <div class="pending-actions">
-        <button class="btn-approve" onclick="approveCheer('${c._id}')">承認して掲載</button>
+    const dt=c.submittedAt?new Date(c.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    html+=`<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:4px;text-align:center;"><input type="checkbox" class="cheer-check" data-id="${c._id}"></td>
+      <td style="padding:4px;white-space:nowrap;"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
+      <td style="padding:4px;max-width:140px;">${c.msg}</td>
+      <td style="padding:4px;white-space:nowrap;color:#888;">${c.from||''}より</td>
+      <td style="padding:4px;color:#aaa;white-space:nowrap;">${dt}</td>
+      <td style="padding:4px;white-space:nowrap;">
+        <button class="btn-approve" onclick="approveCheer('${c._id}')">承認</button>
         <button class="btn-reject" onclick="rejectCheer('${c._id}')">却下</button>
-      </div>`;
-    list.appendChild(card);
+      </td></tr>`;
   });
+  html+='</tbody></table>';
+  list.innerHTML=html;
+}
+function toggleAllCheerChecks(cb){ document.querySelectorAll('.cheer-check').forEach(c=>c.checked=cb.checked); }
+async function bulkApproveCheers(){
+  if(!confirm('承認待ちメッセージを全件承認しますか？')) return;
+  for(const c of pendingCheers){ await sb.from('messages').update({'status':'approved'}).eq('id',c._id); }
+  await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
+}
+async function bulkRejectCheers(){
+  if(!confirm('承認待ちメッセージを全件却下しますか？')) return;
+  for(const c of pendingCheers){ await sb.from('messages').delete().eq('id',c._id); }
+  await loadCheersFromSupabase(); renderAdminAll();
+}
+async function bulkApproveSelectedCheers(){
+  const ids=[...document.querySelectorAll('.cheer-check:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ alert('選択されていません'); return; }
+  for(const id of ids){ await sb.from('messages').update({'status':'approved'}).eq('id',id); }
+  await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
+}
+async function bulkRejectSelectedCheers(){
+  const ids=[...document.querySelectorAll('.cheer-check:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ alert('選択されていません'); return; }
+  for(const id of ids){ await sb.from('messages').delete().eq('id',id); }
+  await loadCheersFromSupabase(); renderAdminAll();
 }
 function renderApprovedPhotoList(){
   const list=document.getElementById('approvedPhotoList');
   if(approvedPhotosExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
-  list.innerHTML='';
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr style="background:#f0f2f8;"><th style="padding:4px;text-align:left;">写真</th><th style="padding:4px;text-align:left;">賞</th><th style="padding:4px;text-align:left;">タイトル・投稿者</th><th style="padding:4px;text-align:left;">👍</th><th style="padding:4px;text-align:left;">状態</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   approvedPhotosExtra.slice().reverse().forEach(p=>{
     const isBest=bestShots[p.cat]===p._id;
-    const card=document.createElement('div');
-    card.className='pending-card'+(isBest?' best-shot-card':'');
-    card.innerHTML=`
-      <div class="pending-card-header">
-        <span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span>
-        <span style="font-size:10px;color:#5cb87a;font-weight:700;">${isBest?'🏆 ベスト9選定中':'掲載中'}</span>
-      </div>
-      ${(p.thumb && (p.thumb.startsWith('data:') || p.thumb.startsWith('http')))?`<img class="pending-img clickable-photo" src="${p.thumb}" onclick="openLightbox(this.src)" style="opacity:${isBest?1:0.85};">`:'<div style="font-size:40px;text-align:center;padding:.6rem 0;">📷</div>'}
-      <div class="pending-info"><b>${p.n}</b>（投稿者：${p.author||'-'}${p.team?`／チーム：${p.team}`:''}） ・ いいね ${p.l||0}</div>
-      <div class="pending-actions"><button class="btn-reject" style="flex:none;padding:6px 14px;" onclick="unpublishPhoto('${p._id}')">掲載を取り下げる</button></div>`;
-    list.appendChild(card);
+    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="openLightbox('${p.thumb}')">`:'📷';
+    html+=`<tr style="border-bottom:1px solid #eee;${isBest?'background:#fffdf0;':''}">
+      <td style="padding:4px;">${thumb}</td>
+      <td style="padding:4px;"><span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span></td>
+      <td style="padding:4px;"><b>${p.n||'無題'}</b><br><span style="color:#888;">${p.author||'-'}${p.team?'／'+p.team:''}</span></td>
+      <td style="padding:4px;">${p.l||0}</td>
+      <td style="padding:4px;font-size:10px;font-weight:700;color:${isBest?'#c9a227':'#5cb87a'};">${isBest?'🏆選定中':'掲載中'}</td>
+      <td style="padding:4px;"><button class="btn-reject" onclick="unpublishPhoto('${p._id}')">取下</button></td>
+    </tr>`;
   });
+  html+='</tbody></table>';
+  list.innerHTML=html;
 }
 /* ---- ベスト9選定 管理UI ---- */
 function renderBestNineAdmin(){
@@ -2309,19 +2330,18 @@ function renderApprovedCheerList(){
   const list=document.getElementById('approvedCheerList');
   if(!list) return;
   if(approvedCheersExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みのメッセージはまだありません</div>'; return; }
-  list.innerHTML='';
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr style="background:#f0f2f8;"><th style="padding:4px;text-align:left;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;">投稿者</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   approvedCheersExtra.slice().reverse().forEach(c=>{
-    const card=document.createElement('div');
-    card.className='pending-card';
-    card.innerHTML=`
-      <div class="pending-card-header">
-        <span class="pending-tag msg">応援メッセージ</span>
-        <span style="font-size:10px;color:#5cb87a;font-weight:700;">掲載中</span>
-      </div>
-      <div class="pending-info"><b>${c.name} さんへ</b><br>${c.msg}<br><span style="color:#999;">${c.from} より</span></div>
-      <div class="pending-actions"><button class="btn-reject" style="flex:none;padding:6px 14px;" onclick="unpublishCheer('${c._id}')">掲載を取り下げる</button></div>`;
-    list.appendChild(card);
+    html+=`<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:4px;white-space:nowrap;"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
+      <td style="padding:4px;max-width:150px;">${c.msg}</td>
+      <td style="padding:4px;white-space:nowrap;color:#888;">${c.from||''}より</td>
+      <td style="padding:4px;"><button class="btn-reject" onclick="unpublishCheer('${c._id}')">取下</button></td>
+    </tr>`;
   });
+  html+='</tbody></table>';
+  list.innerHTML=html;
 }
 
 async function approvePhoto(id){
@@ -2358,14 +2378,14 @@ async function approveCheer(id){
 }
 async function rejectCheer(id){
   if(!confirm('このメッセージを却下します。よろしいですか？')) return;
-  const {error}=await sb.from('messages').update({'status':'rejected'}).eq('id',id);
+  const {error}=await sb.from('messages').delete().eq('id',id);
   if(error){ alert('却下に失敗しました：'+error.message); return; }
   await loadCheersFromSupabase();
   renderAdminAll();
 }
 async function unpublishCheer(id){
   if(!confirm('このメッセージの掲載を取り下げます。よろしいですか？')) return;
-  const {error}=await sb.from('messages').update({'status':'rejected'}).eq('id',id);
+  const {error}=await sb.from('messages').delete().eq('id',id);
   if(error){ alert('取り下げに失敗しました：'+error.message); return; }
   await loadCheersFromSupabase();
   const i=CHEERS.findIndex(c=>c._id===id);
@@ -2544,10 +2564,19 @@ async function loadAlbumFromSupabase(){
   renderAlbumAdmin();
 }
 
-function renderAlbumSlideshow(){
+let _albumTimer=null;
+let _albumInterval=3;
+
+function startAlbumTimer(){
+  if(_albumTimer) clearInterval(_albumTimer);
+  if(ALBUM_PHOTOS.length<=1) return;
+  _albumTimer=setInterval(()=>{ albumIdx=(albumIdx+1)%ALBUM_PHOTOS.length; renderAlbumSlideshow(false); },_albumInterval*1000);
+}
+
+function renderAlbumSlideshow(resetTimer=true){
   const section=document.getElementById('albumSection');
   if(!section) return;
-  if(ALBUM_PHOTOS.length===0){ section.style.display='none'; return; }
+  if(ALBUM_PHOTOS.length===0){ section.style.display='none'; if(_albumTimer){clearInterval(_albumTimer);_albumTimer=null;} return; }
   section.style.display='';
   albumIdx=Math.min(albumIdx,ALBUM_PHOTOS.length-1);
   const p=ALBUM_PHOTOS[albumIdx];
@@ -2555,17 +2584,30 @@ function renderAlbumSlideshow(){
   document.getElementById('albumSlideTitle').textContent=p.title||'';
   document.getElementById('albumSlideCaption').textContent=p.caption||'';
   document.getElementById('albumSlideCounter').textContent=(albumIdx+1)+' / '+ALBUM_PHOTOS.length;
+  if(resetTimer) startAlbumTimer();
 }
 
 function albumPrev(){
   if(ALBUM_PHOTOS.length===0) return;
   albumIdx=(albumIdx-1+ALBUM_PHOTOS.length)%ALBUM_PHOTOS.length;
-  renderAlbumSlideshow();
+  renderAlbumSlideshow(true);
 }
 function albumNext(){
   if(ALBUM_PHOTOS.length===0) return;
   albumIdx=(albumIdx+1)%ALBUM_PHOTOS.length;
-  renderAlbumSlideshow();
+  renderAlbumSlideshow(true);
+}
+
+async function saveAlbumInterval(){
+  const v=parseInt(document.getElementById('albumIntervalInput').value,10);
+  if(!v||v<1||v>30){ alert('1〜30秒の範囲で入力してください'); return; }
+  _albumInterval=v;
+  const {error}=await sb.from('settings').upsert({key:'album_interval',value:String(v)});
+  const s=document.getElementById('albumIntervalStatus');
+  if(error){ s.textContent='❌ 保存失敗：'+error.message; return; }
+  s.textContent='✅ 保存しました！';
+  setTimeout(()=>{ s.textContent=''; },3000);
+  startAlbumTimer();
 }
 
 function updateAlbumFileName(input){
@@ -2674,6 +2716,9 @@ function renderAlbumAdmin(){
   renderDonationAdmin();
   startSpBanner();
   updateDashboard();
+  // CHEERSロード後に選手カードを再描画（選手宛メッセージ反映）
+  const savedPlayers=loadLS('hk_players',null);
+  renderPlayerCards(savedPlayers&&savedPlayers.length>0?savedPlayers:DEFAULT_PLAYERS);
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
@@ -2873,6 +2918,11 @@ async function loadSettingsFromSupabase(){
     if(row.key==='photo_end')   PERIODS.photo.end  =row.value||'';
     if(row.key==='best_shots'){
       try{ bestShots=JSON.parse(row.value)||{}; }catch(e){ bestShots={}; }
+    }
+    if(row.key==='album_interval'){
+      _albumInterval=parseInt(row.value,10)||3;
+      const el=document.getElementById('albumIntervalInput');
+      if(el) el.value=_albumInterval;
     }
   });
 }
