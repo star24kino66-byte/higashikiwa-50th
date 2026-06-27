@@ -1880,29 +1880,38 @@ function renderGamesModalBlock(blockId){
     const statusBadge=g.status==='live'
       ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
       :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
-    const scoreStr=totalA!==null
-      ?`<span style="font-weight:900;font-size:14px;color:${aWon?'#f8c8e0':'#dde'}">${totalA}</span>`+
-       `<span style="color:#c9a227;margin:0 4px;font-size:11px;">-</span>`+
-       `<span style="font-weight:900;font-size:14px;color:${bWon?'#a0c8ff':'#dde'}">${totalB}</span>`
-      :'<span style="font-size:11px;color:#9fb0d0;">未実施</span>';
+    // イニングスコア行
+    let inningHtml='';
+    if(g.scoreA&&g.scoreA.length>0){
+      const innW=g.scoreA.length<=7?18:14;
+      let ths='',rowA='',rowB='';
+      for(let i=0;i<g.scoreA.length;i++){
+        ths+=`<th style="width:${innW}px;color:#666;font-size:10px;font-weight:400;text-align:center;padding:2px 0;">${i+1}</th>`;
+        rowA+=`<td style="text-align:center;font-size:11px;color:${aWon&&i===g.scoreA.length-1?'#f8c8e0':'#ccd'};padding:1px 0;">${g.scoreA[i]}</td>`;
+        rowB+=`<td style="text-align:center;font-size:11px;color:${bWon&&i===g.scoreA.length-1?'#a0c8ff':'#ccd'};padding:1px 0;">${g.scoreB[i]}</td>`;
+      }
+      inningHtml=`<div style="overflow-x:auto;margin-top:4px;">
+        <table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*innW+30}px;width:100%;">
+          <colgroup><col style="width:50px;">${Array.from({length:g.scoreA.length},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:30px;"></colgroup>
+          <thead><tr><th style="width:50px;"></th>${ths}<th style="color:#c9a227;font-size:10px;font-weight:700;text-align:right;padding-right:4px;">R</th></tr></thead>
+          <tbody>
+            <tr><td style="font-size:11px;font-weight:${aWon?700:400};color:#f8c8e0;padding:1px 0 1px 4px;">${g.teamA}</td>${rowA}<td style="font-size:16px;font-weight:900;color:${aWon?'#f8c8e0':'#dde'};text-align:right;padding-right:4px;">${totalA}</td></tr>
+            <tr><td style="font-size:11px;font-weight:${bWon?700:400};color:#a0c8ff;padding:1px 0 1px 4px;">${g.teamB}</td>${rowB}<td style="font-size:16px;font-weight:900;color:${bWon?'#a0c8ff':'#dde'};text-align:right;padding-right:4px;">${totalB}</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+    }
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0c1a30;border-radius:8px;margin-bottom:5px;';
+    row.style.cssText='background:#0c1a30;border-radius:8px;padding:8px 10px;margin-bottom:6px;';
     row.innerHTML=`
-      <div style="display:flex;flex-direction:column;gap:3px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${inningHtml?4:0}px;">
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="game-round">${g.round}</span>${statusBadge}
         </div>
-        <div style="font-size:12px;font-weight:700;color:#dde;">
-          <span style="${aWon?'color:#f8c8e0;font-weight:900;':''}">${g.teamA}</span>
-          <span style="color:#666;margin:0 4px;font-weight:400;">vs</span>
-          <span style="${bWon?'color:#a0c8ff;font-weight:900;':''}">${g.teamB}</span>
-        </div>
-        ${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:1px;">${g.note}</div>`:''}
+        <span style="font-size:10px;color:#7b8fa8;">${g.date||''}</span>
       </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div>${scoreStr}</div>
-        <div style="font-size:10px;color:#7b8fa8;margin-top:2px;">${g.date||''}</div>
-      </div>`;
+      ${inningHtml||`<div style="font-size:12px;color:#9fb0d0;padding:.4rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`}
+      ${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:4px;border-left:2px solid #c8a84b;padding-left:6px;">${g.note}</div>`:''}`;
     gWrap.appendChild(row);
   });
 }
@@ -3951,13 +3960,15 @@ function renderBlockTournament(block, editable=false){
   const COL_W=110;
   const SVG_W=36;
 
+  // LABEL_H: bt-col-label の実際の高さ（font-size:10px + margin-bottom:8px ≒ 22px）
+  const LABEL_H = 22;
   let pcHtml=`<div class="bt-pc">`;
-  const LABEL_H=22;
   rounds.forEach((r,ri)=>{
     const {totalH,matchYs}=layout[ri];
-    const topOffset=(maxH-totalH)/2;
+    const topOffset=(maxH-totalH)/2; // このラウンドの上下中央合わせオフセット
     pcHtml+=`<div class="bt-col">`;
     pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
+    // ★ 全ラウンドmaxH固定 → マッチをtopOffset込みで絶対配置
     pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
     r.matches.forEach((m,mi)=>{
       const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
@@ -3973,21 +3984,20 @@ function renderBlockTournament(block, editable=false){
     // SVGコネクタ（最終ラウンド以外）
     if(ri<rounds.length-1){
       const nextLayout=layout[ri+1];
+      // ★ SVG高さ = LABEL_H + maxH（ラベルの高さ分も含む）
       const svgH=LABEL_H+maxH;
       let paths='';
       r.matches.forEach((m,mi)=>{
         const {aWon,bWon}=getMatchInfo(m);
         const won=aWon||bWon;
+        // ★ Y座標 = LABEL_H + topOffset + matchY + マッチ中央
         const thisMidY=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi]+MATCH_H/2;
         const nextMi=Math.floor(mi/2);
         const nextMidY=LABEL_H+(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi]+MATCH_H/2;
-        // 横線の色：勝者がいれば実線、未確定は点線
         const stroke=won?'#d63384':'#cbd0e0';
         const dasharray=won?'':'4,3';
         const opacity=won?'1':'0.5';
-        // 左端から中間まで横線
         paths+=`<line x1="0" y1="${thisMidY}" x2="${SVG_W/2}" y2="${thisMidY}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${dasharray}" opacity="${opacity}"/>`;
-        // 縦線（上下の兄弟マッチを繋ぐ）
         if(mi%2===0){
           const sibMi=mi+1;
           if(sibMi<r.matches.length){
@@ -3999,15 +4009,15 @@ function renderBlockTournament(block, editable=false){
             const vopacity=(won&&sibWon)?'1':'0.5';
             paths+=`<line x1="${SVG_W/2}" y1="${thisMidY}" x2="${SVG_W/2}" y2="${sibMidY}" stroke="${vstroke}" stroke-width="1.5" stroke-dasharray="${vdash}" opacity="${vopacity}"/>`;
           }
-          // 縦線中央から右端へ
           const {aWon:saWon2,bWon:sbWon2}=r.matches[mi+1]?getMatchInfo(r.matches[mi+1]):{aWon:false,bWon:false};
-          const bothWon=(won)&&(saWon2||sbWon2);
+          const bothWon=won&&(saWon2||sbWon2);
           const hstroke=bothWon?'#d63384':'#cbd0e0';
           const hdash=bothWon?'':'4,3';
           const hopacity=bothWon?'1':'0.5';
           paths+=`<line x1="${SVG_W/2}" y1="${nextMidY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${hstroke}" stroke-width="1.5" stroke-dasharray="${hdash}" opacity="${hopacity}"/>`;
         }
       });
+      // ★ margin-top不要（SVGのY座標でLABEL_Hを吸収）
       pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
         <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${paths}</svg>
       </div>`;
@@ -4021,6 +4031,7 @@ function renderBlockTournament(block, editable=false){
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
     const svgH=LABEL_H+maxH;
+    // ★ 決勝マッチの中央Y
     const fMidY=LABEL_H+(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2;
     const stroke=winner?'#c8a84b':'#cbd0e0';
     const dash=winner?'':'4,3';
