@@ -3613,12 +3613,12 @@ function buildScoreboardHTML(g, badge=''){
     <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}${badge}</div>
     <div class="sb"><div class="sbh">★ ${g.round} ★</div>
       <div style="overflow-x:auto;">
-        <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+44}px;">
-          <colgroup><col style="min-width:60px;width:60px;">${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:8px;"><col style="width:36px;"></colgroup>
-          <thead><tr><th></th>${ths}<th class="sep"></th><th class="tr" style="text-align:center;">R</th></tr></thead>
+        <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+52}px;">
+          <colgroup><col style="min-width:60px;width:60px;">${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:8px;"><col style="width:44px;"></colgroup>
+          <thead><tr><th></th>${ths}<th class="sep"></th><th class="tr" style="text-align:center;font-size:11px;">R</th></tr></thead>
           <tbody>
-            <tr><td class="tn ta" style="${sA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA}">${totalA}</td></tr>
-            <tr><td class="tn tb" style="${sB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB}">${totalB}</td></tr>
+            <tr><td class="tn ta" style="${sA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA};text-align:center;">${totalA}</td></tr>
+            <tr><td class="tn tb" style="${sB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB};text-align:center;">${totalB}</td></tr>
           </tbody>
         </table>
       </div>
@@ -3976,7 +3976,7 @@ function renderBlockTournament(block, editable=false){
     const FLABEL_H=22;
     const svgH=FLABEL_H+maxH;
     const fMidY=FLABEL_H+(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2;
-    const champTop=(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2-24;
+    const champTop=FLABEL_H+(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2-24;
     const stroke=winner?'#c8a84b':'#cbd0e0';
     const dash=winner?'':'4,3';
     const op=winner?'1':'0.5';
