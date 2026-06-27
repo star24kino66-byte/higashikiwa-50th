@@ -221,7 +221,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .wl{animation:pl 1.4s ease-in-out infinite;}
 /* ===== トーナメント表 ===== */
 .bt-wrap{width:100%;overflow-x:auto;}
-.bt-pc{display:flex;flex-direction:row;align-items:flex-end;padding:.8rem 0;gap:0;min-width:max-content;}
+.bt-pc{display:flex;flex-direction:row;align-items:flex-start;padding:.8rem 0;gap:0;min-width:max-content;}
 .bt-col{display:flex;flex-direction:column;align-items:stretch;width:110px;flex-shrink:0;}
 .bt-col-label{font-size:10px;color:#888;margin-bottom:8px;text-align:center;font-weight:600;letter-spacing:.05em;}
 .bt-col-matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;}
@@ -948,48 +948,12 @@ img.clickable-photo{cursor:zoom-in;}
       <button class="admin-close" onclick="closeAdminPanel()">← トップへ戻る</button>
     </div>
     <div class="admin-tabs">
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">📷 フォトベスト9</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab on" onclick="switchAdminTab(this,'pendingPhotos')">未承認写真 <span class="pending-count" id="photoCount">0</span></button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'approvedPhotos')">承認済写真</button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button>
-        </div>
-      </div>
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">💬 応援メッセージ</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button>
-        </div>
-      </div>
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">⚾ 試合・トーナメント</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合管理</button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント管理</button>
-        </div>
-      </div>
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">👥 選手・大会情報</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手CSV</button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">📋 大会要綱CSV</button>
-        </div>
-      </div>
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">💰 寄付金・協賛</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button>
-          <button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button>
-        </div>
-      </div>
-      <div class="admin-tab-group">
-        <span class="admin-tab-group-label">⚙️ サイト設定</span>
-        <div class="admin-tab-group-btns">
-          <button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button>
-        </div>
-      </div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">📷 フォトベスト9</span><div class="admin-tab-group-btns"><button class="admin-tab on" onclick="switchAdminTab(this,'pendingPhotos')">未承認写真 <span class="pending-count" id="photoCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedPhotos')">承認済写真</button><button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">💬 応援メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合・トーナメント</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合管理</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント管理</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手CSV</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">📋 大会要綱CSV</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">⚙️ サイト設定</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button></div></div>
     </div>
     <div class="admin-section on" id="pendingPhotos"><div id="pendingPhotoList"></div></div>
     <div class="admin-section" id="pendingCheers"><div id="pendingCheerList"></div></div>
@@ -1873,44 +1837,26 @@ function renderGamesModalBlock(blockId){
   gWrap.innerHTML='<div style="font-size:12px;font-weight:700;color:#1a3260;margin-bottom:10px;">📋 試合結果一覧</div>';
   blockGames.forEach(g=>{
     markGameViewed(g.id);
-    const totalA=g.scoreA.length?g.scoreA.reduce((a,b)=>a+b,0):null;
-    const totalB=g.scoreB.length?g.scoreB.reduce((a,b)=>a+b,0):null;
-    const aWon=totalA!==null&&totalB!==null&&totalA>totalB;
-    const bWon=totalA!==null&&totalB!==null&&totalB>totalA;
-    const statusBadge=g.status==='live'
+    const tA=g.scoreA.length?g.scoreA.reduce((a,b)=>a+b,0):null;
+    const tB=g.scoreB.length?g.scoreB.reduce((a,b)=>a+b,0):null;
+    const aW=tA!==null&&tB!==null&&tA>tB; const bW=tA!==null&&tB!==null&&tB>tA;
+    const badge=g.status==='live'
       ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
       :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">🏁 試合終了</span>';
-    let inningHtml='';
+    let inn='';
     if(g.scoreA&&g.scoreA.length>0){
-      const innW=g.scoreA.length<=7?18:14;
-      let ths='',rowA='',rowB='';
+      const w=g.scoreA.length<=7?18:14;
+      let th='',rA='',rB='';
       for(let i=0;i<g.scoreA.length;i++){
-        ths+=`<th style="width:${innW}px;color:#666;font-size:10px;font-weight:400;text-align:center;padding:2px 0;">${i+1}</th>`;
-        rowA+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreA[i]}</td>`;
-        rowB+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreB[i]}</td>`;
+        th+=`<th style="width:${w}px;color:#666;font-size:10px;font-weight:400;text-align:center;padding:2px 0;">${i+1}</th>`;
+        rA+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreA[i]}</td>`;
+        rB+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreB[i]}</td>`;
       }
-      inningHtml=`<div style="overflow-x:auto;margin-top:4px;">
-        <table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*innW+30}px;width:100%;">
-          <colgroup><col style="width:50px;">${Array.from({length:g.scoreA.length},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:30px;"></colgroup>
-          <thead><tr><th style="width:50px;"></th>${ths}<th style="color:#c9a227;font-size:10px;font-weight:700;text-align:right;padding-right:4px;">R</th></tr></thead>
-          <tbody>
-            <tr><td style="font-size:11px;font-weight:${aWon?700:400};color:#f8c8e0;padding:1px 0 1px 4px;">${g.teamA}</td>${rowA}<td style="font-size:16px;font-weight:900;color:${aWon?'#f8c8e0':'#dde'};text-align:right;padding-right:4px;">${totalA}</td></tr>
-            <tr><td style="font-size:11px;font-weight:${bWon?700:400};color:#a0c8ff;padding:1px 0 1px 4px;">${g.teamB}</td>${rowB}<td style="font-size:16px;font-weight:900;color:${bWon?'#a0c8ff':'#dde'};text-align:right;padding-right:4px;">${totalB}</td></tr>
-          </tbody>
-        </table>
-      </div>`;
+      inn=`<div style="overflow-x:auto;margin-top:4px;"><table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*w+30}px;width:100%;"><colgroup><col style="width:50px;">${Array.from({length:g.scoreA.length},()=>`<col style="width:${w}px;">`).join('')}<col style="width:30px;"></colgroup><thead><tr><th style="width:50px;"></th>${th}<th style="color:#c9a227;font-size:10px;font-weight:700;text-align:right;padding-right:4px;">R</th></tr></thead><tbody><tr><td style="font-size:11px;font-weight:${aW?700:400};color:#f8c8e0;padding:1px 0 1px 4px;">${g.teamA}</td>${rA}<td style="font-size:16px;font-weight:900;color:${aW?'#f8c8e0':'#dde'};text-align:right;padding-right:4px;">${tA}</td></tr><tr><td style="font-size:11px;font-weight:${bW?700:400};color:#a0c8ff;padding:1px 0 1px 4px;">${g.teamB}</td>${rB}<td style="font-size:16px;font-weight:900;color:${bW?'#a0c8ff':'#dde'};text-align:right;padding-right:4px;">${tB}</td></tr></tbody></table></div>`;
     }
     const row=document.createElement('div');
     row.style.cssText='background:#0c1a30;border-radius:8px;padding:8px 10px;margin-bottom:6px;';
-    row.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${inningHtml?4:0}px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="game-round">${g.round}</span>${statusBadge}
-        </div>
-        <span style="font-size:10px;color:#7b8fa8;">${g.date||''}</span>
-      </div>
-      ${inningHtml||`<div style="font-size:12px;color:#9fb0d0;padding:.4rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`}
-      ${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:4px;border-left:2px solid #c8a84b;padding-left:6px;">${g.note}</div>`:''}`;
+    row.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${inn?4:0}px;"><div style="display:flex;align-items:center;gap:6px;"><span class="game-round">${g.round}</span>${badge}</div><span style="font-size:10px;color:#7b8fa8;">${g.date||''}</span></div>${inn||`<div style="font-size:12px;color:#9fb0d0;padding:.4rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`}${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:4px;border-left:2px solid #c8a84b;padding-left:6px;">${g.note}</div>`:''}`;
     gWrap.appendChild(row);
   });
 }
@@ -3641,8 +3587,7 @@ function buildScoreboardHTML(g, badge=''){
   const innings=g.scoreA.length;
   const totalA=g.scoreA.reduce((a,b)=>a+b,0);
   const totalB=g.scoreB.reduce((a,b)=>a+b,0);
-  const aWon=totalA>totalB;
-  const bWon=totalB>totalA;
+  const aWon=totalA>totalB; const bWon=totalB>totalA;
   let ths='',rowA='',rowB='';
   for(let i=0;i<innings;i++){
     ths+=`<th>${i+1}</th>`;
@@ -3651,25 +3596,20 @@ function buildScoreboardHTML(g, badge=''){
   }
   const styleA=aWon?'font-weight:900;':'';
   const styleB=bWon?'font-weight:900;':'';
-  const rStyleA=`font-size:22px;font-weight:900;${aWon?'color:#f8c8e0;':''}`;
-  const rStyleB=`font-size:22px;font-weight:900;${bWon?'color:#a0c8ff;':''}`;
+  const rA=`font-size:22px;font-weight:900;${aWon?'color:#f8c8e0;':''}`;
+  const rB=`font-size:22px;font-weight:900;${bWon?'color:#a0c8ff;':''}`;
   const innW=innings<=7?20:innings<=9?16:14;
   return `
     <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}${badge}</div>
     <div class="sb">
       <div class="sbh">★ ${g.round} ★</div>
       <div style="overflow-x:auto;">
-        <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+8+36}px;">
-          <colgroup>
-            <col style="min-width:60px;width:60px;">
-            ${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}
-            <col style="width:8px;">
-            <col style="width:36px;">
-          </colgroup>
+        <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+44}px;">
+          <colgroup><col style="min-width:60px;width:60px;">${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:8px;"><col style="width:36px;"></colgroup>
           <thead><tr><th></th>${ths}<th class="sep"></th><th class="tr" style="text-align:right;padding-right:6px;">R</th></tr></thead>
           <tbody>
-            <tr><td class="tn ta" style="${styleA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rStyleA}">${totalA}</td></tr>
-            <tr><td class="tn tb" style="${styleB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rStyleB}">${totalB}</td></tr>
+            <tr><td class="tn ta" style="${styleA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA}">${totalA}</td></tr>
+            <tr><td class="tn tb" style="${styleB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB}">${totalB}</td></tr>
           </tbody>
         </table>
       </div>
@@ -3959,20 +3899,15 @@ function renderBlockTournament(block, editable=false){
   const COL_W=110;
   const SVG_W=36;
 
-  // SVGとDOMを maxH で完全統一。ラベル(bt-col-label)はCSS上方に固定、
-  // bt-col-matches と bt-connector-col は同じ maxH で揃える。
-  const svgH=maxH; // SVG高さ = matches高さ = maxH で統一
   let pcHtml=`<div class="bt-pc">`;
   rounds.forEach((r,ri)=>{
     const {totalH,matchYs}=layout[ri];
-    const topOffset=(maxH-totalH)/2; // このラウンドの上下中央オフセット
+    const topOffset=(maxH-totalH)/2;
     pcHtml+=`<div class="bt-col">`;
     pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
-    // ★ bt-col-matches を全ラウンド maxH 固定
     pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
     r.matches.forEach((m,mi)=>{
       const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
-      // ★ topOffset を加算して上下中央に配置
       const top=topOffset+matchYs[mi];
       pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
         ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
@@ -3985,18 +3920,24 @@ function renderBlockTournament(block, editable=false){
     // SVGコネクタ（最終ラウンド以外）
     if(ri<rounds.length-1){
       const nextLayout=layout[ri+1];
+      const svgH=maxH;
       let paths='';
+      // 各マッチから次ラウンドのマッチへ線を引く
       r.matches.forEach((m,mi)=>{
         const {aWon,bWon}=getMatchInfo(m);
         const won=aWon||bWon;
-        // ★ Y座標は topOffset 込みで計算（SVGもmaxH基準）
+        // このマッチの中心Y（topPadを加算）
         const thisMidY=(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi]+MATCH_H/2;
+        // 次ラウンドの親マッチインデックス
         const nextMi=Math.floor(mi/2);
         const nextMidY=(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi]+MATCH_H/2;
+        // 横線の色：勝者がいれば実線、未確定は点線
         const stroke=won?'#d63384':'#cbd0e0';
         const dasharray=won?'':'4,3';
         const opacity=won?'1':'0.5';
+        // 左端から中間まで横線
         paths+=`<line x1="0" y1="${thisMidY}" x2="${SVG_W/2}" y2="${thisMidY}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${dasharray}" opacity="${opacity}"/>`;
+        // 縦線（上下の兄弟マッチを繋ぐ）
         if(mi%2===0){
           const sibMi=mi+1;
           if(sibMi<r.matches.length){
@@ -4008,16 +3949,16 @@ function renderBlockTournament(block, editable=false){
             const vopacity=(won&&sibWon)?'1':'0.5';
             paths+=`<line x1="${SVG_W/2}" y1="${thisMidY}" x2="${SVG_W/2}" y2="${sibMidY}" stroke="${vstroke}" stroke-width="1.5" stroke-dasharray="${vdash}" opacity="${vopacity}"/>`;
           }
+          // 縦線中央から右端へ
           const {aWon:saWon2,bWon:sbWon2}=r.matches[mi+1]?getMatchInfo(r.matches[mi+1]):{aWon:false,bWon:false};
-          const bothWon=won&&(saWon2||sbWon2);
+          const bothWon=(won)&&(saWon2||sbWon2);
           const hstroke=bothWon?'#d63384':'#cbd0e0';
           const hdash=bothWon?'':'4,3';
           const hopacity=bothWon?'1':'0.5';
           paths+=`<line x1="${SVG_W/2}" y1="${nextMidY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${hstroke}" stroke-width="1.5" stroke-dasharray="${hdash}" opacity="${hopacity}"/>`;
         }
       });
-      // ★ margin-top 不要。ラベルは bt-col-label で上に固定
-      pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
+      pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;margin-top:22px;">
         <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${paths}</svg>
       </div>`;
     }
@@ -4029,21 +3970,20 @@ function renderBlockTournament(block, editable=false){
     const fm=finalRound.matches[0];
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
-    // ★ 決勝マッチの中央Y（他のラウンドと同じ計算式）
+    const LABEL_H=22;
+    const svgH=maxH;
     const fMidY=(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2;
     const stroke=winner?'#c8a84b':'#cbd0e0';
     const dash=winner?'':'4,3';
     const op=winner?'1':'0.5';
-    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
-      <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">
+    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;margin-top:22px;">
+      <svg width="${SVG_W}" height="${svgH}">
         <line x1="0" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${stroke}" stroke-width="2" stroke-dasharray="${dash}" opacity="${op}"/>
       </svg>
     </div>`;
-    // ★ 優勝カップもmaxH・topOffset込みで中央配置
-    const champTop=(maxH-layout[layout.length-1].totalH)/2+(MATCH_H/2)-24;
     pcHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
-        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
+        <div style="position:absolute;top:${(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2-24}px;left:0;right:0;display:flex;justify-content:center;">
           ${winner
             ? `<div class="bt-champion">🏆<br>${winner}</div>`
             : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
