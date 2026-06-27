@@ -226,7 +226,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .bt-col-label{font-size:10px;color:#888;margin-bottom:8px;text-align:center;font-weight:600;letter-spacing:.05em;}
 .bt-col-matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;}
 .bt-match{display:flex;flex-direction:column;align-items:stretch;gap:2px;}
-.bt-connector-col{width:36px;flex-shrink:0;position:relative;margin-top:22px;}
+.bt-connector-col{width:48px;flex-shrink:0;position:relative;margin-top:22px;}
 .bt-cell{font-size:12px;padding:6px 8px;border-radius:7px;border:1px solid #dde0ea;background:#f4f6fa;color:#444;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:28px;white-space:nowrap;}
 .bt-cell.bt-won{background:#1a3260;color:#fff;border-color:#d63384;font-weight:700;}
 .bt-cell.bt-empty{background:#eef1fa;color:#bbb;border:1px dashed #cdd0dc;font-style:italic;}
@@ -3882,201 +3882,158 @@ function renderBlockTournament(block, editable=false){
     return `<div class="bt-cell${wonClass}">${display}${scoreStr}</div>`;
   }
 
-  // ---- PC横型：DOM基準SVGコネクタ ----
-  // ① まずマッチDOMを描画し、② requestAnimationFrame後にBCRでSVGを描く
-  const blockId2=block.id; // クロージャ用
-  const uid='bt_'+Math.random().toString(36).slice(2,8); // ユニークID
+  // ---- PC横型：SVGコネクタ方式 ----
+  // 各マッチの高さ定数
+  const CELL_H=30; // セル高さpx
+  const VS_H=10;   // vsの高さ
+  const MATCH_H=CELL_H*2+VS_H; // 1マッチの高さ
+  const GAP_BASE=16; // ラウンド0のマッチ間gap
 
-  // マッチHTML生成（SVGなし）
-  let colsHtml='';
+  function calcLayout(rounds){
+    // 各ラウンドの全体高さとマッチ配置Y座標を計算
+    const layout=[];
+    rounds.forEach((r,ri)=>{
+      const n=r.matches.length;
+      const gap=GAP_BASE*Math.pow(2,ri);
+      const totalH=n*MATCH_H+(n-1)*gap;
+      const matchYs=[];
+      for(let i=0;i<n;i++) matchYs.push(i*(MATCH_H+gap));
+      layout.push({n,gap,totalH,matchYs});
+    });
+    return layout;
+  }
+
+  const layout=calcLayout(rounds);
+  const maxH=layout.length>0?Math.max(...layout.map(l=>l.totalH)):MATCH_H;
+  const COL_W=110;
+  const SVG_W=48;
+
+  let pcHtml=`<div class="bt-pc">`;
   rounds.forEach((r,ri)=>{
-    colsHtml+=`<div class="bt-col" data-ri="${ri}">`;
-    colsHtml+=`<div class="bt-col-label">${r.round}</div>`;
-    colsHtml+=`<div class="bt-col-matches" style="display:flex;flex-direction:column;gap:${16*Math.pow(2,ri)}px;">`;
+    const {totalH,matchYs}=layout[ri];
+    const topOffset=(maxH-totalH)/2;
+    pcHtml+=`<div class="bt-col">`;
+    pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
+    pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
     r.matches.forEach((m,mi)=>{
       const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
-      colsHtml+=`<div class="bt-match" data-ri="${ri}" data-mi="${mi}">
+      const top=topOffset+matchYs[mi];
+      pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
         ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
         <div class="bt-vs">vs</div>
         ${teamCell(m.bottom,bWon,totalB,'bottom',block.id,r.round,mi,editable)}
       </div>`;
     });
-    colsHtml+=`</div></div>`;
+    pcHtml+=`</div></div>`;
 
-    // コネクタ列（SVGは後から挿入）
+    // SVGコネクタ（最終ラウンド以外）— 括弧型
     if(ri<rounds.length-1){
-      colsHtml+=`<div class="bt-connector-col" id="${uid}_conn_${ri}" style="width:36px;flex-shrink:0;position:relative;"></div>`;
+      const nextLayout=layout[ri+1];
+      const LABEL_H=22;
+      const svgH=LABEL_H+maxH;
+      const MX1=Math.round(SVG_W*0.35); // 個別マッチ括弧のX
+      const MX2=Math.round(SVG_W*0.72); // ペア接続のX
+      let paths='';
+      r.matches.forEach((m,mi)=>{
+        const {aWon,bWon}=getMatchInfo(m);
+        const won=aWon||bWon;
+        const matchTop=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi];
+        const topY=matchTop+CELL_H/2;       // 上チームセル中央
+        const botY=matchTop+CELL_H+VS_H+CELL_H/2; // 下チームセル中央
+        const midY=(topY+botY)/2;            // マッチ中間点
+
+        // --- 個別マッチ括弧 ---
+        const tS=aWon?'#d63384':'#cbd0e0', tD=won?(aWon?'':'4,3'):'4,3', tW=aWon?2.5:1.5;
+        const bS=bWon?'#d63384':'#cbd0e0', bD=won?(bWon?'':'4,3'):'4,3', bW=bWon?2.5:1.5;
+        const mS=won?'#d63384':'#cbd0e0', mD=won?'':'4,3', mW=won?2.5:1.5;
+        // 上チーム横線
+        paths+=`<line x1="0" y1="${topY}" x2="${MX1}" y2="${topY}" stroke="${tS}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
+        // 下チーム横線
+        paths+=`<line x1="0" y1="${botY}" x2="${MX1}" y2="${botY}" stroke="${bS}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
+        // 縦線上半分(topY→midY)
+        paths+=`<line x1="${MX1}" y1="${topY}" x2="${MX1}" y2="${midY}" stroke="${tS}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
+        // 縦線下半分(midY→botY)
+        paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX1}" y2="${botY}" stroke="${bS}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
+        // 括弧中間→ペア接続へ横線
+        paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX2}" y2="${midY}" stroke="${mS}" stroke-width="${mW}" stroke-dasharray="${mD}"/>`;
+
+        // --- ペア接続（偶数indexのみ描画） ---
+        if(mi%2===0){
+          const sibMi=mi+1;
+          if(sibMi<r.matches.length){
+            const sibM=r.matches[sibMi];
+            const {aWon:saWon,bWon:sbWon}=getMatchInfo(sibM);
+            const sibWon=saWon||sbWon;
+            const sibMatchTop=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[sibMi];
+            const sibMidY=(sibMatchTop+CELL_H/2+sibMatchTop+CELL_H+VS_H+CELL_H/2)/2;
+            const pairMidY=(midY+sibMidY)/2;
+            // ペア縦線上半分(midY→pairMidY)
+            const vtS=won?'#d63384':'#cbd0e0', vtD=won?'':'4,3', vtW=won?2.5:1.5;
+            paths+=`<line x1="${MX2}" y1="${midY}" x2="${MX2}" y2="${pairMidY}" stroke="${vtS}" stroke-width="${vtW}" stroke-dasharray="${vtD}"/>`;
+            // ペア縦線下半分(pairMidY→sibMidY)
+            const vbS=sibWon?'#d63384':'#cbd0e0', vbD=sibWon?'':'4,3', vbW=sibWon?2.5:1.5;
+            paths+=`<line x1="${MX2}" y1="${pairMidY}" x2="${MX2}" y2="${sibMidY}" stroke="${vbS}" stroke-width="${vbW}" stroke-dasharray="${vbD}"/>`;
+            // ペア中間→次ラウンドへ横線
+            const nextMi=Math.floor(mi/2);
+            const nextMatchTop=LABEL_H+(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi];
+            const nextMidY=(nextMatchTop+CELL_H/2+nextMatchTop+CELL_H+VS_H+CELL_H/2)/2;
+            const bothWon=won&&sibWon;
+            const hS=bothWon?'#d63384':'#cbd0e0', hD=bothWon?'':'4,3', hW=bothWon?2.5:1.5;
+            paths+=`<line x1="${MX2}" y1="${pairMidY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${hS}" stroke-width="${hW}" stroke-dasharray="${hD}"/>`;
+          } else {
+            // 兄弟マッチなし→直接次ラウンドへ
+            const nextMi=Math.floor(mi/2);
+            const nextMatchTop=LABEL_H+(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi];
+            const nextMidY=(nextMatchTop+CELL_H/2+nextMatchTop+CELL_H+VS_H+CELL_H/2)/2;
+            paths+=`<line x1="${MX2}" y1="${midY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${mS}" stroke-width="${mW}" stroke-dasharray="${mD}"/>`;
+          }
+        }
+      });
+      pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
+        <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${paths}</svg>
+      </div>`;
     }
   });
 
-  // 優勝枠
+  // 優勝枠 — 括弧型コネクタ
   const finalRound=rounds[rounds.length-1];
   if(finalRound&&finalRound.matches.length===1){
     const fm=finalRound.matches[0];
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
-    colsHtml+=`<div class="bt-connector-col" id="${uid}_conn_final" style="width:48px;flex-shrink:0;position:relative;"></div>`;
-    colsHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
-      <div class="bt-col-matches" id="${uid}_champ" style="display:flex;flex-direction:column;justify-content:flex-start;min-height:60px;">
-        <div id="${uid}_champ_inner" style="margin-top:0;">
+    const won=aWon||bWon;
+    const FLABEL_H=22;
+    const svgH=FLABEL_H+maxH;
+    const finalMatchTop=FLABEL_H+(maxH-layout[layout.length-1].totalH)/2+0;
+    const topY=finalMatchTop+CELL_H/2;
+    const botY=finalMatchTop+CELL_H+VS_H+CELL_H/2;
+    const fMidY=(topY+botY)/2;
+    const champTop=fMidY-FLABEL_H-24;
+    const MX1=Math.round(SVG_W*0.35);
+    // 上チーム横線
+    const tS=aWon?'#c8a84b':'#cbd0e0', tD=won?(aWon?'':'4,3'):'4,3', tW=aWon?2.5:1.5;
+    const bS=bWon?'#c8a84b':'#cbd0e0', bD=won?(bWon?'':'4,3'):'4,3', bW=bWon?2.5:1.5;
+    const mS=won?'#c8a84b':'#cbd0e0', mD=won?'':'4,3', mW=won?2.5:1.5;
+    let fPaths='';
+    fPaths+=`<line x1="0" y1="${topY}" x2="${MX1}" y2="${topY}" stroke="${tS}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
+    fPaths+=`<line x1="0" y1="${botY}" x2="${MX1}" y2="${botY}" stroke="${bS}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
+    fPaths+=`<line x1="${MX1}" y1="${topY}" x2="${MX1}" y2="${fMidY}" stroke="${tS}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
+    fPaths+=`<line x1="${MX1}" y1="${fMidY}" x2="${MX1}" y2="${botY}" stroke="${bS}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
+    fPaths+=`<line x1="${MX1}" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${mS}" stroke-width="${mW}" stroke-dasharray="${mD}"/>`;
+    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
+      <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${fPaths}</svg>
+    </div>`;
+    pcHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
+      <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
+        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
           ${winner
-            ?`<div class="bt-champion">🏆<br>${winner}</div>`
-            :`<div class="bt-cell bt-empty" style="font-size:11px;">優勝待ち</div>`
+            ? `<div class="bt-champion">🏆<br>${winner}</div>`
+            : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
           }
         </div>
       </div></div>`;
   }
-
-  const pcHtml=`<div class="bt-pc" id="${uid}">${colsHtml}</div>`;
-
-  // ③ DOM描画後にBCR基準でSVGを差し込む関数
-  function drawConnectors(){
-    const root=document.getElementById(uid);
-    if(!root) return;
-
-    rounds.forEach((r,ri)=>{
-      if(ri>=rounds.length-1) return;
-      const connEl=document.getElementById(`${uid}_conn_${ri}`);
-      if(!connEl) return;
-
-      const connRect=connEl.getBoundingClientRect();
-      const colEl=root.querySelector(`.bt-col[data-ri="${ri}"]`);
-      connEl.style.height=`${colEl?.offsetHeight||100}px`;
-      const svgH=connEl.offsetHeight;
-      const svgW=connEl.offsetWidth||36;
-      const midX=svgW/2;
-
-      // ベース線と勝者線を分けて描画（ベースを先に描いて勝者線を上に重ねる）
-      let basePaths='';
-      let winPaths='';
-
-      for(let mi=0;mi<r.matches.length;mi+=2){
-        const mTop=r.matches[mi];
-        const mBot=r.matches[mi+1];
-
-        // 全セルのY座標を取得（勝者に関係なく全チームから線を引く）
-        const getY=(ri2,mi2,cellIdx)=>{
-          const els=root.querySelectorAll(`.bt-match[data-ri="${ri2}"][data-mi="${mi2}"]`);
-          if(!els.length) return null;
-          const cells=els[0].querySelectorAll('.bt-cell');
-          const cell=cells[cellIdx];
-          if(!cell) return null;
-          const bcr=cell.getBoundingClientRect();
-          return bcr.top+bcr.height/2-connRect.top;
-        };
-
-        const topTopY=getY(ri,mi,0);       // 上マッチの上チームY
-        const topBotY=getY(ri,mi,1);       // 上マッチの下チームY (=勝者になりうる側)
-        const botTopY=mBot?getY(ri,mi+1,0):null; // 下マッチの上チームY
-        const botBotY=mBot?getY(ri,mi+1,1):null; // 下マッチの下チームY
-
-        if(topTopY===null||topBotY===null) continue;
-
-        // 次ラウンドの対応マッチの上・下セルY
-        const nextMi=Math.floor(mi/2);
-        const nextTopY=getY(ri+1,nextMi,0);
-        const nextBotY=getY(ri+1,nextMi,1);
-        if(nextTopY===null) continue;
-
-        // 上マッチの縦の中間X
-        // 全チームから横線→縦線→次ラウンドへ の構造
-
-        // ===== ベース線（細い灰色、全ルート） =====
-        // 上マッチ: 上チーム→midX
-        basePaths+=`<line x1="0" y1="${topTopY}" x2="${midX}" y2="${topTopY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-        // 上マッチ: 下チーム→midX
-        basePaths+=`<line x1="0" y1="${topBotY}" x2="${midX}" y2="${topBotY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-        // 上マッチの縦線（上チームと下チームをmidXで結ぶ）
-        basePaths+=`<line x1="${midX}" y1="${topTopY}" x2="${midX}" y2="${topBotY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-        // midX→次ラウンド上セル
-        basePaths+=`<line x1="${midX}" y1="${nextTopY}" x2="${svgW}" y2="${nextTopY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-
-        if(mBot&&botTopY!==null&&botBotY!==null&&nextBotY!==null){
-          // 下マッチ: 上チーム→midX
-          basePaths+=`<line x1="0" y1="${botTopY}" x2="${midX}" y2="${botTopY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-          // 下マッチ: 下チーム→midX
-          basePaths+=`<line x1="0" y1="${botBotY}" x2="${midX}" y2="${botBotY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-          // 下マッチの縦線
-          basePaths+=`<line x1="${midX}" y1="${botTopY}" x2="${midX}" y2="${botBotY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-          // midX→次ラウンド下セル
-          basePaths+=`<line x1="${midX}" y1="${nextBotY}" x2="${svgW}" y2="${nextBotY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-        }
-
-        // ===== 勝者線（赤い太線） =====
-        const {aWon:ta,bWon:tb}=getMatchInfo(mTop);
-        if(ta){
-          // 上チームが勝者→上チームのY
-          winPaths+=`<line x1="0" y1="${topTopY}" x2="${midX}" y2="${topTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          winPaths+=`<line x1="${midX}" y1="${topTopY}" x2="${midX}" y2="${nextTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          winPaths+=`<line x1="${midX}" y1="${nextTopY}" x2="${svgW}" y2="${nextTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-        } else if(tb){
-          // 下チームが勝者
-          winPaths+=`<line x1="0" y1="${topBotY}" x2="${midX}" y2="${topBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          winPaths+=`<line x1="${midX}" y1="${topBotY}" x2="${midX}" y2="${nextTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          winPaths+=`<line x1="${midX}" y1="${nextTopY}" x2="${svgW}" y2="${nextTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-        }
-
-        if(mBot&&nextBotY!==null){
-          const {aWon:ba,bWon:bb}=getMatchInfo(mBot);
-          if(ba&&botTopY!==null){
-            winPaths+=`<line x1="0" y1="${botTopY}" x2="${midX}" y2="${botTopY}" stroke="#e8003a" stroke-width="2.5"/>`;
-            winPaths+=`<line x1="${midX}" y1="${botTopY}" x2="${midX}" y2="${nextBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-            winPaths+=`<line x1="${midX}" y1="${nextBotY}" x2="${svgW}" y2="${nextBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          } else if(bb&&botBotY!==null){
-            winPaths+=`<line x1="0" y1="${botBotY}" x2="${midX}" y2="${botBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-            winPaths+=`<line x1="${midX}" y1="${botBotY}" x2="${midX}" y2="${nextBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-            winPaths+=`<line x1="${midX}" y1="${nextBotY}" x2="${svgW}" y2="${nextBotY}" stroke="#e8003a" stroke-width="2.5"/>`;
-          }
-        }
-      }
-
-      connEl.innerHTML=`<svg width="${svgW}" height="${svgH}" style="position:absolute;top:0;left:0;overflow:visible;">${basePaths}${winPaths}</svg>`;
-    });
-
-    // 優勝コネクタ
-    const finalConnEl=document.getElementById(`${uid}_conn_final`);
-    const champEl=document.getElementById(`${uid}_champ`);
-    if(finalConnEl&&champEl&&rounds.length>0){
-      const lastRound=rounds[rounds.length-1];
-      if(lastRound.matches.length===1){
-        const fm2=lastRound.matches[0];
-        const {aWon:fa,bWon:fb}=getMatchInfo(fm2);
-        const connRect2=finalConnEl.getBoundingClientRect();
-        const matchEls=root.querySelectorAll(`.bt-match[data-ri="${rounds.length-1}"][data-mi="0"]`);
-        if(matchEls.length){
-          const cells=matchEls[0].querySelectorAll('.bt-cell');
-          // 勝者のセルY（勝者がいれば勝者側、いなければ下セル）
-          const winCell=fa?cells[0]:fb?cells[cells.length-1]:cells[cells.length-1];
-          if(winCell){
-            const bcr=winCell.getBoundingClientRect();
-            const fMidY=bcr.top+bcr.height/2-connRect2.top;
-            const won=fa||fb;
-            const svgW2=finalConnEl.offsetWidth||48;
-            finalConnEl.style.height=`${root.querySelector(`.bt-col[data-ri="${rounds.length-1}"]`)?.offsetHeight||100}px`;
-            let fPaths=`<line x1="0" y1="${fMidY}" x2="${svgW2}" y2="${fMidY}" stroke="#c8d0e0" stroke-width="1" opacity="0.8"/>`;
-            if(won) fPaths+=`<line x1="0" y1="${fMidY}" x2="${svgW2}" y2="${fMidY}" stroke="#e8003a" stroke-width="2.5"/>`;
-            finalConnEl.innerHTML=`<svg width="${svgW2}" height="${finalConnEl.offsetHeight}" style="position:absolute;top:0;left:0;overflow:visible;">${fPaths}</svg>`;
-            const champInner=document.getElementById(`${uid}_champ_inner`);
-            if(champInner){
-              const champH=champInner.offsetHeight||48;
-              champInner.style.marginTop=`${Math.max(0,fMidY-champH/2)}px`;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  setTimeout(()=>{
-    drawConnectors();
-    // editable時はmutationObserverで再描画
-    if(editable){
-      const root=document.getElementById(uid);
-      if(root){
-        new ResizeObserver(()=>drawConnectors()).observe(root);
-      }
-    }
-  },50);
+  pcHtml+=`</div>`;
 
   let spHtml=`<div class="bt-sp">`;
   rounds.forEach((r,ri)=>{
@@ -4094,9 +4051,8 @@ function renderBlockTournament(block, editable=false){
     });
     spHtml+=`</div>`;
   });
-  const finalRoundSp=rounds[rounds.length-1];
-  if(finalRoundSp&&finalRoundSp.matches.length===1){
-    const fm=finalRoundSp.matches[0];
+  if(finalRound&&finalRound.matches.length===1){
+    const fm=finalRound.matches[0];
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
     if(winner){
