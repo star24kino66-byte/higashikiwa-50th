@@ -1554,7 +1554,27 @@ function renderBest9Grid(){
   wrap.appendChild(grid2);
   el.appendChild(wrap);
 }
-function tl(tab,i){const k=tab+'_'+i;if(liked[k]) return;liked[k]=true;PH[tab][i].l++;rp();}
+// いいね済みIDをlocalStorageで管理（リロード後も重複防止）
+function getLikedIds(){try{return JSON.parse(localStorage.getItem('hk_liked')||'[]');}catch{return[];}}
+function addLikedId(id){try{const a=getLikedIds();if(!a.includes(id)){a.push(id);localStorage.setItem('hk_liked',JSON.stringify(a));}}catch{}}
+
+async function tl(tab,i){
+  const p=PH[tab][i];
+  if(!p) return;
+  const k=tab+'_'+i;
+  if(liked[k]) return; // 既にいいね済み
+  if(p._id && getLikedIds().includes(p._id)) return; // リロード後も重複防止
+  // 楽観的UI更新
+  liked[k]=true;
+  p.l++;
+  rp();
+  // Supabase RPCでインクリメント
+  if(p._id){
+    addLikedId(p._id);
+    const {error}=await sb.rpc('increment_likes',{row_id: p._id});
+    if(error) console.warn('いいね保存エラー:',error.message);
+  }
+}
 function swTab(el,tab){document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));el.classList.add('on');ct=tab;rp();}
 // 初期化はすべてのJS定義完了後（DOMContentLoaded）に実行
 document.addEventListener('DOMContentLoaded', function(){
@@ -1839,7 +1859,7 @@ function renderGamesModalBlock(blockId){
     markGameViewed(g.id);
     const tA=g.scoreA.length?g.scoreA.reduce((a,b)=>a+b,0):null;
     const tB=g.scoreB.length?g.scoreB.reduce((a,b)=>a+b,0):null;
-    const aW=tA!==null&&tB!==null&&tA>tB; const bW=tA!==null&&tB!==null&&tB>tA;
+    const aW=tA!==null&&tB!==null&&tA>tB; const bW=tB!==null&&tA!==null&&tB>tA;
     const badge=g.status==='live'
       ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
       :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">🏁 試合終了</span>';
@@ -1969,6 +1989,13 @@ function mergeApproved(){
         _id:p._id
       });
     }
+  });
+  // localStorageのいいね済みIDをlikedオブジェクトに復元
+  const likedIds=getLikedIds();
+  Object.entries(PH).forEach(([tab,photos])=>{
+    photos.forEach((ph,i)=>{
+      if(ph._id && likedIds.includes(ph._id)) liked[tab+'_'+i]=true;
+    });
   });
   approvedCheersExtra.forEach(c=>{
     if(!CHEERS.some(x=>x._id===c._id)){
@@ -3590,26 +3617,22 @@ function buildScoreboardHTML(g, badge=''){
   const aWon=totalA>totalB; const bWon=totalB>totalA;
   let ths='',rowA='',rowB='';
   for(let i=0;i<innings;i++){
-    ths+=`<th>${i+1}</th>`;
-    rowA+=`<td>${g.scoreA[i]}</td>`;
-    rowB+=`<td>${g.scoreB[i]}</td>`;
+    ths+=`<th>${i+1}</th>`;rowA+=`<td>${g.scoreA[i]}</td>`;rowB+=`<td>${g.scoreB[i]}</td>`;
   }
-  const styleA=aWon?'font-weight:900;':'';
-  const styleB=bWon?'font-weight:900;':'';
+  const sA=aWon?'font-weight:900;':''; const sB=bWon?'font-weight:900;':'';
   const rA=`font-size:22px;font-weight:900;${aWon?'color:#f8c8e0;':''}`;
   const rB=`font-size:22px;font-weight:900;${bWon?'color:#a0c8ff;':''}`;
   const innW=innings<=7?20:innings<=9?16:14;
   return `
     <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}${badge}</div>
-    <div class="sb">
-      <div class="sbh">★ ${g.round} ★</div>
+    <div class="sb"><div class="sbh">★ ${g.round} ★</div>
       <div style="overflow-x:auto;">
         <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+44}px;">
           <colgroup><col style="min-width:60px;width:60px;">${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:8px;"><col style="width:36px;"></colgroup>
           <thead><tr><th></th>${ths}<th class="sep"></th><th class="tr" style="text-align:right;padding-right:6px;">R</th></tr></thead>
           <tbody>
-            <tr><td class="tn ta" style="${styleA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA}">${totalA}</td></tr>
-            <tr><td class="tn tb" style="${styleB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB}">${totalB}</td></tr>
+            <tr><td class="tn ta" style="${sA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA}">${totalA}</td></tr>
+            <tr><td class="tn tb" style="${sB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB}">${totalB}</td></tr>
           </tbody>
         </table>
       </div>
@@ -3977,13 +4000,14 @@ function renderBlockTournament(block, editable=false){
     const dash=winner?'':'4,3';
     const op=winner?'1':'0.5';
     pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;margin-top:22px;">
-      <svg width="${SVG_W}" height="${svgH}">
+      <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">
         <line x1="0" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${stroke}" stroke-width="2" stroke-dasharray="${dash}" opacity="${op}"/>
       </svg>
     </div>`;
+    const champTopPx=(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2-24;
     pcHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
-        <div style="position:absolute;top:${(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2-24}px;left:0;right:0;display:flex;justify-content:center;">
+        <div style="position:absolute;top:${champTopPx}px;left:0;right:0;display:flex;justify-content:center;">
           ${winner
             ? `<div class="bt-champion">🏆<br>${winner}</div>`
             : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
