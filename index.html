@@ -221,7 +221,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .wl{animation:pl 1.4s ease-in-out infinite;}
 /* ===== トーナメント表 ===== */
 .bt-wrap{width:100%;overflow-x:auto;}
-.bt-pc{display:flex;flex-direction:row;align-items:flex-start;padding:.8rem 0;gap:0;min-width:max-content;}
+.bt-pc{display:flex;flex-direction:row;align-items:flex-end;padding:.8rem 0;gap:0;min-width:max-content;}
 .bt-col{display:flex;flex-direction:column;align-items:stretch;width:110px;flex-shrink:0;}
 .bt-col-label{font-size:10px;color:#888;margin-bottom:8px;text-align:center;font-weight:600;letter-spacing:.05em;}
 .bt-col-matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;}
@@ -1152,7 +1152,7 @@ img.clickable-photo{cursor:zoom-in;}
           <div style="font-size:12px;color:#555;padding:6px 0;flex:1;">ステータス：</div>
           <select id="gStatus" style="flex:2;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
             <option value="live">📡 速報中（試合中）</option>
-            <option value="done">✅ 完了</option>
+            <option value="done">🏁 試合終了</option>
           </select>
         </div>
         <button class="ubtn" id="gameSubmitBtn" onclick="addGame()">試合結果を登録</button>
@@ -1879,16 +1879,15 @@ function renderGamesModalBlock(blockId){
     const bWon=totalA!==null&&totalB!==null&&totalB>totalA;
     const statusBadge=g.status==='live'
       ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">📡 速報中</span>'
-      :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">✅ 完了</span>';
-    // イニングスコア行
+      :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">🏁 試合終了</span>';
     let inningHtml='';
     if(g.scoreA&&g.scoreA.length>0){
       const innW=g.scoreA.length<=7?18:14;
       let ths='',rowA='',rowB='';
       for(let i=0;i<g.scoreA.length;i++){
         ths+=`<th style="width:${innW}px;color:#666;font-size:10px;font-weight:400;text-align:center;padding:2px 0;">${i+1}</th>`;
-        rowA+=`<td style="text-align:center;font-size:11px;color:${aWon&&i===g.scoreA.length-1?'#f8c8e0':'#ccd'};padding:1px 0;">${g.scoreA[i]}</td>`;
-        rowB+=`<td style="text-align:center;font-size:11px;color:${bWon&&i===g.scoreA.length-1?'#a0c8ff':'#ccd'};padding:1px 0;">${g.scoreB[i]}</td>`;
+        rowA+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreA[i]}</td>`;
+        rowB+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreB[i]}</td>`;
       }
       inningHtml=`<div style="overflow-x:auto;margin-top:4px;">
         <table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*innW+30}px;width:100%;">
@@ -3624,7 +3623,7 @@ function renderLatestScoreboard(){
     if(g.scoreA&&g.scoreA.length>0){
       const badge=g.status==='live'
         ?'<span style="background:#d63384;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">📡 速報中</span>'
-        :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">✅ 完了</span>';
+        :'<span style="background:#28a745;color:#fff;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">🏁 試合終了</span>';
       return buildScoreboardHTML(g, badge);
     }
     return `<div class="sb" style="margin-bottom:8px;">
@@ -3960,18 +3959,20 @@ function renderBlockTournament(block, editable=false){
   const COL_W=110;
   const SVG_W=36;
 
-  // LABEL_H: bt-col-label の実際の高さ（font-size:10px + margin-bottom:8px ≒ 22px）
-  const LABEL_H = 22;
+  // SVGとDOMを maxH で完全統一。ラベル(bt-col-label)はCSS上方に固定、
+  // bt-col-matches と bt-connector-col は同じ maxH で揃える。
+  const svgH=maxH; // SVG高さ = matches高さ = maxH で統一
   let pcHtml=`<div class="bt-pc">`;
   rounds.forEach((r,ri)=>{
     const {totalH,matchYs}=layout[ri];
-    const topOffset=(maxH-totalH)/2; // このラウンドの上下中央合わせオフセット
+    const topOffset=(maxH-totalH)/2; // このラウンドの上下中央オフセット
     pcHtml+=`<div class="bt-col">`;
     pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
-    // ★ 全ラウンドmaxH固定 → マッチをtopOffset込みで絶対配置
+    // ★ bt-col-matches を全ラウンド maxH 固定
     pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
     r.matches.forEach((m,mi)=>{
       const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
+      // ★ topOffset を加算して上下中央に配置
       const top=topOffset+matchYs[mi];
       pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
         ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
@@ -3984,16 +3985,14 @@ function renderBlockTournament(block, editable=false){
     // SVGコネクタ（最終ラウンド以外）
     if(ri<rounds.length-1){
       const nextLayout=layout[ri+1];
-      // ★ SVG高さ = LABEL_H + maxH（ラベルの高さ分も含む）
-      const svgH=LABEL_H+maxH;
       let paths='';
       r.matches.forEach((m,mi)=>{
         const {aWon,bWon}=getMatchInfo(m);
         const won=aWon||bWon;
-        // ★ Y座標 = LABEL_H + topOffset + matchY + マッチ中央
-        const thisMidY=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi]+MATCH_H/2;
+        // ★ Y座標は topOffset 込みで計算（SVGもmaxH基準）
+        const thisMidY=(maxH-layout[ri].totalH)/2+layout[ri].matchYs[mi]+MATCH_H/2;
         const nextMi=Math.floor(mi/2);
-        const nextMidY=LABEL_H+(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi]+MATCH_H/2;
+        const nextMidY=(maxH-nextLayout.totalH)/2+nextLayout.matchYs[nextMi]+MATCH_H/2;
         const stroke=won?'#d63384':'#cbd0e0';
         const dasharray=won?'':'4,3';
         const opacity=won?'1':'0.5';
@@ -4001,7 +4000,7 @@ function renderBlockTournament(block, editable=false){
         if(mi%2===0){
           const sibMi=mi+1;
           if(sibMi<r.matches.length){
-            const sibMidY=LABEL_H+(maxH-layout[ri].totalH)/2+layout[ri].matchYs[sibMi]+MATCH_H/2;
+            const sibMidY=(maxH-layout[ri].totalH)/2+layout[ri].matchYs[sibMi]+MATCH_H/2;
             const {aWon:saWon,bWon:sbWon}=getMatchInfo(r.matches[sibMi]);
             const sibWon=saWon||sbWon;
             const vstroke=(won&&sibWon)?'#d63384':'#cbd0e0';
@@ -4017,7 +4016,7 @@ function renderBlockTournament(block, editable=false){
           paths+=`<line x1="${SVG_W/2}" y1="${nextMidY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${hstroke}" stroke-width="1.5" stroke-dasharray="${hdash}" opacity="${hopacity}"/>`;
         }
       });
-      // ★ margin-top不要（SVGのY座標でLABEL_Hを吸収）
+      // ★ margin-top 不要。ラベルは bt-col-label で上に固定
       pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
         <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${paths}</svg>
       </div>`;
@@ -4030,9 +4029,8 @@ function renderBlockTournament(block, editable=false){
     const fm=finalRound.matches[0];
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
-    const svgH=LABEL_H+maxH;
-    // ★ 決勝マッチの中央Y
-    const fMidY=LABEL_H+(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2;
+    // ★ 決勝マッチの中央Y（他のラウンドと同じ計算式）
+    const fMidY=(maxH-layout[layout.length-1].totalH)/2+MATCH_H/2;
     const stroke=winner?'#c8a84b':'#cbd0e0';
     const dash=winner?'':'4,3';
     const op=winner?'1':'0.5';
@@ -4041,12 +4039,16 @@ function renderBlockTournament(block, editable=false){
         <line x1="0" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${stroke}" stroke-width="2" stroke-dasharray="${dash}" opacity="${op}"/>
       </svg>
     </div>`;
+    // ★ 優勝カップもmaxH・topOffset込みで中央配置
+    const champTop=(maxH-layout[layout.length-1].totalH)/2+(MATCH_H/2)-24;
     pcHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
-      <div class="bt-col-matches" style="height:${maxH}px;display:flex;align-items:center;justify-content:center;">
-        ${winner
-          ? `<div class="bt-champion">🏆<br>${winner}</div>`
-          : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
-        }
+      <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
+        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
+          ${winner
+            ? `<div class="bt-champion">🏆<br>${winner}</div>`
+            : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
+          }
+        </div>
       </div></div>`;
   }
   pcHtml+=`</div>`;
@@ -4230,7 +4232,7 @@ function renderGameAdmin(){
       <div class="pending-card-header">
         <span class="pending-tag">${g.round}</span>
         <span style="font-size:10px;color:#aaa;">${g.date}</span>
-        ${g.status==='live'?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">📡 速報中</span>':'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">✅ 完了</span>'}
+        ${g.status==='live'?'<span style="background:#d63384;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">📡 速報中</span>':'<span style="background:#28a745;color:#fff;font-size:10px;padding:1px 7px;border-radius:99px;">🏁 試合終了</span>'}
         ${isEditing?'<span style="font-size:10px;color:#1a3260;font-weight:700;">編集中</span>':''}
       </div>
       <div class="pending-info" style="font-size:14px;font-weight:700;margin:.3rem 0;">
