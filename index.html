@@ -3892,14 +3892,30 @@ function renderBlockTournament(block, editable=false){
   function calcLayout(rounds){
     // 各ラウンドの全体高さとマッチ配置Y座標を計算
     const layout=[];
-    rounds.forEach((r,ri)=>{
-      const n=r.matches.length;
-      const gap=GAP_BASE*Math.pow(2,ri);
-      const totalH=n*MATCH_H+(n-1)*gap;
+    // Round 0: 固定gap
+    const n0=rounds[0].matches.length;
+    const gap0=GAP_BASE;
+    const totalH0=n0*MATCH_H+(n0-1)*gap0;
+    const matchYs0=[];
+    for(let i=0;i<n0;i++) matchYs0.push(i*(MATCH_H+gap0));
+    layout.push({n:n0,gap:gap0,totalH:totalH0,matchYs:matchYs0});
+    // 後続ラウンド: 各マッチを前ラウンドの2マッチの中間に配置
+    for(let ri=1;ri<rounds.length;ri++){
+      const prev=layout[ri-1];
+      const n=rounds[ri].matches.length;
       const matchYs=[];
-      for(let i=0;i<n;i++) matchYs.push(i*(MATCH_H+gap));
-      layout.push({n,gap,totalH,matchYs});
-    });
+      for(let mi=0;mi<n;mi++){
+        const p0=2*mi, p1=2*mi+1;
+        if(p1<prev.n){
+          const midY0=prev.matchYs[p0]+MATCH_H/2;
+          const midY1=prev.matchYs[p1]+MATCH_H/2;
+          matchYs.push((midY0+midY1)/2-MATCH_H/2);
+        } else {
+          matchYs.push(prev.matchYs[p0]);
+        }
+      }
+      layout.push({n,gap:0,totalH:totalH0,matchYs});
+    }
     return layout;
   }
 
@@ -4036,7 +4052,7 @@ function renderBlockTournament(block, editable=false){
     const won=aWon||bWon;
     const FLABEL_H=0;
     const svgH=maxH;
-    const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+0;
+    const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+layout[layout.length-1].matchYs[0];
     const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
     const champTop=fMidY-30;
     const mCol=won?'#d63384':'#a0a8b8';
