@@ -145,7 +145,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .donor-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:9px 0;margin-bottom:8px;}
 .sponsor-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f6f7fb;padding:9px 0;}
 .donor-row-track{display:flex;gap:8px;width:max-content;}
-.donor-row-track.scroll-left{animation:scrollLeft 26s linear infinite;}
+.donor-row-track.scroll-left{animation:scrollLeft 26s linear infinite;will-change:transform;}
 .donor-row-track.scroll-left.slow{animation-duration:32s;}
 @keyframes scrollLeft{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 @keyframes scrollUp{0%{transform:translateY(0);}100%{transform:translateY(-50%);}}
@@ -246,7 +246,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 /* MESSAGES */
 .cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;}
 .cheer-track{display:flex;gap:7px;width:max-content;padding:0 6px;}
-.cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;}
+.cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;will-change:transform;}
 .cheer-track.scroll-left.s2{animation-duration:24s;}
 .cheer-track.scroll-left.s3{animation-duration:34s;}
 .cheer-card{background:#fff;border:1px solid #eee;border-left:3px solid #d63384;border-radius:8px;padding:7px 9px;flex-shrink:0;min-width:190px;max-width:220px;}
