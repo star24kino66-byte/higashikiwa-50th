@@ -4034,12 +4034,12 @@ function renderBlockTournament(block, editable=false){
     const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+0;
     const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
     const champTop=fMidY-24;
-    const mCol=won?'#c8a84b':'#a0a8b8';
+    const mCol=won?'#d63384':'#a0a8b8';
     const mW=won?2.5:1.5;
     const mD=won?'':'4,3';
-    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${Math.round(SVG_W*0.5)}px;">
-      <svg width="${Math.round(SVG_W*0.5)}" height="${svgH}" style="overflow:visible;">
-        <line x1="0" y1="${fMidY}" x2="${Math.round(SVG_W*0.5)}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
+    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
+      <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">
+        <line x1="0" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
       </svg>
     </div>`;
     pcHtml+=`<div class="bt-col">
