@@ -3915,7 +3915,6 @@ function renderBlockTournament(block, editable=false){
     if(ri===0){
       // 1回戦のみ：チーム名だけ表示（スコア・vs・ラベル不要）
       pcHtml+=`<div class="bt-col">`;
-      pcHtml+=`<div class="bt-col-label"></div>`;
       pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
       r.matches.forEach((m,mi)=>{
         const {aWon,bWon}=getMatchInfo(m);
@@ -3945,8 +3944,8 @@ function renderBlockTournament(block, editable=false){
     // SVGコネクタ（最終ラウンド以外）— 括弧型
     if(ri<rounds.length-1){
       const nextLayout=layout[ri+1];
-      const LABEL_H=22;
-      const svgH=LABEL_H+maxH;
+      const LABEL_H=0;
+      const svgH=maxH;
       const MX1=Math.round(SVG_W*0.40); // 個別マッチ括弧のX
       const MX2=Math.round(SVG_W*0.78); // ペア接続のX
       const WIN='#d63384', LOSE='#a0a8b8', WW=2.5, LW=1.5;
@@ -4030,11 +4029,11 @@ function renderBlockTournament(block, editable=false){
     const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
     const won=aWon||bWon;
-    const FLABEL_H=22;
-    const svgH=FLABEL_H+maxH;
-    const finalMatchTop=FLABEL_H+(maxH-layout[layout.length-1].totalH)/2+0;
+    const FLABEL_H=0;
+    const svgH=maxH;
+    const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+0;
     const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
-    const champTop=fMidY-FLABEL_H-24;
+    const champTop=fMidY-24;
     const mCol=won?'#c8a84b':'#a0a8b8';
     const mW=won?2.5:1.5;
     const mD=won?'':'4,3';
@@ -4043,7 +4042,7 @@ function renderBlockTournament(block, editable=false){
         <line x1="0" y1="${fMidY}" x2="${Math.round(SVG_W*0.5)}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
       </svg>
     </div>`;
-    pcHtml+=`<div class="bt-col"><div class="bt-col-label"></div>
+    pcHtml+=`<div class="bt-col">
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
         <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
           ${winner
