@@ -1593,7 +1593,7 @@ function buildDonorRow(trackId,list){
   [...list,...list].forEach(d=>{
     const card=document.createElement('div');
     card.className='donor-card';
-    card.innerHTML=`<span class="dc-icon">${esc(d.icon)}</span><div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div>`;
+    card.innerHTML=`<div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div>`;
     track.appendChild(card);
   });
 }
@@ -1626,7 +1626,7 @@ function rebuildSponsorRow(){
     const col=colors[i%colors.length];
     const d=document.createElement('div');
     d.className='sponsor-card';
-    d.innerHTML=`<div class="sponsor-logo" style="background:${col.bg};color:${col.c};">${esc(s.name.slice(0,2))}</div><div><span class="sponsor-name">${esc(s.name)}</span><span class="sponsor-msg">${esc(s.note)||'ご協賛ありがとうございます。'}</span></div>`;
+    d.innerHTML=`<div><span class="sponsor-name">${esc(s.name)}</span><span class="sponsor-msg">${esc(s.note)||'ご協賛ありがとうございます。'}</span></div>`;
     sponsorTrack.appendChild(d);
   });
 }
