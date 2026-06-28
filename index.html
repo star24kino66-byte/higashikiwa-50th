@@ -1804,7 +1804,7 @@ function renderGamesModalList(){
     const sel=document.createElement('select');
     sel.id='modalBlockSelect';
     sel.style.cssText='width:100%;font-size:14px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;';
-    sel.innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+    sel.innerHTML=BLOCKS.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
     sel.onchange=()=>renderGamesModalBlock(sel.value);
     pdWrap.appendChild(sel);
   } else {
@@ -4212,7 +4212,7 @@ function onBlockChange(){
       const bottom=m.bottom||'（未定）';
       const existingGame=blockGames.find(g=>g.match_id===m.id);
       const statusMark=existingGame?(existingGame.status==='done'?'✅ ':'📡 '):'';
-      matchSel.innerHTML+=`<option value="${r.round}__${mi}__${m.id}">${statusMark}${r.round}：${top} vs ${bottom}</option>`;
+      matchSel.innerHTML+=`<option value="${esc(r.round)}__${mi}__${esc(m.id)}">${statusMark}${esc(r.round)}：${esc(top)} vs ${esc(bottom)}</option>`;
     });
   });
 }
