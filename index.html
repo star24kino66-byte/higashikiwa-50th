@@ -3963,16 +3963,21 @@ function renderBlockTournament(block, editable=false){
         const bCol=bWon?WIN:LOSE, bWid=bWon?WW:LW, bDash=won?'':'4,3';
         const mCol=won?WIN:LOSE, mWid=won?WW:LW, mDash=won?'':'4,3';
 
-        // ── 個別マッチ括弧 ──
-        paths+=`<line x1="0" y1="${topY}" x2="${MX1}" y2="${topY}" stroke="${tCol}" stroke-width="${tWid}" stroke-dasharray="${tDash}"/>`;
-        paths+=`<line x1="0" y1="${botY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bWid}" stroke-dasharray="${bDash}"/>`;
-        paths+=`<line x1="${MX1}" y1="${topY}" x2="${MX1}" y2="${midY}" stroke="${tCol}" stroke-width="${tWid}" stroke-dasharray="${tDash}"/>`;
-        paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bWid}" stroke-dasharray="${bDash}"/>`;
-        paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX2}" y2="${midY}" stroke="${mCol}" stroke-width="${mWid}" stroke-dasharray="${mDash}"/>`;
-        // スコア注釈（括弧接続点）
-        if(totalA!==null&&totalB!==null){
-          paths+=`<text x="${MX1+3}" y="${midY-4}" font-size="12" font-family="sans-serif" fill="${tCol}" font-weight="${aWon?700:400}">${totalA}</text>`;
-          paths+=`<text x="${MX1+3}" y="${midY+12}" font-size="12" font-family="sans-serif" fill="${bCol}" font-weight="${bWon?700:400}">${totalB}</text>`;
+        if(ri===0){
+          // ── 1回戦：個別マッチ括弧（マッチカードあり）──
+          paths+=`<line x1="0" y1="${topY}" x2="${MX1}" y2="${topY}" stroke="${tCol}" stroke-width="${tWid}" stroke-dasharray="${tDash}"/>`;
+          paths+=`<line x1="0" y1="${botY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bWid}" stroke-dasharray="${bDash}"/>`;
+          paths+=`<line x1="${MX1}" y1="${topY}" x2="${MX1}" y2="${midY}" stroke="${tCol}" stroke-width="${tWid}" stroke-dasharray="${tDash}"/>`;
+          paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bWid}" stroke-dasharray="${bDash}"/>`;
+          paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX2}" y2="${midY}" stroke="${mCol}" stroke-width="${mWid}" stroke-dasharray="${mDash}"/>`;
+          // スコア注釈（括弧接続点）
+          if(totalA!==null&&totalB!==null){
+            paths+=`<text x="${MX1+3}" y="${midY-4}" font-size="12" font-family="sans-serif" fill="${tCol}" font-weight="${aWon?700:400}">${totalA}</text>`;
+            paths+=`<text x="${MX1+3}" y="${midY+12}" font-size="12" font-family="sans-serif" fill="${bCol}" font-weight="${bWon?700:400}">${totalB}</text>`;
+          }
+        } else {
+          // ── 2回戦以降：マッチカードなし → ストレート横線のみ ──
+          paths+=`<line x1="0" y1="${midY}" x2="${MX2}" y2="${midY}" stroke="${mCol}" stroke-width="${mWid}" stroke-dasharray="${mDash}"/>`;
         }
         // ── ペア接続（偶数indexのみ描画） ──
         // ペア接続の着色は「次ラウンドの勝敗」に基づく
