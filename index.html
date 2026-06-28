@@ -4054,7 +4054,6 @@ function renderBlockTournament(block, editable=false){
     const svgH=maxH;
     const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+layout[layout.length-1].matchYs[0];
     const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
-    const champTop=fMidY-30;
     const mCol=won?'#d63384':'#a0a8b8';
     const mW=won?2.5:1.5;
     const mD=won?'':'4,3';
@@ -4065,7 +4064,7 @@ function renderBlockTournament(block, editable=false){
     </div>`;
     pcHtml+=`<div class="bt-col">
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
-        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:flex-start;">
+        <div style="position:absolute;top:${fMidY}px;left:0;right:0;transform:translateY(-50%);display:flex;justify-content:flex-start;">
           ${winner
             ? `<div class="bt-champion">🏆<br>${winner}</div>`
             : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
