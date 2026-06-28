@@ -1283,6 +1283,12 @@ img.clickable-photo{cursor:zoom-in;}
 </div>
 
 <script>
+// XSSエスケープ：ユーザー入力をHTMLに埋め込む際に必ず使用
+function esc(s){
+  if(s==null)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // GAMES（localStorageから読み込み、なければサンプル）
 const STORAGE_KEY='higashikiwa_viewed_games';
 // Supabaseから読み込む（初期は空、loadGamesFromSupabase()で取得）
@@ -1399,7 +1405,7 @@ function buildCheerCol(trackId,list){
   [...list,...list].forEach(c=>{
     const card=document.createElement('div');
     card.className='cheer-card';
-    card.innerHTML=`<div class="cheer-to"><span class="cheer-team">${c.team}</span><span class="cheer-name">${c.name} さん</span></div><div class="cheer-msg">${c.msg}</div><div class="cheer-from">${c.from}より</div>`;
+    card.innerHTML=`<div class="cheer-to"><span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg">${esc(c.msg)}</div><div class="cheer-from">${esc(c.from)}より</div>`;
     track.appendChild(card);
   });
 }
@@ -1579,7 +1585,7 @@ function buildDonorRow(trackId,list){
   [...list,...list].forEach(d=>{
     const card=document.createElement('div');
     card.className='donor-card';
-    card.innerHTML=`<span class="dc-icon">${d.icon}</span><div><span class="dc-name">${d.n}</span><span class="dc-note">${d.note}</span></div>`;
+    card.innerHTML=`<span class="dc-icon">${esc(d.icon)}</span><div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div>`;
     track.appendChild(card);
   });
 }
@@ -1612,7 +1618,7 @@ function rebuildSponsorRow(){
     const col=colors[i%colors.length];
     const d=document.createElement('div');
     d.className='sponsor-card';
-    d.innerHTML=`<div class="sponsor-logo" style="background:${col.bg};color:${col.c};">${s.name.slice(0,2)}</div><div><span class="sponsor-name">${s.name}</span><span class="sponsor-msg">${s.note||'ご協賛ありがとうございます。'}</span></div>`;
+    d.innerHTML=`<div class="sponsor-logo" style="background:${col.bg};color:${col.c};">${esc(s.name.slice(0,2))}</div><div><span class="sponsor-name">${esc(s.name)}</span><span class="sponsor-msg">${esc(s.note)||'ご協賛ありがとうございます。'}</span></div>`;
     sponsorTrack.appendChild(d);
   });
 }
@@ -1750,7 +1756,7 @@ function openModal(type){
     CHEERS.forEach(c=>{
       const row=document.createElement('div');
       row.className='modal-row';
-      row.innerHTML=`<div class="cheer-to"><span class="cheer-team">${c.team}</span><span class="cheer-name">${c.name} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${c.msg}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${c.from}より</div>`;
+      row.innerHTML=`<div class="cheer-to"><span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${esc(c.msg)}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div>`;
       list.appendChild(row);
     });
   } else if(type==='donor'){
@@ -1759,7 +1765,7 @@ function openModal(type){
     dList.forEach(d=>{
       const row=document.createElement('div');
       row.className='modal-row';
-      row.innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px;"><span class="dc-icon">${d.icon}</span><div><span class="dc-name">${d.n}</span><span class="dc-note">${d.note}</span></div></div>`;
+      row.innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px;"><span class="dc-icon">${esc(d.icon)}</span><div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div></div>`;
       list.appendChild(row);
     });
   } else if(type==='sponsor'){
@@ -1767,7 +1773,7 @@ function openModal(type){
     SP.forEach(s=>{
       const row=document.createElement('div');
       row.className='modal-row';
-      row.innerHTML=`<div class="sponsor-card" style="padding:0;"><div class="sponsor-logo" style="background:${s.bg};color:${s.c};">${s.n.slice(0,2)}</div><div><span class="sponsor-name">${s.n}</span><span class="sponsor-msg">${s.m}</span></div></div>`;
+      row.innerHTML=`<div class="sponsor-card" style="padding:0;"><div class="sponsor-logo" style="background:${s.bg};color:${s.c};">${esc(s.n.slice(0,2))}</div><div><span class="sponsor-name">${esc(s.n)}</span><span class="sponsor-msg">${esc(s.m)}</span></div></div>`;
       list.appendChild(row);
     });
   } else if(type==='photo'){
@@ -1827,7 +1833,7 @@ function renderGamesModalBlock(blockId){
         <div id="modalTournamentView"></div>`;
       if(block){
         const tv=document.getElementById('modalTournamentView');
-        if(tv) tv.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.4rem;">🏟 ${block.name}</div>`+renderBlockTournament(block,false);
+        if(tv) tv.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.4rem;">🏟 ${esc(block.name)}</div>`+renderBlockTournament(block,false);
       }
     } else {
       tWrap.innerHTML='';
@@ -1865,7 +1871,7 @@ function renderGamesModalBlock(blockId){
     }
     const row=document.createElement('div');
     row.style.cssText='background:#0c1a30;border-radius:8px;padding:8px 10px;margin-bottom:6px;';
-    row.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${inn?4:0}px;"><div style="display:flex;align-items:center;gap:6px;"><span class="game-round">${g.round}</span>${badge}</div><span style="font-size:10px;color:#7b8fa8;">${g.date||''}</span></div>${inn||`<div style="font-size:12px;color:#9fb0d0;padding:.4rem 0;">${g.teamA} vs ${g.teamB}（未実施）</div>`}${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:4px;border-left:2px solid #c8a84b;padding-left:6px;">${g.note}</div>`:''}`;
+    row.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${inn?4:0}px;"><div style="display:flex;align-items:center;gap:6px;"><span class="game-round">${esc(g.round)}</span>${badge}</div><span style="font-size:10px;color:#7b8fa8;">${esc(g.date)||''}</span></div>${inn||`<div style="font-size:12px;color:#9fb0d0;padding:.4rem 0;">${esc(g.teamA)} vs ${esc(g.teamB)}（未実施）</div>`}${g.note?`<div style="font-size:10px;color:#c8a84b;margin-top:4px;border-left:2px solid #c8a84b;padding-left:6px;">${esc(g.note)}</div>`:''}`;
     gWrap.appendChild(row);
   });
 }
@@ -1896,8 +1902,8 @@ function renderPhotoModalList(){
     const isBest=p._id&&p._id===bestId;
     const row=document.createElement('div');
     row.className='modal-row'+(isBest?' best-shot-row':'');
-    const teamStr=p.team?`<span style="font-size:10px;color:#888;display:block;">チーム：${p.team}</span>`:'';
-    row.innerHTML=`${isBest?`<div class="best-badge">🏆 ${catLabel[ct]||ct} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;"><span style="font-size:12px;color:#444;font-weight:600;">${p.n}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${p.author}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${ct}',${p.idx})">👍 <span>${p.l}</span></button></div>`;
+    const teamStr=p.team?`<span style="font-size:10px;color:#888;display:block;">チーム：${esc(p.team)}</span>`:'';
+    row.innerHTML=`${isBest?`<div class="best-badge">🏆 ${esc(catLabel[ct]||ct)} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;"><span style="font-size:12px;color:#444;font-weight:600;">${esc(p.n)}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${esc(p.author)}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${esc(ct)}',${p.idx})">👍 <span>${p.l}</span></button></div>`;
     list.appendChild(row);
   });
 }
@@ -3586,11 +3592,11 @@ function renderLatestScoreboard(){
       return buildScoreboardHTML(g, badge);
     }
     return `<div class="sb" style="margin-bottom:8px;">
-      <div class="sbh" style="font-size:11px;">★ ${g.round} — ${g.date} ★</div>
+      <div class="sbh" style="font-size:11px;">★ ${esc(g.round)} — ${esc(g.date)} ★</div>
       <div style="text-align:center;padding:.5rem 0;font-size:13px;color:#9fb0d0;">
-        <span class="tn ta" style="display:inline;">${g.teamA}</span>
+        <span class="tn ta" style="display:inline;">${esc(g.teamA)}</span>
         <span style="color:#c9a227;font-weight:700;margin:0 6px;">VS</span>
-        <span class="tn tb" style="display:inline;">${g.teamB}</span>
+        <span class="tn tb" style="display:inline;">${esc(g.teamB)}</span>
       </div>
     </div>`;
   }).join('');
@@ -3610,19 +3616,19 @@ function buildScoreboardHTML(g, badge=''){
   const rB=`font-size:22px;font-weight:900;${bWon?'color:#a0c8ff;':''}`;
   const innW=innings<=7?20:innings<=9?16:14;
   return `
-    <div style="font-size:12px;color:#888;margin-bottom:8px;">${g.round} — ${g.date}${badge}</div>
-    <div class="sb"><div class="sbh">★ ${g.round} ★</div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">${esc(g.round)} — ${esc(g.date)}${badge}</div>
+    <div class="sb"><div class="sbh">★ ${esc(g.round)} ★</div>
       <div style="overflow-x:auto;">
         <table style="width:100%;table-layout:fixed;min-width:${60+innings*innW+52}px;">
           <colgroup><col style="min-width:60px;width:60px;">${Array.from({length:innings},()=>`<col style="width:${innW}px;">`).join('')}<col style="width:8px;"><col style="width:44px;"></colgroup>
           <thead><tr><th></th>${ths}<th class="sep"></th><th class="tr" style="text-align:center;padding:0;">R</th></tr></thead>
           <tbody>
-            <tr><td class="tn ta" style="${sA}">${g.teamA}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA};text-align:center;padding:0;">${totalA}</td></tr>
-            <tr><td class="tn tb" style="${sB}">${g.teamB}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB};text-align:center;padding:0;">${totalB}</td></tr>
+            <tr><td class="tn ta" style="${sA}">${esc(g.teamA)}</td>${rowA}<td class="sep"></td><td class="tr" style="${rA};text-align:center;padding:0;">${totalA}</td></tr>
+            <tr><td class="tn tb" style="${sB}">${esc(g.teamB)}</td>${rowB}<td class="sep"></td><td class="tr" style="${rB};text-align:center;padding:0;">${totalB}</td></tr>
           </tbody>
         </table>
       </div>
-      ${g.note?`<div class="sbhl" style="margin-top:10px;">${g.note}</div>`:''}
+      ${g.note?`<div class="sbhl" style="margin-top:10px;">${esc(g.note)}</div>`:''}
     </div>`;
 }
 
