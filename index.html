@@ -241,7 +241,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .bt-sp-match{margin-bottom:8px;}
 .bt-sp-teams{display:flex;flex-direction:column;gap:3px;border:1px solid #e0e2ea;border-radius:10px;overflow:hidden;}
 .bt-sp-arrow{font-size:10px;color:#d63384;text-align:center;margin-top:4px;}
-@media(max-width:600px){.bt-pc{display:none;}.bt-sp{display:block;}}
+@media(max-width:600px){.bt-sp{display:none;}}
 
 /* MESSAGES */
 .cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;}
@@ -1861,7 +1861,7 @@ function renderGamesModalBlock(blockId){
         rA+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreA[i]}</td>`;
         rB+=`<td style="text-align:center;font-size:11px;color:#ccd;padding:1px 0;">${g.scoreB[i]}</td>`;
       }
-      inn=`<div style="overflow-x:auto;margin-top:4px;"><table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*w+30}px;width:100%;"><colgroup><col style="width:50px;">${Array.from({length:g.scoreA.length},()=>`<col style="width:${w}px;">`).join('')}<col style="width:30px;"></colgroup><thead><tr><th style="width:50px;"></th>${th}<th style="color:#c9a227;font-size:10px;font-weight:700;text-align:right;padding-right:4px;">R</th></tr></thead><tbody><tr><td style="font-size:11px;font-weight:${aW?700:400};color:#f8c8e0;padding:1px 0 1px 4px;">${g.teamA}</td>${rA}<td style="font-size:16px;font-weight:900;color:${aW?'#f8c8e0':'#dde'};text-align:right;padding-right:4px;">${tA}</td></tr><tr><td style="font-size:11px;font-weight:${bW?700:400};color:#a0c8ff;padding:1px 0 1px 4px;">${g.teamB}</td>${rB}<td style="font-size:16px;font-weight:900;color:${bW?'#a0c8ff':'#dde'};text-align:right;padding-right:4px;">${tB}</td></tr></tbody></table></div>`;
+      inn=`<div style="overflow-x:auto;margin-top:4px;"><table style="table-layout:fixed;border-collapse:collapse;min-width:${50+g.scoreA.length*w+30}px;width:100%;"><colgroup><col style="width:50px;">${Array.from({length:g.scoreA.length},()=>`<col style="width:${w}px;">`).join('')}<col style="width:30px;"></colgroup><thead><tr><th style="width:50px;"></th>${th}<th style="color:#c9a227;font-size:10px;font-weight:700;text-align:center;padding:0;">R</th></tr></thead><tbody><tr><td style="font-size:11px;font-weight:${aW?700:400};color:#f8c8e0;padding:1px 0 1px 4px;">${g.teamA}</td>${rA}<td style="font-size:16px;font-weight:900;color:${aW?'#f8c8e0':'#dde'};text-align:center;padding:0;">${tA}</td></tr><tr><td style="font-size:11px;font-weight:${bW?700:400};color:#a0c8ff;padding:1px 0 1px 4px;">${g.teamB}</td>${rB}<td style="font-size:16px;font-weight:900;color:${bW?'#a0c8ff':'#dde'};text-align:center;padding:0;">${tB}</td></tr></tbody></table></div>`;
     }
     const row=document.createElement('div');
     row.style.cssText='background:#0c1a30;border-radius:8px;padding:8px 10px;margin-bottom:6px;';
