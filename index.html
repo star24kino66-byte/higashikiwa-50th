@@ -3912,19 +3912,35 @@ function renderBlockTournament(block, editable=false){
   rounds.forEach((r,ri)=>{
     const {totalH,matchYs}=layout[ri];
     const topOffset=(maxH-totalH)/2;
-    pcHtml+=`<div class="bt-col">`;
-    pcHtml+=`<div class="bt-col-label">${r.round}</div>`;
-    pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
-    r.matches.forEach((m,mi)=>{
-      const {totalA,totalB,aWon,bWon}=getMatchInfo(m);
-      const top=topOffset+matchYs[mi];
-      pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
-        ${teamCell(m.top,aWon,totalA,'top',block.id,r.round,mi,editable)}
-        <div class="bt-vs">vs</div>
-        ${teamCell(m.bottom,bWon,totalB,'bottom',block.id,r.round,mi,editable)}
-      </div>`;
-    });
-    pcHtml+=`</div></div>`;
+    if(ri===0){
+      // 1回戦のみ：チーム名だけ表示（スコア・vs・ラベル不要）
+      pcHtml+=`<div class="bt-col">`;
+      pcHtml+=`<div class="bt-col-label"></div>`;
+      pcHtml+=`<div class="bt-col-matches" style="position:relative;height:${maxH}px;width:${COL_W}px;">`;
+      r.matches.forEach((m,mi)=>{
+        const {aWon,bWon}=getMatchInfo(m);
+        const top=topOffset+matchYs[mi];
+        const wonA=aWon?' bt-won':'', wonB=bWon?' bt-won':'';
+        const nameA=m.top||'—', nameB=m.bottom||'—';
+        if(editable){
+          pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
+            <div class="bt-cell${wonA}"><input class="bt-edit-input" value="${m.top||''}" placeholder="チーム名"
+              onchange="inlineBracketEdit('${block.id}','${r.round}',${mi},'top',this.value)"></div>
+            <div class="bt-vs"></div>
+            <div class="bt-cell${wonB}"><input class="bt-edit-input" value="${m.bottom||''}" placeholder="チーム名"
+              onchange="inlineBracketEdit('${block.id}','${r.round}',${mi},'bottom',this.value)"></div>
+          </div>`;
+        } else {
+          pcHtml+=`<div style="position:absolute;top:${top}px;left:0;width:${COL_W}px;">
+            <div class="bt-cell${wonA}">${nameA}</div>
+            <div class="bt-vs"></div>
+            <div class="bt-cell${wonB}">${nameB}</div>
+          </div>`;
+        }
+      });
+      pcHtml+=`</div></div>`;
+    }
+    // ri>0のマッチカラムはスキップ（ブラケット線とスコア注釈で情報は十分）
 
     // SVGコネクタ（最終ラウンド以外）— 括弧型
     if(ri<rounds.length-1){
@@ -3956,8 +3972,8 @@ function renderBlockTournament(block, editable=false){
         paths+=`<line x1="${MX1}" y1="${midY}" x2="${MX2}" y2="${midY}" stroke="${mCol}" stroke-width="${mWid}" stroke-dasharray="${mDash}"/>`;
         // スコア注釈（括弧接続点）
         if(totalA!==null&&totalB!==null){
-          paths+=`<text x="${MX1+3}" y="${midY-2}" font-size="9" font-family="sans-serif" fill="${tCol}" font-weight="${aWon?700:400}">${totalA}</text>`;
-          paths+=`<text x="${MX1+3}" y="${midY+10}" font-size="9" font-family="sans-serif" fill="${bCol}" font-weight="${bWon?700:400}">${totalB}</text>`;
+          paths+=`<text x="${MX1+3}" y="${midY-4}" font-size="12" font-family="sans-serif" fill="${tCol}" font-weight="${aWon?700:400}">${totalA}</text>`;
+          paths+=`<text x="${MX1+3}" y="${midY+12}" font-size="12" font-family="sans-serif" fill="${bCol}" font-weight="${bWon?700:400}">${totalB}</text>`;
         }
         // ── ペア接続（偶数indexのみ描画） ──
         // ペア接続の着色は「次ラウンドの勝敗」に基づく
@@ -3989,8 +4005,8 @@ function renderBlockTournament(block, editable=false){
             paths+=`<line x1="${MX2}" y1="${pairMidY}" x2="${SVG_W}" y2="${nextMidY}" stroke="${phCol}" stroke-width="${phW}" stroke-dasharray="${phDash}"/>`;
             // 次ラウンドスコア注釈（ペア接続点）
             if(nextInfo.totalA!==null&&nextInfo.totalB!==null){
-              paths+=`<text x="${MX2+3}" y="${pairMidY-2}" font-size="9" font-family="sans-serif" fill="${ptCol}" font-weight="${nextInfo.aWon?700:400}">${nextInfo.totalA}</text>`;
-              paths+=`<text x="${MX2+3}" y="${pairMidY+10}" font-size="9" font-family="sans-serif" fill="${pbCol}" font-weight="${nextInfo.bWon?700:400}">${nextInfo.totalB}</text>`;
+              paths+=`<text x="${MX2+3}" y="${pairMidY-4}" font-size="12" font-family="sans-serif" fill="${ptCol}" font-weight="${nextInfo.aWon?700:400}">${nextInfo.totalA}</text>`;
+              paths+=`<text x="${MX2+3}" y="${pairMidY+12}" font-size="12" font-family="sans-serif" fill="${pbCol}" font-weight="${nextInfo.bWon?700:400}">${nextInfo.totalB}</text>`;
             }
           } else {
             // 兄弟マッチなし→直接次ラウンドへ
@@ -4007,39 +4023,27 @@ function renderBlockTournament(block, editable=false){
     }
   });
 
-  // 優勝枠 — 括弧型コネクタ
+  // 優勝枠 — シンプル水平線（決勝スコアはペア接続点に表示済み）
   const finalRound=rounds[rounds.length-1];
   if(finalRound&&finalRound.matches.length===1){
     const fm=finalRound.matches[0];
-    const {aWon,bWon,totalA:fTotalA,totalB:fTotalB}=getMatchInfo(fm);
+    const {aWon,bWon}=getMatchInfo(fm);
     const winner=aWon?fm.top:bWon?fm.bottom:null;
     const won=aWon||bWon;
     const FLABEL_H=22;
     const svgH=FLABEL_H+maxH;
     const finalMatchTop=FLABEL_H+(maxH-layout[layout.length-1].totalH)/2+0;
-    const topY=finalMatchTop+CELL_H/2;
-    const botY=finalMatchTop+CELL_H+VS_H+CELL_H/2;
-    const fMidY=(topY+botY)/2;
+    const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
     const champTop=fMidY-FLABEL_H-24;
-    const MX1=Math.round(SVG_W*0.40);
-    const GWIN='#c8a84b', GLOSE='#a0a8b8';
-    const tCol=aWon?GWIN:GLOSE, tW=aWon?2.5:1.5, tD=won?'':'4,3';
-    const bCol=bWon?GWIN:GLOSE, bW=bWon?2.5:1.5, bD=won?'':'4,3';
-    const mCol=won?GWIN:GLOSE, mW=won?2.5:1.5, mD=won?'':'4,3';
-    let fPaths='';
-    fPaths+=`<line x1="0" y1="${topY}" x2="${MX1}" y2="${topY}" stroke="${tCol}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
-    fPaths+=`<line x1="0" y1="${botY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
-    fPaths+=`<line x1="${MX1}" y1="${topY}" x2="${MX1}" y2="${fMidY}" stroke="${tCol}" stroke-width="${tW}" stroke-dasharray="${tD}"/>`;
-    fPaths+=`<line x1="${MX1}" y1="${fMidY}" x2="${MX1}" y2="${botY}" stroke="${bCol}" stroke-width="${bW}" stroke-dasharray="${bD}"/>`;
-    fPaths+=`<line x1="${MX1}" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>`;
-    // 決勝スコア注釈
-    if(fTotalA!==null&&fTotalB!==null){
-      fPaths+=`<text x="${MX1+3}" y="${fMidY-2}" font-size="9" font-family="sans-serif" fill="${tCol}" font-weight="${aWon?700:400}">${fTotalA}</text>`;
-      fPaths+=`<text x="${MX1+3}" y="${fMidY+10}" font-size="9" font-family="sans-serif" fill="${bCol}" font-weight="${bWon?700:400}">${fTotalB}</text>`;
-    }    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
-      <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">${fPaths}</svg>
+    const mCol=won?'#c8a84b':'#a0a8b8';
+    const mW=won?2.5:1.5;
+    const mD=won?'':'4,3';
+    pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${Math.round(SVG_W*0.5)}px;">
+      <svg width="${Math.round(SVG_W*0.5)}" height="${svgH}" style="overflow:visible;">
+        <line x1="0" y1="${fMidY}" x2="${Math.round(SVG_W*0.5)}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
+      </svg>
     </div>`;
-    pcHtml+=`<div class="bt-col"><div class="bt-col-label">優勝</div>
+    pcHtml+=`<div class="bt-col"><div class="bt-col-label"></div>
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
         <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
           ${winner
