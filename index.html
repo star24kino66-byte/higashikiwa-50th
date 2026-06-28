@@ -1770,7 +1770,7 @@ function openModal(type){
     dList.forEach(d=>{
       const row=document.createElement('div');
       row.className='modal-row';
-      row.innerHTML=`<div style="display:flex;align-items:flex-start;gap:8px;"><span class="dc-icon">${esc(d.icon)}</span><div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div></div>`;
+      row.innerHTML=`<div><span class="dc-name">${esc(d.n)}</span><span class="dc-note">${esc(d.note)}</span></div>`;
       list.appendChild(row);
     });
   } else if(type==='sponsor'){
@@ -1779,7 +1779,7 @@ function openModal(type){
     spList.forEach(s=>{
       const row=document.createElement('div');
       row.className='modal-row';
-      row.innerHTML=`<div class="sponsor-card" style="padding:0;"><div class="sponsor-logo" style="background:${s.bg||'#1b2a4a'};color:${s.c||'#fff'};">${esc((s.name||s.n||'').slice(0,2))}</div><div><span class="sponsor-name">${esc(s.name||s.n||'')}</span><span class="sponsor-msg">${esc(s.note||s.m||'')}</span></div></div>`;
+      row.innerHTML=`<div><span class="sponsor-name">${esc(s.name||s.n||'')}</span><span class="sponsor-msg">${esc(s.note||s.m||'')}</span></div>`;
       list.appendChild(row);
     });
   } else if(type==='photo'){
