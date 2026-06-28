@@ -4033,18 +4033,18 @@ function renderBlockTournament(block, editable=false){
     const svgH=maxH;
     const finalMatchTop=(maxH-layout[layout.length-1].totalH)/2+0;
     const fMidY=(finalMatchTop+CELL_H/2+finalMatchTop+CELL_H+VS_H+CELL_H/2)/2;
-    const champTop=fMidY-24;
+    const champTop=fMidY-30;
     const mCol=won?'#d63384':'#a0a8b8';
     const mW=won?2.5:1.5;
     const mD=won?'':'4,3';
     pcHtml+=`<div class="bt-connector-col" style="height:${svgH}px;width:${SVG_W}px;">
       <svg width="${SVG_W}" height="${svgH}" style="overflow:visible;">
-        <line x1="0" y1="${fMidY}" x2="${SVG_W}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
+        <line x1="0" y1="${fMidY}" x2="${SVG_W+16}" y2="${fMidY}" stroke="${mCol}" stroke-width="${mW}" stroke-dasharray="${mD}"/>
       </svg>
     </div>`;
     pcHtml+=`<div class="bt-col">
       <div class="bt-col-matches" style="position:relative;height:${maxH}px;">
-        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:center;">
+        <div style="position:absolute;top:${champTop}px;left:0;right:0;display:flex;justify-content:flex-start;">
           ${winner
             ? `<div class="bt-champion">🏆<br>${winner}</div>`
             : `<div class="bt-cell bt-empty" style="font-size:11px;text-align:center;justify-content:center;">優勝待ち</div>`
