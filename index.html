@@ -2528,6 +2528,9 @@ function renderApprovedCheerList(){
 
 async function approvePhoto(id){
   try{
+    const {data:cur,error:ce}=await sb.from('photos').select('status').eq('id',id).single();
+    if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('この投稿は既に他の担当者が処理済みです。画面を更新します。'); await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll(); return; }
     const {error}=await sb.from('photos').update({status:'approved'}).eq('id',id);
     if(error){ alert('承認に失敗しました：'+error.message); return; }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
@@ -2536,6 +2539,9 @@ async function approvePhoto(id){
 async function rejectPhoto(id){
   if(!confirm('この投稿を却下します。よろしいですか？')) return;
   try{
+    const {data:cur,error:ce}=await sb.from('photos').select('status').eq('id',id).single();
+    if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('この投稿は既に他の担当者が処理済みです。画面を更新します。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
     const {error}=await sb.from('photos').update({status:'rejected'}).eq('id',id);
     if(error){ alert('却下に失敗しました：'+error.message); return; }
     await loadPhotosFromSupabase(); renderAdminAll();
@@ -2551,6 +2557,9 @@ async function unpublishPhoto(id){
 }
 async function approveCheer(id){
   try{
+    const {data:cur,error:ce}=await sb.from('messages').select('status').eq('id',id).single();
+    if(ce||!cur){ alert('該当のメッセージが見つかりません。既に削除された可能性があります。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('このメッセージは既に他の担当者が処理済みです。画面を更新します。'); await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll(); return; }
     const {error}=await sb.from('messages').update({'status':'approved'}).eq('id',id);
     if(error){ alert('承認に失敗しました：'+error.message); return; }
     await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
@@ -2559,6 +2568,9 @@ async function approveCheer(id){
 async function rejectCheer(id){
   if(!confirm('このメッセージを却下します。よろしいですか？')) return;
   try{
+    const {data:cur,error:ce}=await sb.from('messages').select('status').eq('id',id).single();
+    if(ce||!cur){ alert('該当のメッセージが見つかりません。既に他の担当者が削除した可能性があります。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('このメッセージは既に他の担当者が処理済みです。画面を更新します。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
     const {error}=await sb.from('messages').delete().eq('id',id);
     if(error){ alert('却下に失敗しました：'+error.message); return; }
     await loadCheersFromSupabase(); renderAdminAll();
