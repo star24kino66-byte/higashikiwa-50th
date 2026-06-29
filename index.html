@@ -588,7 +588,7 @@ img.clickable-photo{cursor:zoom-in;}
           <div id="cheerNoPlayerMsg" style="display:none;font-size:12px;color:#c00;padding:4px 0;">選手データが未登録です。管理者にお問い合わせください。</div>
         </div>
         <div class="fr">
-          <input type="text" id="cheerFrom" placeholder="投稿者のお名前（ニックネーム可）" style="flex:1;">
+          <input type="text" id="cheerFrom" placeholder="投稿者のお名前（10文字以内）" maxlength="10" style="flex:1;">
         </div>
         <div class="fr">
           <input type="text" id="cheerMsg" placeholder="応援メッセージ（50文字以内）" maxlength="50" style="flex:1;">
@@ -652,7 +652,7 @@ img.clickable-photo{cursor:zoom-in;}
         <input type="text" id="submitTitle" placeholder="写真のタイトル（15文字以内）" maxlength="15" style="flex:1;">
       </div>
       <div class="fr">
-        <input type="text" id="submitName" placeholder="投稿者のお名前（ニックネーム可）" style="flex:1;">
+        <input type="text" id="submitName" placeholder="投稿者のお名前（10文字以内）" maxlength="10" style="flex:1;">
       </div>
       <div class="fr">
         <label for="submitFile" style="display:flex;align-items:center;gap:8px;background:#f5f6fa;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#555;width:100%;box-sizing:border-box;">
@@ -2387,7 +2387,7 @@ function renderPendingCheerList(){
     <button class="btn-reject" onclick="bulkRejectSelectedCheers()">選択を却下</button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;">
-  <thead><tr style="background:#f0f2f8;"><th style="width:28px;padding:4px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="padding:4px;text-align:left;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;">投稿者</th><th style="padding:4px;text-align:left;">日時</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
+  <thead><tr style="background:#f0f2f8;"><th style="width:28px;padding:4px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="padding:4px;text-align:left;width:25%;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;width:72px;">投稿者</th><th style="padding:4px;text-align:left;width:60px;">日時</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   pendingCheers.forEach(c=>{
     const dt=c.submittedAt?new Date(c.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr style="border-bottom:1px solid #eee;">
@@ -2513,7 +2513,7 @@ function renderApprovedCheerList(){
   if(!list) return;
   if(approvedCheersExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みのメッセージはまだありません</div>'; return; }
   let html=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
-  <thead><tr style="background:#f0f2f8;"><th style="padding:4px;text-align:left;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;">投稿者</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
+  <thead><tr style="background:#f0f2f8;"><th style="padding:4px;text-align:left;width:25%;">宛先</th><th style="padding:4px;text-align:left;">メッセージ</th><th style="padding:4px;text-align:left;width:72px;">投稿者</th><th style="padding:4px;text-align:left;">操作</th></tr></thead><tbody>`;
   approvedCheersExtra.slice().reverse().forEach(c=>{
     html+=`<tr style="border-bottom:1px solid #eee;">
       <td style="padding:4px;white-space:nowrap;"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
