@@ -1632,7 +1632,7 @@ function rebuildSponsorRow(){
 }
 
 /* ---------- 特別協賛 固定バナー ---------- */
-let SP_THRESHOLD=loadLS('hk_spThreshold', 50000); // 特別協賛の閾値（デフォルト5万円）
+let SP_THRESHOLD=50000; // 特別協賛の閾値（Supabaseのsettingsから読み込む）
 let _spBannerDismissed=false;
 let _spTimer=null;
 let _spIdx=0;
@@ -1733,7 +1733,9 @@ function updateSpThreshold(){
   const val=parseInt(document.getElementById('spThresholdInput').value);
   if(isNaN(val)||val<0){alert('正しい金額を入力してください');return;}
   SP_THRESHOLD=val;
-  saveLS('hk_spThreshold',val);
+  sb.from('settings').upsert({key:'sp_threshold',value:String(val)},{onConflict:'key'}).then(({error})=>{
+    if(error){ console.error('sp_threshold保存エラー:',error); }
+  });
   document.getElementById('spThresholdStatus').textContent=`✅ 閾値を¥${val.toLocaleString()}に設定しました。`;
   setTimeout(()=>{document.getElementById('spThresholdStatus').textContent='';},3000);
   // バナー再起動
@@ -1774,7 +1776,7 @@ function openModal(type){
       list.appendChild(row);
     });
   } else if(type==='sponsor'){
-    const spList=getSpecialSponsors();
+    const spList=DONORS_EXTRA.filter(d=>d.type==='sponsor' && d.name);
     title.textContent='ご協賛企業・団体 一覧（全'+spList.length+'件）';
     spList.forEach(s=>{
       const row=document.createElement('div');
@@ -3109,6 +3111,11 @@ async function loadSettingsFromSupabase(){
       _albumInterval=parseInt(row.value,10)||3;
       const el=document.getElementById('albumIntervalInput');
       if(el) el.value=_albumInterval;
+    }
+    if(row.key==='sp_threshold'){
+      SP_THRESHOLD=parseInt(row.value,10)||50000;
+      const el=document.getElementById('spThresholdInput');
+      if(el) el.value=SP_THRESHOLD;
     }
   });
 }
