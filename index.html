@@ -249,6 +249,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;will-change:transform;}
 .cheer-track.scroll-left.s2{animation-duration:24s;}
 .cheer-track.scroll-left.s3{animation-duration:34s;}
+.cheer-track.scroll-left.paused{animation-play-state:paused;}
 .cheer-card{background:#fff;border:1px solid #eee;border-left:3px solid #d63384;border-radius:8px;padding:7px 9px;flex-shrink:0;min-width:190px;max-width:220px;}
 .cheer-to{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .cheer-team{font-size:9px;font-weight:700;color:#fff;background:#1a3260;padding:1px 6px;border-radius:999px;flex-shrink:0;}
@@ -2394,7 +2395,7 @@ function renderPendingCheerList(){
       <td style="padding:4px;text-align:center;"><input type="checkbox" class="cheer-check" data-id="${c._id}"></td>
       <td style="padding:4px;white-space:nowrap;"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
       <td style="padding:4px;max-width:140px;">${c.msg}</td>
-      <td style="padding:4px;white-space:nowrap;color:#888;">${c.from||''}より</td>
+      <td style="padding:4px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#888;">${c.from||''}より</td>
       <td style="padding:4px;color:#aaa;white-space:nowrap;">${dt}</td>
       <td style="padding:4px;white-space:nowrap;">
         <button class="btn-approve" onclick="approveCheer('${c._id}')">承認</button>
@@ -2518,7 +2519,7 @@ function renderApprovedCheerList(){
     html+=`<tr style="border-bottom:1px solid #eee;">
       <td style="padding:4px;white-space:nowrap;"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
       <td style="padding:4px;max-width:150px;">${c.msg}</td>
-      <td style="padding:4px;white-space:nowrap;color:#888;">${c.from||''}より</td>
+      <td style="padding:4px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#888;">${c.from||''}より</td>
       <td style="padding:4px;"><button class="btn-reject" onclick="unpublishCheer('${c._id}')">取下</button></td>
     </tr>`;
   });
@@ -2590,14 +2591,27 @@ async function unpublishCheer(id){
 
 // 応援メッセージの3行を再構築（承認後の反映用）
 function rebuildCheerRows(){
-  document.getElementById('cheerRowA').innerHTML='';
-  document.getElementById('cheerRowB').innerHTML='';
-  document.getElementById('cheerRowC').innerHTML='';
+  ['cheerRowA','cheerRowB','cheerRowC'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.innerHTML='';
+    // アニメーションをリセット（データ挿入後に確実に動かすため）
+    el.style.animation='none';
+  });
   const cA=[],cB=[],cC=[];
   CHEERS.forEach((c,i)=>{(i%3===0?cA:i%3===1?cB:cC).push(c);});
   buildCheerCol('cheerRowA',cA);
   buildCheerCol('cheerRowB',cB);
   buildCheerCol('cheerRowC',cC);
+  // アニメーション再開（リフローを挟んでリセット完了させる）
+  requestAnimationFrame(()=>{
+    const a=document.getElementById('cheerRowA');
+    const b=document.getElementById('cheerRowB');
+    const c=document.getElementById('cheerRowC');
+    if(a){ a.style.animation=''; }
+    if(b){ b.style.animation=''; }
+    if(c){ c.style.animation=''; }
+  });
 }
 
 /* ---------- 寄付金管理（管理者画面） ---------- */
