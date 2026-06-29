@@ -2912,6 +2912,38 @@ function renderAlbumAdmin(){
   // CHEERSロード後に選手カードを再描画（選手宛メッセージ反映）
   const savedPlayers=loadLS('hk_players',null);
   renderPlayerCards(savedPlayers&&savedPlayers.length>0?savedPlayers:DEFAULT_PLAYERS);
+
+  // ---- Supabase Realtime 自動同期 ----
+  let _realtimeOk=false;
+  function _refreshPublic(){
+    mergeApproved(); rp(ct); rebuildCheerRows(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); updateDashboard();
+  }
+  function _refreshAdmin(){
+    renderAdminCounts(); renderAdminAll(); renderDonationAdmin(); startSpBanner();
+  }
+  try{
+    sb.channel('realtime-all')
+      .on('postgres_changes',{event:'*',schema:'public',table:'messages'},async()=>{
+        await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'photos'},async()=>{
+        await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'donors'},async()=>{
+        await loadDonorsFromSupabase(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); renderDonationAdmin(); updateDashboard();
+      })
+      .subscribe(status=>{
+        _realtimeOk=(status==='SUBSCRIBED');
+        console.log('Realtime:',status);
+      });
+  }catch(e){ console.warn('Realtime初期化失敗、ポーリングに切替:', e); }
+
+  // フォールバック：Realtimeが繋がっていない場合は10秒ポーリング
+  setInterval(async()=>{
+    if(_realtimeOk) return;
+    await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase()]);
+    _refreshPublic(); _refreshAdmin();
+  }, 10000);
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
