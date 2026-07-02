@@ -1373,6 +1373,22 @@ async function saveTeamsRoster(teams){
   TEAMS_ROSTER=teams;
 }
 
+// 大会要綱（Supabase settings key: 'tournament_info'）
+let TOURNAMENT_INFO=[];
+const DEFAULT_TOURNAMENT_INFO=[
+  {key:'大会名',val:'東岐波クラブ 創立50周年記念大会'},
+  {key:'開催日',val:'（未設定）'},
+  {key:'会場',val:'（未設定）'},
+];
+function getDisplayTournamentInfo(){
+  return TOURNAMENT_INFO.length>0 ? TOURNAMENT_INFO : DEFAULT_TOURNAMENT_INFO;
+}
+async function saveTournamentInfo(items){
+  const {error}=await sb.from('settings').upsert({key:'tournament_info',value:JSON.stringify(items)},{onConflict:'key'});
+  if(error){ console.error('tournament_info保存エラー:',error); throw error; }
+  TOURNAMENT_INFO=items;
+}
+
 function getViewedGames(){
   try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return [];}
 }
@@ -2912,6 +2928,8 @@ function renderAlbumAdmin(){
   updateDashboard();
   // 選手名簿（自チーム＋対戦チーム）の各種フォーム・タブを初期描画（選手宛メッセージ反映）
   renderAllTeamViews();
+  // 大会要綱の初期描画
+  renderTournamentInfo(getDisplayTournamentInfo());
 
   // ---- Supabase Realtime 自動同期 ----
   let _realtimeOk=false;
@@ -3011,12 +3029,10 @@ function execReset(target){
       })();
       break;
     case 'info':
-      localStorage.removeItem('hk_tournamentInfo');
-      renderTournamentInfo([
-        {key:'大会名',val:'東岐波クラブ 創立50周年記念大会'},
-        {key:'開催日',val:'（未設定）'},
-        {key:'会場',val:'（未設定）'},
-      ]);
+      (async()=>{
+        await saveTournamentInfo(DEFAULT_TOURNAMENT_INFO);
+        renderTournamentInfo(DEFAULT_TOURNAMENT_INFO);
+      })();
       break;
     case 'cheers':
       // Supabaseの全メッセージをrejectedに更新（リセット）
@@ -3171,6 +3187,9 @@ async function loadSettingsFromSupabase(){
     }
     if(row.key==='teams_roster'){
       try{ TEAMS_ROSTER=JSON.parse(row.value)||[]; }catch(e){ TEAMS_ROSTER=[]; }
+    }
+    if(row.key==='tournament_info'){
+      try{ TOURNAMENT_INFO=JSON.parse(row.value)||[]; }catch(e){ TOURNAMENT_INFO=[]; }
     }
   });
 }
@@ -3470,10 +3489,11 @@ function handleInfoCsvDrop(e){
 }
 function handleInfoCsvFile(file){
   if(!file) return;
+  const statusEl=document.getElementById('infoCsvStatus');
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     try{
-      const text=e.target.result;
+      const text=decodeCsvBuffer(e.target.result);
       const rows=text.split(/\r?\n/).filter(r=>r.trim());
       const items=[];
       rows.forEach(row=>{
@@ -3484,14 +3504,16 @@ function handleInfoCsvFile(file){
           if(key) items.push({key,val});
         }
       });
+      if(items.length===0){ statusEl.textContent='❌ CSVにデータがありません'; return; }
+      statusEl.textContent='保存中…';
+      await saveTournamentInfo(items);
       renderTournamentInfo(items);
-      saveLS('hk_tournamentInfo',items);
-      document.getElementById('infoCsvStatus').textContent=`✅ ${items.length}件の要綱データを読み込みました。`;
+      statusEl.textContent=`✅ ${items.length}件の要綱データを保存しました。`;
     }catch(err){
-      document.getElementById('infoCsvStatus').textContent='❌ CSVの読み込みに失敗しました：'+err.message;
+      statusEl.textContent='❌ CSVの読み込みに失敗しました：'+err.message;
     }
   };
-  reader.readAsText(file,'UTF-8');
+  reader.readAsArrayBuffer(file);
 }
 
 function renderTournamentInfo(items){
@@ -3500,19 +3522,13 @@ function renderTournamentInfo(items){
   tbody.innerHTML='';
   items.forEach(item=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="padding:7px 4px;border-bottom:1px solid #f0f2f8;color:#888;width:38%;font-size:12px;vertical-align:top;">${item.key}</td><td style="padding:7px 4px;border-bottom:1px solid #f0f2f8;line-height:1.6;">${item.val}</td>`;
+    tr.innerHTML=`<td style="padding:7px 4px;border-bottom:1px solid #f0f2f8;color:#888;width:38%;font-size:12px;vertical-align:top;">${esc(item.key)}</td><td style="padding:7px 4px;border-bottom:1px solid #f0f2f8;line-height:1.6;">${esc(item.val)}</td>`;
     tbody.appendChild(tr);
   });
   // 最後の行のborder-bottomを消す
   const last=tbody.querySelector('tr:last-child td');
   if(last){ [].forEach.call(tbody.querySelectorAll('tr:last-child td'),td=>td.style.borderBottom='none'); }
 }
-
-// 保存済み大会要綱を読み込んで表示
-(function(){
-  const saved=loadLS('hk_tournamentInfo',null);
-  if(saved&&saved.length>0) renderTournamentInfo(saved);
-})();
 
 /* ---------- 対戦チームアコーディオン ---------- */
 function initOppToggle(){
