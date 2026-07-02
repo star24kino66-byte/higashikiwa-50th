@@ -38,16 +38,17 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 .pl-main-banner .staff b{color:#fff;font-weight:700;}
 .pl-player-grid{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;}
 .pl-player-card{flex:1 1 160px;max-width:300px;background:#fff;border:1px solid #e2e0d8;border-radius:10px;overflow:hidden;}
-.pl-player-card .top{background:#1b2a4a;display:flex;align-items:center;gap:10px;padding:10px 12px;}
+.pl-player-card .top{background:#1b2a4a;padding:10px 12px;}
 .pl-player-card.accent-red .top{background:#9e1f30;}
+.pl-player-card .top-header{display:flex;align-items:center;gap:10px;}
 .pl-player-card .number{font-size:28px;font-weight:800;color:#fff;line-height:1;min-width:36px;}
-.pl-player-card .grade-pos{font-size:10px;color:#c7cee0;margin-top:4px;line-height:1.5;display:flex;flex-direction:column;align-items:flex-start;gap:3px;}
+.pl-player-card .badges-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.pl-player-card .badges-row .pos-badge{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap;}
 .pl-player-card .photo{width:52px;height:52px;border-radius:50%;background:#cfd3da;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;}
 .pl-player-card .body{padding:10px 12px 13px;}
 .pl-player-card .name-label{font-size:9px;color:#6b6b6b;letter-spacing:.06em;}
 .pl-player-card .name{font-size:15px;font-weight:800;margin:2px 0 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .pl-player-card .captain-badge{font-size:10px;font-weight:700;color:#fff;background:#c9a227;padding:2px 7px;border-radius:999px;letter-spacing:.02em;}
-.pl-player-card .bat-throw{display:inline-block;font-size:10px;color:#6b6b6b;background:#f0eee7;padding:2px 8px;border-radius:999px;margin-bottom:6px;white-space:nowrap;}
 .pl-player-card .dream-label{font-size:9px;font-weight:700;color:#c8273c;letter-spacing:.04em;}
 .pl-player-card .dream{font-size:12px;font-weight:700;margin-top:3px;line-height:1.5;}
 .player-cheers{margin-top:8px;border-top:1px dashed #e5e5e5;padding-top:7px;display:flex;flex-direction:column;gap:5px;}
@@ -3464,18 +3465,17 @@ function renderTeamPlayerCards(teamName){
       :'';
     // 自チームは選手個人の写真を大きく表示（対戦チームは今まで通りの小さめプレースホルダー）
     const photoSize=team.isHost?96:52;
-    const posBat=[p.pos,p.batThrow].filter(Boolean).map(esc).join('・');
+    const badges=[p.grade,p.pos,p.batThrow].filter(Boolean).map(v=>`<span class="pos-badge">${esc(v)}</span>`).join('');
     card.innerHTML=`
       <div class="top">
-        <div>
+        <div class="top-header">
           <div class="number">${esc(p.num)||'?'}</div>
-          <div class="grade-pos">${p.grade?`<div>${esc(p.grade)}</div>`:''}</div>
+          <img class="photo" src="${PLACEHOLDER_IMG}" alt="${esc(p.name)}" style="width:${photoSize}px;height:${photoSize}px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
         </div>
-        <img class="photo" src="${PLACEHOLDER_IMG}" alt="${esc(p.name)}" style="width:${photoSize}px;height:${photoSize}px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
+        ${badges?`<div class="badges-row">${badges}</div>`:''}
       </div>
       <div class="body">
         <div class="name">${esc(p.name)}${p.captain?`<span class="captain-badge">${esc(p.captain)}</span>`:''}</div>
-        ${posBat?`<div class="bat-throw">${posBat}</div>`:''}
         ${p.dream?`<div class="dream-label">将来の夢</div><div class="dream">${esc(p.dream)}</div>`:''}
         ${msgsHtml}
       </div>`;
