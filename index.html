@@ -1164,32 +1164,21 @@ img.clickable-photo{cursor:zoom-in;}
       </div>
     </div>
 
-    <!-- 選手CSV -->
+    <!-- 選手CSV（自チーム＋対戦チーム 統合） -->
     <div class="admin-section" id="csvAdmin">
       <div class="admin-form-card">
-        <div class="admin-form-title">👤 自チーム選手 CSVドロップ</div>
-        <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
-          フォーマット（1行目はヘッダー行として読み飛ばします）：<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">背番号,学年,氏名,ポジション,将来の夢,主将</code>
-        </p>
-        <div id="csvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('csvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleCsvDrop(event)">
-          📂 自チーム選手CSVをここにドロップ
-        </div>
-        <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCsvFile(this.files[0])">
-        <div id="csvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
-      </div>
-      <div class="admin-form-card">
-        <div class="admin-form-title">🆚 対戦チーム CSVドロップ</div>
+        <div class="admin-form-title">👥 選手名簿 CSVドロップ（自チーム・対戦チーム共通）</div>
         <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
           チームごとに空行で区切ります。各ブロックの1行目がチーム情報、2行目以降が選手名簿：<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">チーム名,監督名,コーチ名</code>（1行目）<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">背番号,氏名,学年,ポジション</code>（2行目以降）
+          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">チーム名,監督,コーチ,区分</code>（1行目・区分は「自チーム」または「対戦」）<br>
+          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">背番号,学年,氏名,利き投打,ポジション,将来の夢,主将</code>（2行目以降）<br>
+          例）<code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">10,6年,田中翔太,右投右打,投手,プロ野球選手,主将</code>
         </p>
-        <div id="oppCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;" onclick="document.getElementById('oppCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleOppCsvDrop(event)">
-          📂 対戦チームCSVをここにドロップ
+        <div id="teamsCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('teamsCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleTeamsCsvDrop(event)">
+          📂 選手名簿CSVをここにドロップ（全チーム分をまとめて1ファイル）
         </div>
-        <input type="file" id="oppCsvFileInput" accept=".csv" style="display:none;" onchange="handleOppCsvFile(this.files[0])">
-        <div id="oppCsvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
+        <input type="file" id="teamsCsvFileInput" accept=".csv" style="display:none;" onchange="handleTeamsCsvFile(this.files[0])">
+        <div id="teamsCsvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
       </div>
     </div>
 
@@ -1356,6 +1345,33 @@ const DEFAULT_PLAYERS=[
   {num:'14',grade:'3年生',name:'木村 空',pos:'外野手',dream:'パイロット',captain:''},
   {num:'15',grade:'3年生',name:'林 虎太郎',pos:'内野手',dream:'プロ野球選手',captain:''},
 ];
+
+/* =========================================================
+   全チーム選手名簿（自チーム・対戦チーム統合管理）
+   Supabase settings テーブル key: 'teams_roster' で全端末共有
+   構造：[{name, manager, coaches, isHost, roster:[{num,grade,name,batThrow,pos,dream,captain}]}]
+   ========================================================= */
+let TEAMS_ROSTER=[]; // loadSettingsFromSupabaseで取得
+
+function getHostTeams(){
+  return TEAMS_ROSTER.filter(t=>t.isHost);
+}
+function getOppTeamsList(){
+  return TEAMS_ROSTER.filter(t=>!t.isHost);
+}
+function findTeamByName(name){
+  return TEAMS_ROSTER.find(t=>t.name===name);
+}
+// 表示用のフォールバック（teams_roster未設定時）：DEFAULT_PLAYERSを自チーム1件として扱う
+function getDisplayTeams(){
+  if(TEAMS_ROSTER.length>0) return TEAMS_ROSTER;
+  return [{name:'東岐波クラブ',manager:'',coaches:'',isHost:true,roster:DEFAULT_PLAYERS}];
+}
+async function saveTeamsRoster(teams){
+  const {error}=await sb.from('settings').upsert({key:'teams_roster',value:JSON.stringify(teams)},{onConflict:'key'});
+  if(error){ console.error('teams_roster保存エラー:',error); throw error; }
+  TEAMS_ROSTER=teams;
+}
 
 function getViewedGames(){
   try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return [];}
@@ -1708,11 +1724,9 @@ function dismissSpBanner(){
 function openVisitorEdit(){
   const cur=loadLS('hk_manualVisitors',null);
   const auto=(()=>{
-    const opp=loadLS('hk_oppTeams',null)||[];
-    const myP=loadLS('hk_players',null);
-    const myCount=(myP&&myP.length>0?myP:DEFAULT_PLAYERS).length;
-    let oppCount=0; opp.forEach(t=>{ oppCount+=(t.roster||t.players||[]).length; });
-    return (myCount+oppCount+(1+opp.length)*3)*2;
+    const teams=getDisplayTeams();
+    let totalPlayers=0; teams.forEach(t=>{ totalPlayers+=(t.roster||[]).length; });
+    return (totalPlayers+teams.length*3)*2;
   })();
   const val=prompt(`来場見込み数を入力してください。
 （自動計算値: ${auto}人 ＝ 選手＋指導者 × 2）
@@ -2149,16 +2163,8 @@ function updateCheerPlayerList(){
   // チームが選ばれたら「チーム全体」のままでもOK → 有効化
   playerSel.disabled=false;
   // 選手一覧を追加
-  const saved=loadLS('hk_players',null);
-  const players=saved&&saved.length>0?saved:DEFAULT_PLAYERS;
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  let list=[];
-  if(teamName==='東岐波A'||teamName==='東岐波クラブ'){
-    list=players;
-  } else {
-    const opp=oppSaved.find(t=>t.name===teamName);
-    if(opp) list=opp.roster||opp.players||[];
-  }
+  const team=getDisplayTeams().find(t=>t.name===teamName);
+  const list=team?team.roster:[];
   if(list.length===0){ noMsg.style.display='block'; return; }
   list.forEach(p=>{
     const opt=document.createElement('option');
@@ -2172,13 +2178,13 @@ function initCheerTeamList(){
   const teamSel=document.getElementById('cheerTeam');
   if(!teamSel) return;
   teamSel.innerHTML='<option value="">① チームを選んでください</option>';
-  // 自チーム
-  const myOpt=document.createElement('option');
-  myOpt.value='東岐波A'; myOpt.textContent='東岐波クラブ（自チーム）';
-  teamSel.appendChild(myOpt);
-  // 対戦チーム
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  oppSaved.forEach(t=>{
+  const teams=getDisplayTeams();
+  teams.filter(t=>t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent=t.name+'（自チーム）';
+    teamSel.appendChild(opt);
+  });
+  teams.filter(t=>!t.isHost).forEach(t=>{
     const opt=document.createElement('option');
     opt.value=t.name; opt.textContent=t.name;
     teamSel.appendChild(opt);
@@ -2195,16 +2201,8 @@ function updatePhotoPlayerList(){
   noMsg.style.display='none';
   if(!teamName){ playerSel.disabled=true; return; }
   playerSel.disabled=false;
-  const saved=loadLS('hk_players',null);
-  const players=saved&&saved.length>0?saved:DEFAULT_PLAYERS;
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  let list=[];
-  if(teamName==='東岐波A'||teamName==='東岐波クラブ'){
-    list=players;
-  } else {
-    const opp=oppSaved.find(t=>t.name===teamName);
-    if(opp) list=opp.roster||opp.players||[];
-  }
+  const team=getDisplayTeams().find(t=>t.name===teamName);
+  const list=team?team.roster:[];
   if(list.length===0){ noMsg.style.display='block'; return; }
   list.forEach(p=>{
     const opt=document.createElement('option');
@@ -2218,11 +2216,13 @@ function initPhotoTeamList(){
   const teamSel=document.getElementById('photoTeam');
   if(!teamSel) return;
   teamSel.innerHTML='<option value="">① 対象チームを選んでください</option>';
-  const myOpt=document.createElement('option');
-  myOpt.value='東岐波A'; myOpt.textContent='東岐波クラブ（自チーム）';
-  teamSel.appendChild(myOpt);
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  oppSaved.forEach(t=>{
+  const teams=getDisplayTeams();
+  teams.filter(t=>t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent=t.name+'（自チーム）';
+    teamSel.appendChild(opt);
+  });
+  teams.filter(t=>!t.isHost).forEach(t=>{
     const opt=document.createElement('option');
     opt.value=t.name; opt.textContent=t.name;
     teamSel.appendChild(opt);
@@ -2699,8 +2699,7 @@ function animateCount(el, target){
 
 function updateDashboard(){
   // 参加チーム数（自チーム＋対戦チーム）
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  const teamCount=1+oppSaved.length;
+  const teamCount=getDisplayTeams().length;
   animateCount(document.getElementById('dashTeamsVal'), teamCount);
 
   // 協賛企業・団体数（type==='sponsor' または type==='団体'）
@@ -2911,9 +2910,8 @@ function renderAlbumAdmin(){
   renderDonationAdmin();
   startSpBanner();
   updateDashboard();
-  // CHEERSロード後に選手カードを再描画（選手宛メッセージ反映）
-  const savedPlayers=loadLS('hk_players',null);
-  renderPlayerCards(savedPlayers&&savedPlayers.length>0?savedPlayers:DEFAULT_PLAYERS);
+  // 選手名簿（自チーム＋対戦チーム）の各種フォーム・タブを初期描画（選手宛メッセージ反映）
+  renderAllTeamViews();
 
   // ---- Supabase Realtime 自動同期 ----
   let _realtimeOk=false;
@@ -3006,10 +3004,11 @@ function execReset(target){
       })();
       break;
     case 'players':
-      localStorage.removeItem('hk_players');
-      localStorage.removeItem('hk_oppTeams');
-      renderPlayerCards(DEFAULT_PLAYERS);
-      document.getElementById('oppTeamList').innerHTML='';
+      (async()=>{
+        await sb.from('settings').upsert({key:'teams_roster',value:'[]'},{onConflict:'key'});
+        TEAMS_ROSTER=[];
+        renderAllTeamViews();
+      })();
       break;
     case 'info':
       localStorage.removeItem('hk_tournamentInfo');
@@ -3027,8 +3026,7 @@ function execReset(target){
         CHEERS.length=0;
         rebuildCheerRows();
         renderAdminCounts();
-        const s=loadLS('hk_players',null); renderPlayerCards(s&&s.length>0?s:DEFAULT_PLAYERS);
-        if(_plCurrentTeam!=='main') renderOppPlayerCards(_plCurrentTeam);
+        if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
       })();
       break;
     case 'photos':
@@ -3171,6 +3169,9 @@ async function loadSettingsFromSupabase(){
     if(row.key==='admin_pw_hash' && row.value){
       ADMIN_PW_HASH=row.value;
     }
+    if(row.key==='teams_roster'){
+      try{ TEAMS_ROSTER=JSON.parse(row.value)||[]; }catch(e){ TEAMS_ROSTER=[]; }
+    }
   });
 }
 
@@ -3286,33 +3287,50 @@ function renderPeriodAdmin(){
   updatePeriodStatusDisplay('photo');
 }
 
-/* ---------- CSVドロップ：自チーム選手 ---------- */
-function handleCsvDrop(e){
+/* ---------- CSVドロップ：全チーム選手名簿（自チーム＋対戦チーム統合） ---------- */
+function handleTeamsCsvDrop(e){
   e.preventDefault();
-  document.getElementById('csvDropZone').style.borderColor='#c8d0e8';
+  document.getElementById('teamsCsvDropZone').style.borderColor='#c8d0e8';
   const file=e.dataTransfer.files[0];
-  if(file) handleCsvFile(file);
+  if(file) handleTeamsCsvFile(file);
 }
-function handleCsvFile(file){
-  if(!file){return;}
+function handleTeamsCsvFile(file){
+  if(!file) return;
+  const statusEl=document.getElementById('teamsCsvStatus');
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     try{
       const text=e.target.result;
-      const rows=text.split(/\r?\n/).filter(r=>r.trim());
-      if(rows.length<2){alert('CSVにデータがありません');return;}
-      // ヘッダー行をスキップ
-      const players=[];
-      for(let i=1;i<rows.length;i++){
-        const cols=rows[i].split(',').map(c=>c.trim());
-        if(cols.length<4) continue;
-        players.push({num:cols[0],grade:cols[1],name:cols[2],pos:cols[3],dream:cols[4]||'',captain:cols[5]||''});
-      }
-      renderPlayerCards(players);
-      saveLS('hk_players',players);
-      document.getElementById('csvStatus').textContent=`✅ ${players.length}人の選手データを読み込みました。`;
+      // 空行でチームブロック分割
+      const blocks=text.split(/\r?\n\r?\n/).filter(b=>b.trim());
+      const teams=[];
+      blocks.forEach(block=>{
+        const rows=block.split(/\r?\n/).filter(r=>r.trim());
+        if(rows.length<1) return;
+        const header=rows[0].split(',').map(c=>c.trim());
+        if(!header[0]) return;
+        const team={
+          name:header[0]||'', manager:header[1]||'', coaches:header[2]||'',
+          isHost:(header[3]||'')==='自チーム', roster:[]
+        };
+        for(let i=1;i<rows.length;i++){
+          const cols=rows[i].split(',').map(c=>c.trim());
+          if(cols.length<3) continue;
+          team.roster.push({
+            num:cols[0]||'', grade:cols[1]||'', name:cols[2]||'',
+            batThrow:cols[3]||'', pos:cols[4]||'', dream:cols[5]||'', captain:cols[6]||''
+          });
+        }
+        teams.push(team);
+      });
+      if(teams.length===0){ statusEl.textContent='❌ CSVにデータがありません'; return; }
+      statusEl.textContent='保存中…';
+      await saveTeamsRoster(teams);
+      renderAllTeamViews();
+      const totalPlayers=teams.reduce((s,t)=>s+t.roster.length,0);
+      statusEl.textContent=`✅ ${teams.length}チーム（計${totalPlayers}人）のデータを保存しました。`;
     }catch(err){
-      document.getElementById('csvStatus').textContent='❌ CSVの読み込みに失敗しました：'+err.message;
+      statusEl.textContent='❌ CSVの読み込みに失敗しました：'+err.message;
     }
   };
   reader.readAsText(file,'UTF-8');
@@ -3320,91 +3338,87 @@ function handleCsvFile(file){
 
 const PLACEHOLDER_IMG="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='72' height='72' fill='%23cfd3da'/%3E%3Ccircle cx='36' cy='28' r='14' fill='%23a8adb6'/%3E%3Cellipse cx='36' cy='68' rx='26' ry='22' fill='%23a8adb6'/%3E%3C/svg%3E";
 
+/* ---------- 選手紹介：チーム切り替えタブ ---------- */
+let _plCurrentTeam='';
 
-// 仮デモ用対戦チームデータ（常に上書き。本番移行時はこのブロックごと削除）
-(function(){
-  {
-    const demoOpp=[
-      {name:'タイガース',roster:[
-        {num:'1',grade:'6年生',name:'木下 壮',pos:'投手'},
-        {num:'2',grade:'6年生',name:'坂本 悠',pos:'捕手'},
-        {num:'3',grade:'6年生',name:'西村 太一',pos:'一塁手'},
-        {num:'4',grade:'5年生',name:'森 翼',pos:'二塁手'},
-        {num:'5',grade:'5年生',name:'村上 颯',pos:'遊撃手'},
-        {num:'6',grade:'5年生',name:'岡本 陸',pos:'三塁手'},
-        {num:'7',grade:'4年生',name:'中島 蓮',pos:'外野手'},
-        {num:'8',grade:'4年生',name:'藤田 海斗',pos:'外野手'},
-        {num:'9',grade:'4年生',name:'橋本 大輝',pos:'外野手'},
-        {num:'10',grade:'3年生',name:'石田 光',pos:'投手'},
-        {num:'11',grade:'3年生',name:'浜田 空',pos:'内野手'},
-        {num:'12',grade:'3年生',name:'山田 幸',pos:'内野手'},
-        {num:'13',grade:'3年生',name:'近藤 葵',pos:'捕手'},
-        {num:'14',grade:'3年生',name:'原 陽太',pos:'外野手'},
-        {num:'15',grade:'3年生',name:'田村 昂',pos:'内野手'},
-      ]},
-      {name:'ライオンズ',roster:[
-        {num:'10',grade:'6年生',name:'斉藤 豪',pos:'投手'},
-        {num:'1',grade:'6年生',name:'川口 輝',pos:'捕手'},
-        {num:'2',grade:'6年生',name:'上田 凛',pos:'一塁手'},
-        {num:'3',grade:'5年生',name:'前田 匠',pos:'二塁手'},
-        {num:'4',grade:'5年生',name:'谷 優斗',pos:'遊撃手'},
-        {num:'5',grade:'5年生',name:'岩崎 健',pos:'三塁手'},
-        {num:'6',grade:'4年生',name:'小山 颯',pos:'外野手'},
-        {num:'7',grade:'4年生',name:'三浦 陽',pos:'外野手'},
-        {num:'8',grade:'4年生',name:'今井 航',pos:'外野手'},
-        {num:'9',grade:'3年生',name:'杉本 蒼',pos:'投手'},
-        {num:'11',grade:'3年生',name:'野口 葵',pos:'内野手'},
-        {num:'12',grade:'3年生',name:'大野 翔',pos:'内野手'},
-        {num:'13',grade:'3年生',name:'金子 星',pos:'捕手'},
-        {num:'14',grade:'3年生',name:'福田 海',pos:'外野手'},
-        {num:'15',grade:'3年生',name:'池田 空',pos:'内野手'},
-      ]},
-      {name:'イーグルス',roster:[
-        {num:'10',grade:'6年生',name:'田村 颯斗',pos:'投手'},
-        {num:'1',grade:'6年生',name:'橋本 蓮',pos:'捕手'},
-        {num:'2',grade:'6年生',name:'石田 悠',pos:'一塁手'},
-        {num:'3',grade:'5年生',name:'浦田 翔',pos:'二塁手'},
-        {num:'4',grade:'5年生',name:'坂井 陸',pos:'遊撃手'},
-        {num:'5',grade:'5年生',name:'長谷 太郎',pos:'三塁手'},
-        {num:'6',grade:'4年生',name:'宮崎 光',pos:'外野手'},
-        {num:'7',grade:'4年生',name:'井上 翼',pos:'外野手'},
-        {num:'8',grade:'4年生',name:'安田 匠',pos:'外野手'},
-        {num:'9',grade:'3年生',name:'平田 凛',pos:'投手'},
-        {num:'11',grade:'3年生',name:'永田 空',pos:'内野手'},
-        {num:'12',grade:'3年生',name:'今村 星',pos:'内野手'},
-        {num:'13',grade:'3年生',name:'竹内 海',pos:'捕手'},
-        {num:'14',grade:'3年生',name:'福島 勇',pos:'外野手'},
-        {num:'15',grade:'3年生',name:'若松 大',pos:'内野手'},
-      ]},
-    ];
-    saveLS('hk_oppTeams',demoOpp);
+// CSV保存後・データ読み込み後にフォーム/タブ類をまとめて再描画
+function renderAllTeamViews(){
+  initCheerTeamList();
+  initPhotoTeamList();
+  initPlTeamTabs();
+}
+
+function initPlTeamTabs(){
+  const tabsEl=document.getElementById('plTeamTabs');
+  if(!tabsEl) return;
+  tabsEl.innerHTML='';
+  const sel=document.createElement('select');
+  sel.style.cssText='width:100%;font-size:14px;padding:10px 12px;border:2px solid #1b2a4a;border-radius:10px;font-weight:700;color:#1b2a4a;background:#fff;cursor:pointer;';
+  const teams=getDisplayTeams();
+  teams.filter(t=>t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent='⚾ '+t.name+'（自チーム）';
+    sel.appendChild(opt);
+  });
+  teams.filter(t=>!t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent=t.name;
+    sel.appendChild(opt);
+  });
+  if((!_plCurrentTeam || !teams.find(t=>t.name===_plCurrentTeam)) && teams.length>0){
+    _plCurrentTeam=teams[0].name;
   }
-})();
+  sel.value=_plCurrentTeam;
+  sel.onchange=()=>switchPlTeam(sel.value);
+  tabsEl.appendChild(sel);
+  document.getElementById('plViewMain').style.display='none';
+  document.getElementById('plViewOpp').style.display='';
+  if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
+}
 
-function renderPlayerCards(players){
-  const grid=document.getElementById('playerGrid');
+function switchPlTeam(teamName){
+  _plCurrentTeam=teamName;
+  const sel=document.querySelector('#plTeamTabs select');
+  if(sel) sel.value=teamName;
+  renderTeamPlayerCards(teamName);
+}
+
+function renderTeamPlayerCards(teamName){
+  const team=getDisplayTeams().find(t=>t.name===teamName);
+  const grid=document.getElementById('plOppGrid');
+  if(!team){
+    document.getElementById('plOppTitle').innerHTML='';
+    document.getElementById('plOppStaff').innerHTML='';
+    if(grid) grid.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">チームデータがまだ登録されていません</div>';
+    return;
+  }
+  // タイトル
+  document.getElementById('plOppTitle').innerHTML=`${team.name} <span class="pl-eyebrow">${team.isHost?'MAIN TEAM':'OPPONENT TEAM'}</span>`;
+  // スタッフ
+  const staffEl=document.getElementById('plOppStaff');
+  const staffLine=[];
+  if(team.manager) staffLine.push('監督　<b>'+team.manager+'</b>');
+  if(team.coaches) staffLine.push('コーチ　<b>'+team.coaches+'</b>');
+  staffEl.innerHTML=staffLine.map(s=>`<span>${s}</span>`).join('');
+  // 選手カードグリッド
   if(!grid) return;
   grid.innerHTML='';
-  players.forEach((p,i)=>{
+  const roster=team.roster||[];
+  roster.forEach((p,i)=>{
     const isRed=i%3===1;
     const card=document.createElement('div');
     card.className='pl-player-card'+(isRed?' accent-red':'');
     const captainBadge=p.captain?'・'+p.captain:'';
-    // この選手宛ての承認済みメッセージを取得
-    const myMsgs=CHEERS.filter(c=>c.name===p.name);
+    // この選手宛ての承認済みメッセージ
+    const myMsgs=CHEERS.filter(c=>c.team===teamName&&c.name===p.name);
     const msgsHtml=myMsgs.length>0
-      ? `<div class="player-cheers">
-          ${myMsgs.map(c=>`<div class="player-cheer-item">
-            <span class="player-cheer-msg">"${c.msg}"</span>
-            <span class="player-cheer-from">${c.from}より</span>
-          </div>`).join('')}
-         </div>`
-      : '';
+      ?`<div class="player-cheers">${myMsgs.map(c=>`<div class="player-cheer-item"><span class="player-cheer-msg">"${c.msg}"</span><span class="player-cheer-from">${c.from}より</span></div>`).join('')}</div>`
+      :'';
     card.innerHTML=`
       <div class="top">
         <div>
-          <div class="number">${p.num}</div>
-          <div class="grade-pos">${p.grade}${captainBadge}<span class="pos-badge">${p.pos}</span></div>
+          <div class="number">${p.num||'?'}</div>
+          <div class="grade-pos">${p.grade||''}${captainBadge}<span class="pos-badge">${p.pos||''}</span>${p.batThrow?`<span class="pos-badge" style="background:rgba(255,255,255,.14);">${p.batThrow}</span>`:''}</div>
         </div>
         <img class="photo" src="${PLACEHOLDER_IMG}" alt="${p.name}" style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
       </div>
@@ -3417,186 +3431,6 @@ function renderPlayerCards(players){
     grid.appendChild(card);
   });
 }
-
-/* ---------- 選手紹介：チーム切り替えタブ ---------- */
-let _plCurrentTeam='main';
-
-function initPlTeamTabs(){
-  const tabsEl=document.getElementById('plTeamTabs');
-  if(!tabsEl) return;
-  tabsEl.innerHTML='';
-  // ドロップリスト形式に変更
-  const sel=document.createElement('select');
-  sel.style.cssText='width:100%;font-size:14px;padding:10px 12px;border:2px solid #1b2a4a;border-radius:10px;font-weight:700;color:#1b2a4a;background:#fff;cursor:pointer;';
-  // 自チーム（常に先頭）
-  const mainOpt=document.createElement('option');
-  mainOpt.value='main';
-  mainOpt.textContent='⚾ 東岐波クラブ（主催チーム）';
-  sel.appendChild(mainOpt);
-  // 対戦チーム
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  oppSaved.forEach(t=>{
-    const opt=document.createElement('option');
-    opt.value=t.name;
-    opt.textContent=t.name;
-    sel.appendChild(opt);
-  });
-  sel.value=_plCurrentTeam;
-  sel.onchange=()=>switchPlTeam(sel.value);
-  tabsEl.appendChild(sel);
-}
-
-function switchPlTeam(teamName){
-  _plCurrentTeam=teamName;
-  // ドロップリストの表示値を同期
-  const sel=document.querySelector('#plTeamTabs select');
-  if(sel) sel.value=teamName;
-  const mainView=document.getElementById('plViewMain');
-  const oppView=document.getElementById('plViewOpp');
-  if(teamName==='main'){
-    mainView.style.display='';
-    oppView.style.display='none';
-  } else {
-    mainView.style.display='none';
-    oppView.style.display='';
-    renderOppPlayerCards(teamName);
-  }
-}
-
-function renderOppPlayerCards(teamName){
-  const oppSaved=loadLS('hk_oppTeams',null)||[];
-  const team=oppSaved.find(t=>t.name===teamName);
-  if(!team) return;
-  // タイトル
-  document.getElementById('plOppTitle').innerHTML=`${team.name} <span class="pl-eyebrow">OPPONENT TEAM</span>`;
-  // スタッフ
-  const staffEl=document.getElementById('plOppStaff');
-  const staffLine=[];
-  if(team.manager) staffLine.push('監督　<b>'+team.manager+'</b>');
-  if(team.coaches) staffLine.push('コーチ　<b>'+team.coaches+'</b>');
-  staffEl.innerHTML=staffLine.map(s=>`<span>${s}</span>`).join('');
-  // 選手カードグリッド
-  const grid=document.getElementById('plOppGrid');
-  grid.innerHTML='';
-  const roster=team.roster||team.players||[];
-  roster.forEach((p,i)=>{
-    const isRed=i%3===1;
-    const card=document.createElement('div');
-    card.className='pl-player-card'+(isRed?' accent-red':'');
-    // この選手宛ての承認済みメッセージ
-    const myMsgs=CHEERS.filter(c=>c.team===teamName&&c.name===p.name);
-    const msgsHtml=myMsgs.length>0
-      ?`<div class="player-cheers">${myMsgs.map(c=>`<div class="player-cheer-item"><span class="player-cheer-msg">"${c.msg}"</span><span class="player-cheer-from">${c.from}より</span></div>`).join('')}</div>`
-      :'';
-    card.innerHTML=`
-      <div class="top">
-        <div>
-          <div class="number">${p.num||'?'}</div>
-          <div class="grade-pos">${p.grade||''}<span class="pos-badge">${p.pos||''}</span></div>
-        </div>
-        <img class="photo" src="${PLACEHOLDER_IMG}" alt="${p.name}" style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
-      </div>
-      <div class="body">
-        <div class="name-label">NAME</div>
-        <div class="name">${p.name}</div>
-        ${msgsHtml}
-      </div>`;
-    grid.appendChild(card);
-  });
-}
-
-// 保存済み選手データを読み込んで表示（なければデフォルト）
-(function(){
-  const saved=loadLS('hk_players',null);
-  renderPlayerCards(saved&&saved.length>0 ? saved : DEFAULT_PLAYERS);
-  initCheerTeamList(); // 応援フォームのチームリストを初期化
-  initPhotoTeamList();  // フォトフォームのチームリストを初期化
-  initPlTeamTabs();    // 選手紹介タブを初期化
-})();
-
-/* ---------- CSVドロップ：対戦チーム ---------- */
-function handleOppCsvDrop(e){
-  e.preventDefault();
-  document.getElementById('oppCsvDropZone').style.borderColor='#c8d0e8';
-  const file=e.dataTransfer.files[0];
-  if(file) handleOppCsvFile(file);
-}
-function handleOppCsvFile(file){
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const text=e.target.result;
-      // 空行でチームブロック分割
-      const blocks=text.split(/\r?\n\r?\n/).filter(b=>b.trim());
-      const teams=[];
-      blocks.forEach(block=>{
-        const rows=block.split(/\r?\n/).filter(r=>r.trim());
-        if(rows.length<1) return;
-        const header=rows[0].split(',').map(c=>c.trim());
-        if(header.length<1) return;
-        const team={name:header[0]||'',manager:header[1]||'',coaches:header[2]||'',roster:[]};
-        for(let i=1;i<rows.length;i++){
-          const cols=rows[i].split(',').map(c=>c.trim());
-          if(cols.length>=3) team.roster.push({num:cols[0],name:cols[1],grade:cols[2],pos:cols[3]||''});
-        }
-        teams.push(team);
-      });
-      renderOppTeams(teams);
-      saveLS('hk_oppTeams',teams);
-      initCheerTeamList(); // 応援フォームのチームリストも更新
-      initPhotoTeamList();  // フォトフォームのチームリストも更新
-      initPlTeamTabs();    // 選手紹介タブも更新
-      document.getElementById('oppCsvStatus').textContent=`✅ ${teams.length}チームのデータを読み込みました。`;
-    }catch(err){
-      document.getElementById('oppCsvStatus').textContent='❌ CSVの読み込みに失敗しました：'+err.message;
-    }
-  };
-  reader.readAsText(file,'UTF-8');
-}
-
-function renderOppTeams(teams){
-  const list=document.getElementById('oppTeamList');
-  if(!list) return;
-  list.innerHTML='';
-  teams.forEach(team=>{
-    const div=document.createElement('div');
-    div.className='pl-opp-team';
-    div.setAttribute('data-opp-team','');
-    const staffLine=[];
-    if(team.manager) staffLine.push('監督：'+team.manager);
-    if(team.coaches) staffLine.push('コーチ：'+team.coaches);
-    const rosterRows=(team.roster||[]).map(r=>`<tr><td class="num-cell">${r.num}</td><td>${r.name}</td><td>${r.grade}</td><td class="pos-cell">${r.pos||''}</td></tr>`).join('');
-    div.innerHTML=`
-      <button class="pl-opp-toggle" data-opp-toggle>
-        <div class="thumb" style="background:#cfd3da;"></div>
-        <span class="info">
-          <span class="team-name">${team.name}</span>
-          ${staffLine.length?`<span class="staff-line">${staffLine.join('　／　')}</span>`:''}
-        </span>
-        <span class="chevron">▼</span>
-      </button>
-      <div class="pl-opp-panel">
-        <div class="pl-opp-panel-inner">
-          <div class="pl-opp-photo" style="background:#cfd3da;height:100px;"></div>
-          <table class="pl-roster">
-            <thead><tr><th>背番号</th><th>氏名</th><th>学年</th><th>ポジション</th></tr></thead>
-            <tbody>${rosterRows}</tbody>
-          </table>
-        </div>
-      </div>`;
-    list.appendChild(div);
-  });
-  // アコーディオン再設定
-  initOppToggle();
-}
-
-// 保存済み対戦チームデータを読み込んで表示
-(function(){
-  const saved=loadLS('hk_oppTeams',null);
-  if(saved&&saved.length>0) renderOppTeams(saved);
-  initPlTeamTabs(); // ドロップリストも同期
-})();
 
 /* ---------- CSVドロップ：大会要綱 ---------- */
 function handleInfoCsvDrop(e){
