@@ -46,7 +46,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 .pl-player-card .photo{width:52px;height:52px;border-radius:50%;background:#cfd3da;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;}
 .pl-player-card .body{padding:10px 12px 13px;}
 .pl-player-card .name-label{font-size:9px;color:#6b6b6b;letter-spacing:.06em;}
-.pl-player-card .name{font-size:15px;font-weight:800;margin:2px 0 8px;}
+.pl-player-card .name{font-size:15px;font-weight:800;margin:2px 0 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pl-player-card .captain-badge{font-size:10px;font-weight:700;color:#fff;background:#c9a227;padding:2px 7px;border-radius:999px;letter-spacing:.02em;}
 .pl-player-card .dream-label{font-size:9px;font-weight:700;color:#c8273c;letter-spacing:.04em;}
 .pl-player-card .dream{font-size:12px;font-weight:700;margin-top:3px;line-height:1.5;}
 .player-cheers{margin-top:8px;border-top:1px dashed #e5e5e5;padding-top:7px;display:flex;flex-direction:column;gap:5px;}
@@ -2197,7 +2198,7 @@ function initCheerTeamList(){
   const teams=getDisplayTeams();
   teams.filter(t=>t.isHost).forEach(t=>{
     const opt=document.createElement('option');
-    opt.value=t.name; opt.textContent=t.name+'（自チーム）';
+    opt.value=t.name; opt.textContent=t.name+'（主催チーム）';
     teamSel.appendChild(opt);
   });
   teams.filter(t=>!t.isHost).forEach(t=>{
@@ -2235,7 +2236,7 @@ function initPhotoTeamList(){
   const teams=getDisplayTeams();
   teams.filter(t=>t.isHost).forEach(t=>{
     const opt=document.createElement('option');
-    opt.value=t.name; opt.textContent=t.name+'（自チーム）';
+    opt.value=t.name; opt.textContent=t.name+'（主催チーム）';
     teamSel.appendChild(opt);
   });
   teams.filter(t=>!t.isHost).forEach(t=>{
@@ -3405,7 +3406,7 @@ function initPlTeamTabs(){
   const teams=getDisplayTeams();
   teams.filter(t=>t.isHost).forEach(t=>{
     const opt=document.createElement('option');
-    opt.value=t.name; opt.textContent='⚾ '+t.name+'（自チーム）';
+    opt.value=t.name; opt.textContent='⚾ '+t.name+'（主催チーム）';
     sel.appendChild(opt);
   });
   teams.filter(t=>!t.isHost).forEach(t=>{
@@ -3456,24 +3457,24 @@ function renderTeamPlayerCards(teamName){
     const isRed=i%3===1;
     const card=document.createElement('div');
     card.className='pl-player-card'+(isRed?' accent-red':'');
-    const captainBadge=p.captain?'・'+p.captain:'';
     // この選手宛ての承認済みメッセージ
     const myMsgs=CHEERS.filter(c=>c.team===teamName&&c.name===p.name);
     const msgsHtml=myMsgs.length>0
-      ?`<div class="player-cheers">${myMsgs.map(c=>`<div class="player-cheer-item"><span class="player-cheer-msg">"${c.msg}"</span><span class="player-cheer-from">${c.from}より</span></div>`).join('')}</div>`
+      ?`<div class="player-cheers">${myMsgs.map(c=>`<div class="player-cheer-item"><span class="player-cheer-msg">"${esc(c.msg)}"</span><span class="player-cheer-from">${esc(c.from)}より</span></div>`).join('')}</div>`
       :'';
+    // 自チームは選手個人の写真を大きく表示（対戦チームは今まで通りの小さめプレースホルダー）
+    const photoSize=team.isHost?96:52;
     card.innerHTML=`
       <div class="top">
         <div>
-          <div class="number">${p.num||'?'}</div>
-          <div class="grade-pos">${p.grade||''}${captainBadge}<span class="pos-badge">${p.pos||''}</span>${p.batThrow?`<span class="pos-badge" style="background:rgba(255,255,255,.14);">${p.batThrow}</span>`:''}</div>
+          <div class="number">${esc(p.num)||'?'}</div>
+          <div class="grade-pos">${esc(p.grade)||''}<span class="pos-badge">${esc(p.pos)||''}</span>${p.batThrow?`<span class="pos-badge" style="background:rgba(255,255,255,.14);">${esc(p.batThrow)}</span>`:''}</div>
         </div>
-        <img class="photo" src="${PLACEHOLDER_IMG}" alt="${p.name}" style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
+        <img class="photo" src="${PLACEHOLDER_IMG}" alt="${esc(p.name)}" style="width:${photoSize}px;height:${photoSize}px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
       </div>
       <div class="body">
-        <div class="name-label">NAME</div>
-        <div class="name">${p.name}</div>
-        ${p.dream?`<div class="dream-label">将来の夢</div><div class="dream">${p.dream}</div>`:''}
+        <div class="name">${esc(p.name)}${p.captain?`<span class="captain-badge">${esc(p.captain)}</span>`:''}</div>
+        ${p.dream?`<div class="dream-label">将来の夢</div><div class="dream">${esc(p.dream)}</div>`:''}
         ${msgsHtml}
       </div>`;
     grid.appendChild(card);
