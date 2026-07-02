@@ -41,8 +41,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 .pl-player-card .top{background:#1b2a4a;display:flex;align-items:center;gap:10px;padding:10px 12px;}
 .pl-player-card.accent-red .top{background:#9e1f30;}
 .pl-player-card .number{font-size:28px;font-weight:800;color:#fff;line-height:1;min-width:36px;}
-.pl-player-card .grade-pos{font-size:10px;color:#c7cee0;margin-top:3px;line-height:1.5;}
-.pl-player-card .pos-badge{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px;}
+.pl-player-card .grade-pos{font-size:10px;color:#c7cee0;margin-top:4px;line-height:1.5;display:flex;flex-direction:column;align-items:flex-start;gap:3px;}
+.pl-player-card .pos-badge{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;}
 .pl-player-card .photo{width:52px;height:52px;border-radius:50%;background:#cfd3da;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;}
 .pl-player-card .body{padding:10px 12px 13px;}
 .pl-player-card .name-label{font-size:9px;color:#6b6b6b;letter-spacing:.06em;}
@@ -3468,7 +3468,7 @@ function renderTeamPlayerCards(teamName){
       <div class="top">
         <div>
           <div class="number">${esc(p.num)||'?'}</div>
-          <div class="grade-pos">${esc(p.grade)||''}<span class="pos-badge">${esc(p.pos)||''}</span>${p.batThrow?`<span class="pos-badge" style="background:rgba(255,255,255,.14);">${esc(p.batThrow)}</span>`:''}</div>
+          <div class="grade-pos">${p.grade?`<div>${esc(p.grade)}</div>`:''}${p.pos?`<div class="pos-badge">${esc(p.pos)}</div>`:''}${p.batThrow?`<div class="pos-badge" style="background:rgba(255,255,255,.14);">${esc(p.batThrow)}</div>`:''}</div>
         </div>
         <img class="photo" src="${PLACEHOLDER_IMG}" alt="${esc(p.name)}" style="width:${photoSize}px;height:${photoSize}px;border-radius:50%;border:2px solid rgba(255,255,255,.35);object-fit:cover;flex-shrink:0;margin-left:auto;">
       </div>
