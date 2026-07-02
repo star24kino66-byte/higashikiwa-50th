@@ -371,17 +371,19 @@ img.clickable-photo{cursor:zoom-in;}
 .cheer-table .c-date{grid-area:date;font-size:11px;color:#aaa;align-self:center;}
 .cheer-table .c-act{grid-area:act;justify-self:end;display:flex;gap:6px;align-self:center;}
 
-/* 写真：宛先(チーム)＋投稿者 / 写真・タイトル・賞 / 日時＋操作（承認済みは いいね・状態＋取下） */
-.photo-table tbody tr{grid-template-columns:auto 1fr auto;grid-template-areas:"check to from" "photo photo photo" "date date act";}
-.photo-table--approved tbody tr{grid-template-columns:1fr auto;grid-template-areas:"to from" "photo photo" "act act";}
+/* 写真：宛先(チーム)＋投稿者 / 写真(2〜3行目にまたがり大きめ表示)＋タイトル・賞・日時・操作 */
+.photo-table tbody tr{grid-template-columns:auto 96px 1fr;grid-template-areas:"check to from" "thumb title title" "thumb date act";}
+.photo-table--approved tbody tr{grid-template-columns:96px 1fr;grid-template-areas:"to from" "thumb title" "thumb act";}
 .photo-table tbody tr.is-best{background:#fffdf0;border-color:#c9a227;}
 .photo-table .p-check{grid-area:check;align-self:center;}
 .photo-table .p-to{grid-area:to;font-size:11px;color:#888;align-self:center;}
 .photo-table .p-from{grid-area:from;font-size:11px;color:#888;align-self:center;text-align:right;}
-.photo-table .p-photo{grid-area:photo;display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #e5e5e5;border-bottom:1px dashed #e5e5e5;}
-.photo-table .p-photo .p-title{font-size:13px;color:#333;flex:1;}
+.photo-table .p-thumb{grid-area:thumb;border-top:1px dashed #e5e5e5;padding-top:6px;}
+.photo-table .p-thumb img{width:100%;height:100%;min-height:88px;object-fit:cover;border-radius:8px;display:block;cursor:pointer;}
+.photo-table .p-thumb .p-noimg{width:100%;height:88px;display:flex;align-items:center;justify-content:center;background:#f0f2f8;border-radius:8px;font-size:22px;}
+.photo-table .p-title{grid-area:title;font-size:13px;color:#333;padding-top:6px;border-top:1px dashed #e5e5e5;align-self:start;}
 .photo-table .p-date{grid-area:date;font-size:11px;color:#aaa;align-self:center;}
-.photo-table .p-act{grid-area:act;justify-self:end;display:flex;align-items:center;gap:6px;}
+.photo-table .p-act{grid-area:act;justify-self:end;align-self:end;display:flex;align-items:center;gap:6px;}
 .photo-table--approved .p-act{justify-content:space-between;width:100%;}
 .photo-table .p-likes{font-size:12px;color:#555;}
 .photo-table .p-status{font-size:10px;font-weight:700;}
@@ -2382,13 +2384,14 @@ function renderPendingPhotoList(){
   <table class="photo-table photo-table--pending">
   <thead><tr><th></th><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>日時</th><th>操作</th></tr></thead><tbody>`;
   pendingPhotos.forEach(p=>{
-    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="openLightbox('${p.thumb}')">`:'📷';
+    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
       <td class="p-check"><input type="checkbox" class="photo-check" data-id="${p._id}"></td>
       <td class="p-to">${p.team||''}</td>
       <td class="p-from">${p.author||'-'}</td>
-      <td class="p-photo">${thumb}<span class="p-title"><b>${p.n||'無題'}</b></span><span class="pending-tag">${catLabel[p.cat]||p.cat}</span></td>
+      <td class="p-thumb">${thumb}</td>
+      <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catLabel[p.cat]||p.cat}</span></td>
       <td class="p-date">${dt}</td>
       <td class="p-act">
         <button class="btn-approve" onclick="approvePhoto('${p._id}')">承認</button>
@@ -2494,11 +2497,12 @@ function renderApprovedPhotoList(){
   <thead><tr><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>いいね・状態・操作</th></tr></thead><tbody>`;
   approvedPhotosExtra.slice().reverse().forEach(p=>{
     const isBest=bestShots[p.cat]===p._id;
-    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="openLightbox('${p.thumb}')">`:'📷';
+    const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     html+=`<tr class="${isBest?'is-best':''}">
       <td class="p-to">${p.team||''}</td>
       <td class="p-from">${p.author||'-'}</td>
-      <td class="p-photo">${thumb}<span class="p-title"><b>${p.n||'無題'}</b></span><span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span></td>
+      <td class="p-thumb">${thumb}</td>
+      <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span></td>
       <td class="p-act">
         <span class="p-likes">👍 ${p.l||0}</span>
         <span class="p-status" style="color:${isBest?'#c9a227':'#5cb87a'};">${isBest?'🏆選定中':'掲載中'}</span>
