@@ -365,6 +365,7 @@ img.clickable-photo{cursor:zoom-in;}
 .cheer-table tbody tr{grid-template-columns:auto 1fr auto;grid-template-areas:"check to from" "msg msg msg" "date date act";}
 .cheer-table--approved tbody tr{grid-template-columns:1fr auto;grid-template-areas:"to from" "msg msg" "act act";}
 .cheer-table .c-check{grid-area:check;align-self:center;}
+.row-no{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:#1b2a4a;padding:2px 6px;border-radius:999px;margin-right:5px;vertical-align:middle;}
 .cheer-table .c-to{grid-area:to;font-size:13px;align-self:center;}
 .cheer-table .c-from{grid-area:from;font-size:11px;color:#888;align-self:center;text-align:right;}
 .cheer-table .c-msg{grid-area:msg;font-size:13px;color:#333;line-height:1.5;padding:6px 0;border-top:1px dashed #e5e5e5;border-bottom:1px dashed #e5e5e5;}
@@ -2383,12 +2384,13 @@ function renderPendingPhotoList(){
   </div>
   <table class="photo-table photo-table--pending">
   <thead><tr><th></th><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>日時</th><th>操作</th></tr></thead><tbody>`;
-  pendingPhotos.forEach(p=>{
+  pendingPhotos.forEach((p,idx)=>{
+    const no=idx+1;
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
       <td class="p-check"><input type="checkbox" class="photo-check" data-id="${p._id}"></td>
-      <td class="p-to">${p.team||''}</td>
+      <td class="p-to"><span class="row-no">No.${no}</span>${p.team||''}</td>
       <td class="p-from">${p.author||'-'}</td>
       <td class="p-thumb">${thumb}</td>
       <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catLabel[p.cat]||p.cat}</span></td>
@@ -2443,11 +2445,12 @@ function renderPendingCheerList(){
   </div>
   <table class="cheer-table cheer-table--pending">
   <thead><tr style="background:#f0f2f8;"><th style="width:28px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="width:25%;">宛先</th><th>メッセージ</th><th style="width:72px;">投稿者</th><th style="width:60px;">日時</th><th>操作</th></tr></thead><tbody>`;
-  pendingCheers.forEach(c=>{
+  pendingCheers.forEach((c,idx)=>{
+    const no=idx+1;
     const dt=c.submittedAt?new Date(c.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
       <td class="c-check"><input type="checkbox" class="cheer-check" data-id="${c._id}"></td>
-      <td class="c-to"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
+      <td class="c-to"><span class="row-no">No.${no}</span><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
       <td class="c-msg">${c.msg}</td>
       <td class="c-from">${c.from||''}より</td>
       <td class="c-date">${dt}</td>
@@ -2495,11 +2498,12 @@ function renderApprovedPhotoList(){
   if(approvedPhotosExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
   let html=`<table class="photo-table photo-table--approved">
   <thead><tr><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>いいね・状態・操作</th></tr></thead><tbody>`;
-  approvedPhotosExtra.slice().reverse().forEach(p=>{
+  approvedPhotosExtra.slice().reverse().forEach((p,idx)=>{
+    const no=idx+1;
     const isBest=bestShots[p.cat]===p._id;
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     html+=`<tr class="${isBest?'is-best':''}">
-      <td class="p-to">${p.team||''}</td>
+      <td class="p-to"><span class="row-no">No.${no}</span>${p.team||''}</td>
       <td class="p-from">${p.author||'-'}</td>
       <td class="p-thumb">${thumb}</td>
       <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span></td>
@@ -2572,9 +2576,10 @@ function renderApprovedCheerList(){
   if(approvedCheersExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みのメッセージはまだありません</div>'; return; }
   let html=`<table class="cheer-table cheer-table--approved">
   <thead><tr style="background:#f0f2f8;"><th style="width:25%;">宛先</th><th>メッセージ</th><th style="width:72px;">投稿者</th><th>操作</th></tr></thead><tbody>`;
-  approvedCheersExtra.slice().reverse().forEach(c=>{
+  approvedCheersExtra.slice().reverse().forEach((c,idx)=>{
+    const no=idx+1;
     html+=`<tr>
-      <td class="c-to"><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
+      <td class="c-to"><span class="row-no">No.${no}</span><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
       <td class="c-msg">${c.msg}</td>
       <td class="c-from">${c.from||''}より</td>
       <td class="c-act"><button class="btn-reject" onclick="unpublishCheer('${c._id}')">取下</button></td>
