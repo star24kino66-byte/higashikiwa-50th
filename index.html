@@ -3294,18 +3294,47 @@ function handleTeamsCsvDrop(e){
   const file=e.dataTransfer.files[0];
   if(file) handleTeamsCsvFile(file);
 }
+// ArrayBufferからテキストへ：UTF-8として正しく読めるか試し、ダメならShift-JISとして読み込む
+function decodeCsvBuffer(buf){
+  try{
+    return new TextDecoder('utf-8',{fatal:true}).decode(buf);
+  }catch(e){
+    try{
+      return new TextDecoder('shift-jis').decode(buf);
+    }catch(e2){
+      return new TextDecoder('utf-8').decode(buf); // 最終フォールバック
+    }
+  }
+}
+
+// 「本当に空の行」も「カンマだけの行（Excel保存時によくある）」も空行とみなしてブロック分割
+function splitCsvIntoBlocks(text){
+  const rawLines=text.split(/\r?\n/);
+  const blocks=[];
+  let current=[];
+  rawLines.forEach(line=>{
+    const cols=line.split(',').map(c=>c.trim());
+    const isBlank=cols.every(c=>c==='');
+    if(isBlank){
+      if(current.length>0){ blocks.push(current); current=[]; }
+    } else {
+      current.push(line);
+    }
+  });
+  if(current.length>0) blocks.push(current);
+  return blocks;
+}
+
 function handleTeamsCsvFile(file){
   if(!file) return;
   const statusEl=document.getElementById('teamsCsvStatus');
   const reader=new FileReader();
   reader.onload=async function(e){
     try{
-      const text=e.target.result;
-      // 空行でチームブロック分割
-      const blocks=text.split(/\r?\n\r?\n/).filter(b=>b.trim());
+      const text=decodeCsvBuffer(e.target.result);
+      const blocks=splitCsvIntoBlocks(text);
       const teams=[];
-      blocks.forEach(block=>{
-        const rows=block.split(/\r?\n/).filter(r=>r.trim());
+      blocks.forEach(rows=>{
         if(rows.length<1) return;
         const header=rows[0].split(',').map(c=>c.trim());
         if(!header[0]) return;
@@ -3333,7 +3362,7 @@ function handleTeamsCsvFile(file){
       statusEl.textContent='❌ CSVの読み込みに失敗しました：'+err.message;
     }
   };
-  reader.readAsText(file,'UTF-8');
+  reader.readAsArrayBuffer(file);
 }
 
 const PLACEHOLDER_IMG="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='72' height='72' fill='%23cfd3da'/%3E%3Ccircle cx='36' cy='28' r='14' fill='%23a8adb6'/%3E%3Cellipse cx='36' cy='68' rx='26' ry='22' fill='%23a8adb6'/%3E%3C/svg%3E";
