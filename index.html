@@ -1003,7 +1003,7 @@ img.clickable-photo{cursor:zoom-in;}
       <div class="admin-tab-group"><span class="admin-tab-group-label">📷 フォトベスト9</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingPhotos')">未承認写真 <span class="pending-count" id="photoCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedPhotos')">承認済写真</button><button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">💬 応援メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合・トーナメント</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合管理</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント管理</button></div></div>
-      <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手CSV</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">⚙️ 大会設定</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手登録</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">⚙️ 大会設定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚙️ サイト設定</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button></div></div>
     </div>
@@ -1220,7 +1220,7 @@ img.clickable-photo{cursor:zoom-in;}
     <!-- 選手CSV（自チーム＋対戦チーム 統合） -->
     <div class="admin-section" id="csvAdmin">
       <div class="admin-form-card">
-        <div class="admin-form-title">👥 選手名簿 CSVドロップ（自チーム・対戦チーム共通）</div>
+        <div class="admin-form-title">① 選手名簿 CSV登録（自チーム・対戦チーム共通）</div>
         <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
           チームごとに空行で区切ります。各ブロックの1行目がチーム情報、2行目以降が選手名簿：<br>
           <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">チーム名,監督,コーチ,区分</code>（1行目・区分は「自チーム」または「対戦」）<br>
@@ -1232,6 +1232,32 @@ img.clickable-photo{cursor:zoom-in;}
         </div>
         <input type="file" id="teamsCsvFileInput" accept=".csv" style="display:none;" onchange="handleTeamsCsvFile(this.files[0])">
         <div id="teamsCsvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
+      </div>
+
+      <div class="admin-form-card">
+        <div class="admin-form-title">② 写真登録</div>
+        <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
+          チームを選び、「チーム全体（集合写真）」のままアップロードすると選手紹介の最上段に集合写真として掲載されます。個人名まで選ぶと、その選手のカードに写真が掲載されます。
+        </p>
+        <div class="fr">
+          <select id="rosterPhotoTeam" onchange="updateRosterPhotoPlayerList()" style="width:100%;font-size:14px;padding:8px;border:1px solid #ddd;border-radius:8px;">
+            <option value="">① チームを選んでください</option>
+          </select>
+        </div>
+        <div class="fr">
+          <select id="rosterPhotoPlayer" disabled style="width:100%;font-size:14px;padding:8px;border:1px solid #ddd;border-radius:8px;">
+            <option value="_team_">② チーム全体（集合写真）</option>
+          </select>
+        </div>
+        <div class="fr">
+          <label for="rosterPhotoFileInput" style="display:flex;align-items:center;gap:8px;background:#f5f6fa;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#555;width:100%;box-sizing:border-box;">
+            <span style="font-size:16px;">🖼</span>
+            <span id="rosterPhotoFileName">③ 写真ファイルを選択する</span>
+          </label>
+          <input type="file" id="rosterPhotoFileInput" accept="image/*" style="display:none;" onchange="document.getElementById('rosterPhotoFileName').textContent=this.files[0]?this.files[0].name:'③ 写真ファイルを選択する';">
+        </div>
+        <button class="ubtn" onclick="uploadRosterPhoto()">アップロードする</button>
+        <div id="rosterPhotoStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
       </div>
     </div>
 
@@ -2091,7 +2117,7 @@ function openModal(type){
       list.appendChild(row);
     });
   } else if(type==='photo'){
-    title.textContent='投稿写真 一覧';
+    _modalPhotoCatFilter='';
     renderPhotoModalList();
   } else if(type==='games'){
     title.textContent='試合結果';
@@ -2190,36 +2216,45 @@ function renderGamesModalBlock(blockId){
   });
 }
 
+let _modalPhotoCatFilter=''; // ''=すべての賞をまとめて表示
 function renderPhotoModalList(){
   const list=document.getElementById('modalList');
-  list.innerHTML='';
-  const tabsHtml=document.createElement('div');
-  tabsHtml.className='ptabs';
-  tabsHtml.style.marginBottom='.6rem';
-  CATS.forEach(([key,label,icon])=>{
-    const btn=document.createElement('button');
-    btn.className='ptab'+(key===ct?' on':'');
-    btn.textContent=icon+' '+label;
-    btn.onclick=()=>{ct=key;renderPhotoModalList();};
-    tabsHtml.appendChild(btn);
+  const title=document.getElementById('modalTitle');
+  const totalCount=CATS.reduce((sum,[key])=>sum+((PH[key]||[]).length),0);
+  if(title) title.textContent='投稿写真 一覧（全'+totalCount+'件）';
+  let html=`<div style="margin-bottom:10px;">
+    <select id="modalPhotoCatSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;" onchange="_modalPhotoCatFilter=this.value;renderPhotoModalList();">
+      <option value="">🏆 すべての賞（${totalCount}件）</option>
+      ${CATS.map(([key,label,icon])=>`<option value="${key}" ${key===_modalPhotoCatFilter?'selected':''}>${icon} ${label}（${(PH[key]||[]).length}件）</option>`).join('')}
+    </select>
+  </div>`;
+  // 対象の賞（未選択なら全賞まとめて）の写真を集める
+  const catsToShow=_modalPhotoCatFilter?[_modalPhotoCatFilter]:CATS.map(c=>c[0]);
+  let items=[];
+  catsToShow.forEach(catKey=>{
+    const bestId=bestShots[catKey];
+    (PH[catKey]||[]).forEach((p,i)=>{
+      items.push({...p,idx:i,cat:catKey,isBest:!!(p._id&&p._id===bestId)});
+    });
   });
-  list.appendChild(tabsHtml);
-  if(!PH[ct]) return;
-  const bestId=bestShots[ct];
-  const ranked=PH[ct].map((p,i)=>({...p,idx:i})).sort((a,b)=>{
-    if(a._id===bestId) return -1;
-    if(b._id===bestId) return 1;
+  // 賞の順番→ベスト優先→いいね数の順に並べる
+  items.sort((a,b)=>{
+    if(a.cat!==b.cat) return catsToShow.indexOf(a.cat)-catsToShow.indexOf(b.cat);
+    if(a.isBest&&!b.isBest) return -1;
+    if(b.isBest&&!a.isBest) return 1;
     return b.l-a.l;
   });
-  ranked.forEach(p=>{
-    const k=ct+'_'+p.idx,lk=liked[k];
-    const isBest=p._id&&p._id===bestId;
-    const row=document.createElement('div');
-    row.className='modal-row'+(isBest?' best-shot-row':'');
+  if(items.length===0){
+    html+='<div style="text-align:center;color:#999;font-size:13px;padding:1rem 0;">該当する写真はありません</div>';
+    list.innerHTML=html;
+    return;
+  }
+  items.forEach(p=>{
+    const k=p.cat+'_'+p.idx,lk=liked[k];
     const teamStr=p.team?`<span style="font-size:10px;color:#888;display:block;">チーム：${esc(p.team)}</span>`:'';
-    row.innerHTML=`${isBest?`<div class="best-badge">🏆 ${esc(catLabel[ct]||ct)} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;">${photoLabel(p.seqNo)?`<span class="row-no">${photoLabel(p.seqNo)}</span>`:''}<span style="font-size:12px;color:#444;font-weight:600;">${esc(p.n)}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${esc(p.author)}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${esc(ct)}',${p.idx})">👍 <span>${p.l}</span></button></div>`;
-    list.appendChild(row);
+    html+=`<div class="modal-row${p.isBest?' best-shot-row':''}">${p.isBest?`<div class="best-badge">🏆 ${esc(catLabel[p.cat]||p.cat)} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;">${photoLabel(p.seqNo)?`<span class="row-no">${photoLabel(p.seqNo)}</span>`:''}<span style="font-size:12px;color:#444;font-weight:600;">${esc(p.n)}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${esc(p.author)}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${esc(p.cat)}',${p.idx})">👍 <span>${p.l}</span></button></div></div>`;
   });
+  list.innerHTML=html;
 }
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('open');
@@ -2529,6 +2564,85 @@ function initPhotoTeamList(){
     opt.value=t.name; opt.textContent=t.name;
     teamSel.appendChild(opt);
   });
+}
+
+/* ---- 選手登録：写真登録フォーム（チーム→チーム全体／個人） ---- */
+function initRosterPhotoTeamList(){
+  const teamSel=document.getElementById('rosterPhotoTeam');
+  if(!teamSel) return;
+  const prev=teamSel.value;
+  teamSel.innerHTML='<option value="">① チームを選んでください</option>';
+  const teams=getDisplayTeams();
+  teams.filter(t=>t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent=t.name+'（主催チーム）';
+    teamSel.appendChild(opt);
+  });
+  teams.filter(t=>!t.isHost).forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.name; opt.textContent=t.name;
+    teamSel.appendChild(opt);
+  });
+  if(prev && teams.some(t=>t.name===prev)){
+    teamSel.value=prev;
+    updateRosterPhotoPlayerList();
+  }
+}
+function updateRosterPhotoPlayerList(){
+  const teamSel=document.getElementById('rosterPhotoTeam');
+  const playerSel=document.getElementById('rosterPhotoPlayer');
+  const teamName=teamSel.value;
+  playerSel.innerHTML='<option value="_team_">② チーム全体（集合写真）</option>';
+  if(!teamName){ playerSel.disabled=true; return; }
+  playerSel.disabled=false;
+  const team=getDisplayTeams().find(t=>t.name===teamName);
+  const list=team?team.roster:[];
+  list.forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p.name||(p.num+'番');
+    opt.textContent=(p.num?p.num+'番 ':'')+p.name;
+    playerSel.appendChild(opt);
+  });
+}
+async function uploadRosterPhoto(){
+  const teamSel=document.getElementById('rosterPhotoTeam');
+  const playerSel=document.getElementById('rosterPhotoPlayer');
+  const fileInput=document.getElementById('rosterPhotoFileInput');
+  const statusEl=document.getElementById('rosterPhotoStatus');
+  const teamName=teamSel?teamSel.value:'';
+  const playerName=playerSel?playerSel.value:'_team_';
+  const file=fileInput&&fileInput.files&&fileInput.files[0];
+  if(!teamName){ statusEl.textContent='❌ チームを選択してください'; return; }
+  if(!file){ statusEl.textContent='❌ 写真ファイルを選択してください'; return; }
+  if(!file.type.startsWith('image/')){ statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
+  if(file.size>15*1024*1024){ statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
+  statusEl.textContent='アップロード中…';
+  try{
+    const ext=file.name.split('.').pop()||'jpg';
+    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+    const {error:upErr}=await sb.storage.from('photos').upload(filePath,file,{contentType:file.type,upsert:false});
+    if(upErr){ statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
+    const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
+    const url=urlData.publicUrl;
+    const teams=TEAMS_ROSTER.length>0?TEAMS_ROSTER:getDisplayTeams();
+    const team=teams.find(t=>normalizeForMatch(t.name)===normalizeForMatch(teamName));
+    if(!team){ statusEl.textContent='❌ チームが見つかりません'; return; }
+    if(!playerName||playerName==='_team_'){
+      team.teamPhotoUrl=url;
+    } else {
+      const player=(team.roster||[]).find(p=>normalizeForMatch(p.name)===normalizeForMatch(playerName));
+      if(!player){ statusEl.textContent='❌ 選手が見つかりません'; return; }
+      player.photoUrl=url;
+    }
+    await saveTeamsRoster(teams);
+    renderAllTeamViews();
+    statusEl.textContent='✅ 写真を登録しました。';
+    setTimeout(()=>{statusEl.textContent='';},3000);
+    fileInput.value='';
+    document.getElementById('rosterPhotoFileName').textContent='③ 写真ファイルを選択する';
+  }catch(e){
+    statusEl.textContent='❌ アップロードに失敗しました：'+e.message;
+  }
 }
 
 async function submitCheer(){
@@ -3744,6 +3858,18 @@ function handleTeamsCsvFile(file){
         teams.push(team);
       });
       if(teams.length===0){ statusEl.textContent='❌ CSVにデータがありません'; return; }
+      // 既存データに登録済みの写真（チーム集合写真・個人写真）を、チーム名・氏名が一致するものに引き継ぐ
+      const oldTeams=TEAMS_ROSTER.length>0?TEAMS_ROSTER:[];
+      teams.forEach(team=>{
+        const oldTeam=oldTeams.find(t=>normalizeForMatch(t.name)===normalizeForMatch(team.name));
+        if(oldTeam&&oldTeam.teamPhotoUrl) team.teamPhotoUrl=oldTeam.teamPhotoUrl;
+        if(oldTeam){
+          team.roster.forEach(p=>{
+            const oldPlayer=(oldTeam.roster||[]).find(op=>normalizeForMatch(op.name)===normalizeForMatch(p.name));
+            if(oldPlayer&&oldPlayer.photoUrl) p.photoUrl=oldPlayer.photoUrl;
+          });
+        }
+      });
       statusEl.textContent='保存中…';
       await saveTeamsRoster(teams);
       renderAllTeamViews();
@@ -3765,6 +3891,7 @@ let _plCurrentTeam='';
 function renderAllTeamViews(){
   initCheerTeamList();
   initPhotoTeamList();
+  initRosterPhotoTeamList();
   initPlTeamTabs();
 }
 
@@ -3809,11 +3936,22 @@ function renderTeamPlayerCards(teamName){
   if(!team){
     document.getElementById('plOppTitle').innerHTML='';
     document.getElementById('plOppStaff').innerHTML='';
+    const teamPhotoElEmpty=document.getElementById('plOppPhoto');
+    if(teamPhotoElEmpty) teamPhotoElEmpty.innerHTML='';
     if(grid) grid.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">チームデータがまだ登録されていません</div>';
     return;
   }
   // タイトル
   document.getElementById('plOppTitle').innerHTML=`${team.name} <span class="pl-eyebrow">${team.isHost?'MAIN TEAM':'OPPONENT TEAM'}</span>`;
+  // チーム集合写真（登録済みなら表示、未登録ならプレースホルダーのまま）
+  const teamPhotoEl=document.getElementById('plOppPhoto');
+  if(teamPhotoEl){
+    if(team.teamPhotoUrl){
+      teamPhotoEl.innerHTML=`<img src="${esc(team.teamPhotoUrl)}" alt="${esc(team.name)} 集合写真" style="width:100%;display:block;border-radius:8px;">`;
+    } else {
+      teamPhotoEl.innerHTML='';
+    }
+  }
   // スタッフ
   const staffEl=document.getElementById('plOppStaff');
   const staffLine=[];
@@ -3843,7 +3981,7 @@ function renderTeamPlayerCards(teamName){
       <div class="top">
         <div class="number">${esc(p.num)||'?'}</div>
         ${p.grade?`<div class="top-grade">${esc(p.grade)}</div>`:''}
-        <img class="photo" src="${PLACEHOLDER_IMG}" alt="${esc(p.name)}">
+        <img class="photo" src="${p.photoUrl?esc(p.photoUrl):PLACEHOLDER_IMG}" alt="${esc(p.name)}">
       </div>
       <div class="body">
         <div class="name">${esc(p.name)}${p.captain?`<span class="captain-badge">${esc(p.captain)}</span>`:''}</div>
