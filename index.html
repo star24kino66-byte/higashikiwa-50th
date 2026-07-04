@@ -466,6 +466,7 @@ img.clickable-photo{cursor:zoom-in;}
 .like-badge{background:linear-gradient(90deg,#8a6800,#c9a227) !important;}
 .best9-pub-img{width:100%;height:90px;object-fit:cover;display:block;}
 .best9-pub-emoji{height:90px;display:flex;align-items:center;justify-content:center;font-size:36px;background:#eef0f8;}
+.best9-pub-no{padding:4px 6px 0;}
 .best9-pub-title{font-size:10px;font-weight:700;color:#1b2a4a;padding:4px 6px 1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .best9-pub-team,.best9-pub-cat{font-size:9px;color:#888;padding:0 6px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .best9-pub-empty-icon{height:72px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#ccc;}
@@ -1675,7 +1676,7 @@ function buildCheerCol(trackId,list){
   [...list,...list].forEach(c=>{
     const card=document.createElement('div');
     card.className='cheer-card';
-    card.innerHTML=`<div class="cheer-to"><span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg">${esc(c.msg)}</div><div class="cheer-from">${esc(c.from)}より</div>`;
+    card.innerHTML=`<div class="cheer-to">${c._id?`<span class="row-no">No.${c._id}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg">${esc(c.msg)}</div><div class="cheer-from">${esc(c.from)}より</div>`;
     track.appendChild(card);
   });
 }
@@ -1803,6 +1804,7 @@ function renderBest9Grid(){
     card.innerHTML=`
       <div class="best9-pub-badge">${catIco} ${catName}</div>
       ${imgHtml}
+      ${(!isDummy&&photo._id)?`<div class="best9-pub-no"><span class="row-no">No.${photo._id}</span></div>`:''}
       <div class="best9-pub-title">${photo.n||''}</div>
       <div class="best9-pub-team">${photo.team||''}</div>`;
     if(isDummy) card.classList.add('is-dummy');
@@ -1828,6 +1830,7 @@ function renderBest9Grid(){
     card.innerHTML=`
       <div class="best9-pub-badge like-badge">${likeMedals[i]} ${i+1}位</div>
       ${imgHtml}
+      ${(!isDummy&&p._id)?`<div class="best9-pub-no"><span class="row-no">No.${p._id}</span></div>`:''}
       <div class="best9-pub-title">${p.n||''}</div>
       <div class="best9-pub-cat">${catLabel[p.cat]||p.team||''}</div>`;
     if(isDummy) card.classList.add('is-dummy');
@@ -2018,6 +2021,28 @@ function renderSpThresholdAdmin(){
 }
 
 // 選手個人あての応援メッセージを全件ポップアップ表示（選手カードには1件のみ表示のため）
+let _modalCheerTeamFilter='';
+function renderCheerModalList(){
+  const list=document.getElementById('modalList');
+  const title=document.getElementById('modalTitle');
+  const teams=[...new Set(CHEERS.map(c=>c.team).filter(Boolean))].sort();
+  const filtered=_modalCheerTeamFilter?CHEERS.filter(c=>c.team===_modalCheerTeamFilter):CHEERS;
+  title.textContent='応援メッセージ 一覧（全'+CHEERS.length+'件）';
+  let html=`<div style="margin-bottom:10px;">
+    <select id="modalCheerTeamSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;" onchange="_modalCheerTeamFilter=this.value;renderCheerModalList();">
+      <option value="">チーム：すべて（${CHEERS.length}件）</option>
+      ${teams.map(t=>`<option value="${esc(t)}" ${t===_modalCheerTeamFilter?'selected':''}>${esc(t)}（${CHEERS.filter(c=>c.team===t).length}件）</option>`).join('')}
+    </select>
+  </div>`;
+  if(filtered.length===0){
+    html+='<div style="text-align:center;color:#999;font-size:13px;padding:1rem 0;">該当するメッセージはありません</div>';
+  } else {
+    filtered.slice().reverse().forEach(c=>{
+      html+=`<div class="modal-row"><div class="cheer-to">${c._id?`<span class="row-no">No.${c._id}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${esc(c.msg)}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div></div>`;
+    });
+  }
+  list.innerHTML=html;
+}
 function openPlayerCheersModal(teamName,playerName){
   currentModalType='playerCheer';
   const overlay=document.getElementById('modalOverlay');
@@ -2029,7 +2054,7 @@ function openPlayerCheersModal(teamName,playerName){
   msgs.forEach(c=>{
     const row=document.createElement('div');
     row.className='modal-row';
-    row.innerHTML=`<div class="cheer-msg">"${esc(c.msg)}"</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div>`;
+    row.innerHTML=`<div class="cheer-msg">${c._id?`<span class="row-no">No.${c._id}</span>`:''}"${esc(c.msg)}"</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div>`;
     list.appendChild(row);
   });
   overlay.classList.add('open');
@@ -2042,13 +2067,8 @@ function openModal(type){
   const list=document.getElementById('modalList');
   list.innerHTML='';
   if(type==='cheer'){
-    title.textContent='応援メッセージ 一覧（全'+CHEERS.length+'件）';
-    CHEERS.forEach(c=>{
-      const row=document.createElement('div');
-      row.className='modal-row';
-      row.innerHTML=`<div class="cheer-to"><span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${esc(c.msg)}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div>`;
-      list.appendChild(row);
-    });
+    _modalCheerTeamFilter='';
+    renderCheerModalList();
   } else if(type==='donor'){
     const dList=currentDonorDisplayList();
     title.textContent='寄付者 一覧（全'+dList.length+'件）';
@@ -2194,7 +2214,7 @@ function renderPhotoModalList(){
     const row=document.createElement('div');
     row.className='modal-row'+(isBest?' best-shot-row':'');
     const teamStr=p.team?`<span style="font-size:10px;color:#888;display:block;">チーム：${esc(p.team)}</span>`:'';
-    row.innerHTML=`${isBest?`<div class="best-badge">🏆 ${esc(catLabel[ct]||ct)} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;"><span style="font-size:12px;color:#444;font-weight:600;">${esc(p.n)}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${esc(p.author)}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${esc(ct)}',${p.idx})">👍 <span>${p.l}</span></button></div>`;
+    row.innerHTML=`${isBest?`<div class="best-badge">🏆 ${esc(catLabel[ct]||ct)} 受賞</div>`:''}<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">${thumbHtml(p.e,'40px')}</span><div style="flex:1;">${p._id?`<span class="row-no">No.${p._id}</span>`:''}<span style="font-size:12px;color:#444;font-weight:600;">${esc(p.n)}</span>${teamStr}${p.author?`<span style="font-size:10.5px;color:#999;display:block;">投稿者：${esc(p.author)}</span>`:''}</div><button class="lbtn${lk?' liked':''}" onclick="tl('${esc(ct)}',${p.idx})">👍 <span>${p.l}</span></button></div>`;
     list.appendChild(row);
   });
 }
@@ -2641,7 +2661,7 @@ function renderPendingPhotoList(){
   <table class="photo-table photo-table--pending">
   <thead><tr><th></th><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>日時</th><th>操作</th></tr></thead><tbody>`;
   pendingPhotos.forEach((p,idx)=>{
-    const no=idx+1;
+    const no=p._id;
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
@@ -2702,7 +2722,7 @@ function renderPendingCheerList(){
   <table class="cheer-table cheer-table--pending">
   <thead><tr style="background:#f0f2f8;"><th style="width:28px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="width:25%;">宛先</th><th>メッセージ</th><th style="width:72px;">投稿者</th><th style="width:60px;">日時</th><th>操作</th></tr></thead><tbody>`;
   pendingCheers.forEach((c,idx)=>{
-    const no=idx+1;
+    const no=c._id;
     const dt=c.submittedAt?new Date(c.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
       <td class="c-check"><input type="checkbox" class="cheer-check" data-id="${c._id}"></td>
@@ -2749,13 +2769,27 @@ async function bulkRejectSelectedCheers(){
     await loadCheersFromSupabase(); renderAdminAll();
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
 }
+let _approvedPhotoTeamFilter='';
 function renderApprovedPhotoList(){
   const list=document.getElementById('approvedPhotoList');
   if(approvedPhotosExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
-  let html=`<table class="photo-table photo-table--approved">
+  const teams=[...new Set(approvedPhotosExtra.map(p=>p.team).filter(Boolean))].sort();
+  const filtered=_approvedPhotoTeamFilter?approvedPhotosExtra.filter(p=>p.team===_approvedPhotoTeamFilter):approvedPhotosExtra;
+  let html=`<div style="margin-bottom:.6rem;">
+    <select id="approvedPhotoTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="_approvedPhotoTeamFilter=this.value;renderApprovedPhotoList();">
+      <option value="">チーム：すべて（${approvedPhotosExtra.length}件）</option>
+      ${teams.map(t=>`<option value="${esc(t)}" ${t===_approvedPhotoTeamFilter?'selected':''}>${esc(t)}（${approvedPhotosExtra.filter(p=>p.team===t).length}件）</option>`).join('')}
+    </select>
+  </div>`;
+  if(filtered.length===0){
+    html+='<div class="admin-empty">該当するチームの承認済み写真はありません</div>';
+    list.innerHTML=html;
+    return;
+  }
+  html+=`<table class="photo-table photo-table--approved">
   <thead><tr><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>いいね・状態・操作</th></tr></thead><tbody>`;
-  approvedPhotosExtra.slice().reverse().forEach((p,idx)=>{
-    const no=idx+1;
+  filtered.slice().reverse().forEach((p,idx)=>{
+    const no=p._id;
     const isBest=bestShots[p.cat]===p._id;
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     html+=`<tr class="${isBest?'is-best':''}">
@@ -2826,14 +2860,28 @@ function initPhotoPublicUI(){
   }
 }
 
+let _approvedCheerTeamFilter='';
 function renderApprovedCheerList(){
   const list=document.getElementById('approvedCheerList');
   if(!list) return;
   if(approvedCheersExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みのメッセージはまだありません</div>'; return; }
-  let html=`<table class="cheer-table cheer-table--approved">
+  const teams=[...new Set(approvedCheersExtra.map(c=>c.team).filter(Boolean))].sort();
+  const filtered=_approvedCheerTeamFilter?approvedCheersExtra.filter(c=>c.team===_approvedCheerTeamFilter):approvedCheersExtra;
+  let html=`<div style="margin-bottom:.6rem;">
+    <select id="approvedCheerTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="_approvedCheerTeamFilter=this.value;renderApprovedCheerList();">
+      <option value="">チーム：すべて（${approvedCheersExtra.length}件）</option>
+      ${teams.map(t=>`<option value="${esc(t)}" ${t===_approvedCheerTeamFilter?'selected':''}>${esc(t)}（${approvedCheersExtra.filter(c=>c.team===t).length}件）</option>`).join('')}
+    </select>
+  </div>`;
+  if(filtered.length===0){
+    html+='<div class="admin-empty">該当するチームの承認済みメッセージはありません</div>';
+    list.innerHTML=html;
+    return;
+  }
+  html+=`<table class="cheer-table cheer-table--approved">
   <thead><tr style="background:#f0f2f8;"><th style="width:25%;">宛先</th><th>メッセージ</th><th style="width:72px;">投稿者</th><th>操作</th></tr></thead><tbody>`;
-  approvedCheersExtra.slice().reverse().forEach((c,idx)=>{
-    const no=idx+1;
+  filtered.slice().reverse().forEach((c,idx)=>{
+    const no=c._id;
     html+=`<tr>
       <td class="c-to"><span class="row-no">No.${no}</span><span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
       <td class="c-msg">${c.msg}</td>
@@ -3781,7 +3829,7 @@ function renderTeamPlayerCards(teamName){
     // 表示は1件のみ。2件以上ある場合はポップアップで全件表示するボタンを出す
     const msgsHtml=myMsgs.length>0
       ?`<div class="player-cheers">
-          <div class="player-cheer-item"><span class="player-cheer-msg">"${esc(myMsgs[0].msg)}"</span><span class="player-cheer-from">${esc(myMsgs[0].from)}より</span></div>
+          <div class="player-cheer-item">${myMsgs[0]._id?`<span class="row-no">No.${myMsgs[0]._id}</span>`:''}<span class="player-cheer-msg">"${esc(myMsgs[0].msg)}"</span><span class="player-cheer-from">${esc(myMsgs[0].from)}より</span></div>
           ${myMsgs.length>1?`<button type="button" class="player-cheer-more" data-team="${esc(teamName)}" data-player="${esc(p.name)}" onclick="openPlayerCheersModal(this.dataset.team,this.dataset.player)">💬 応援メッセージ${myMsgs.length}件をすべて見る</button>`:''}
         </div>`
       :'';
