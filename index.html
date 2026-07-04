@@ -6,6 +6,8 @@
 <title>東岐波クラブ 創立50周年記念大会</title>
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
@@ -169,6 +171,17 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,15,30,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem;}
+.crop-modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,15,30,.75);z-index:1100;align-items:center;justify-content:center;padding:1rem;}
+.crop-modal-overlay.open{display:flex;}
+.crop-modal-box{background:#fff;border-radius:14px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;padding:1rem;box-shadow:0 12px 40px rgba(0,0,0,.3);}
+.crop-modal-title{font-size:14px;font-weight:700;color:#1a3260;margin-bottom:.6rem;}
+.crop-modal-img-wrap{width:100%;max-height:50vh;overflow:hidden;background:#1b1b1b;border-radius:8px;}
+.crop-modal-img-wrap img{display:block;max-width:100%;}
+.crop-modal-hint{font-size:11px;color:#888;margin:.5rem 0 .3rem;text-align:center;}
+.crop-zoom-range{width:100%;margin-bottom:.8rem;accent-color:#d63384;}
+.crop-modal-actions{display:flex;gap:8px;}
+.crop-cancel-btn{flex:1;background:#f0f1f5;color:#666;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;}
+.crop-confirm-btn{flex:2;background:#1a3260;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;}
 .modal-overlay.open{display:flex;}
 .modal-box{background:#fff;border-radius:14px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;padding:1.2rem 1.1rem;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.3);}
 .modal-close{position:absolute;top:.7rem;right:.8rem;background:#f0f1f5;border:none;border-radius:50%;width:28px;height:28px;font-size:14px;color:#666;cursor:pointer;line-height:1;}
@@ -715,7 +728,7 @@ img.clickable-photo{cursor:zoom-in;}
           <span style="font-size:16px;">📷</span>
           <span id="submitFileName">写真を選択する</span>
         </label>
-        <input type="file" id="submitFile" accept="image/*" style="display:none;" onchange="updateFileName(this)">
+        <input type="file" id="submitFile" accept="image/*" style="display:none;" onchange="handleSubmitFileSelect(this)">
       </div>
       <button class="ubtn" onclick="submitEntry()">投稿する</button>
       <div class="submit-success" id="submitSuccess">✅ 投稿を受け付けました！確認後、掲載いたします。</div>
@@ -983,6 +996,20 @@ img.clickable-photo{cursor:zoom-in;}
   </div>
 </div>
 
+<!-- CROP MODAL（写真の拡大縮小・切り取り） -->
+<div class="crop-modal-overlay" id="cropModalOverlay">
+  <div class="crop-modal-box">
+    <div class="crop-modal-title">📐 写真を切り取る</div>
+    <div class="crop-modal-img-wrap"><img id="cropModalImg" src="" alt=""></div>
+    <div class="crop-modal-hint">ドラッグで位置調整、スライダーで拡大縮小できます</div>
+    <input type="range" id="cropZoomRange" min="-1" max="1" step="0.01" value="0" class="crop-zoom-range">
+    <div class="crop-modal-actions">
+      <button class="crop-cancel-btn" onclick="cancelCropModal()">キャンセル</button>
+      <button class="crop-confirm-btn" onclick="confirmCropModal()">この範囲で登録</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN PANEL -->
 <div class="page-view" id="page-admin">
 <div class="admin-panel" id="adminPanel">
@@ -1030,7 +1057,7 @@ img.clickable-photo{cursor:zoom-in;}
             <span style="font-size:16px;">📷</span>
             <span id="albumFileName">写真を選択する</span>
           </label>
-          <input type="file" id="albumFile" accept="image/*" style="display:none;" onchange="updateAlbumFileName(this)">
+          <input type="file" id="albumFile" accept="image/*" style="display:none;" onchange="handleAlbumFileSelect(this)">
         </div>
         <button class="ubtn" onclick="addAlbumPhoto()">追加する</button>
         <div id="albumAddStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
@@ -1254,7 +1281,7 @@ img.clickable-photo{cursor:zoom-in;}
             <span style="font-size:16px;">🖼</span>
             <span id="rosterPhotoFileName">③ 写真ファイルを選択する</span>
           </label>
-          <input type="file" id="rosterPhotoFileInput" accept="image/*" style="display:none;" onchange="document.getElementById('rosterPhotoFileName').textContent=this.files[0]?this.files[0].name:'③ 写真ファイルを選択する';">
+          <input type="file" id="rosterPhotoFileInput" accept="image/*" style="display:none;" onchange="handleRosterPhotoFileSelect(this)">
         </div>
         <button class="ubtn" onclick="uploadRosterPhoto()">アップロードする</button>
         <div id="rosterPhotoStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
@@ -1293,7 +1320,7 @@ img.clickable-photo{cursor:zoom-in;}
             <span style="font-size:16px;">🖼</span>
             <span id="siteLogoFileName">ロゴ画像を選択する</span>
           </label>
-          <input type="file" id="siteLogoFileInput" accept="image/*" style="display:none;" onchange="document.getElementById('siteLogoFileName').textContent=this.files[0]?this.files[0].name:'ロゴ画像を選択する';">
+          <input type="file" id="siteLogoFileInput" accept="image/*" style="display:none;" onchange="handleLogoFileSelect(this)">
         </div>
         <button class="ubtn" onclick="uploadSiteLogo()">アップロードする</button>
         <div id="siteLogoStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
@@ -1401,6 +1428,130 @@ function normalizeForMatch(s){
 // 管理番号ラベル（メッセージ：M1,M2... / 写真：F1,F2...）。seq_no未設定（SQL未実行）の間は表示しない
 function msgLabel(seqNo){ return (seqNo==null)?'':'M'+seqNo; }
 function photoLabel(seqNo){ return (seqNo==null)?'':'F'+seqNo; }
+
+/* =========================================================
+   写真の切り取り(拡大縮小・トリミング)共通モーダル
+   openCropModal(file, aspectRatio) は Promise<Blob> を返す。
+   aspectRatio: 1(正方形)、4/3、NaN(自由)など
+   ========================================================= */
+let _cropper=null;
+let _cropResolve=null;
+let _cropReject=null;
+function openCropModal(file,aspectRatio){
+  return new Promise((resolve,reject)=>{
+    _cropResolve=resolve;
+    _cropReject=reject;
+    const overlay=document.getElementById('cropModalOverlay');
+    const img=document.getElementById('cropModalImg');
+    const zoomRange=document.getElementById('cropZoomRange');
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      img.src=e.target.result;
+      overlay.classList.add('open');
+      zoomRange.value=0;
+      if(_cropper){ _cropper.destroy(); _cropper=null; }
+      requestAnimationFrame(()=>{
+        _cropper=new Cropper(img,{
+          aspectRatio:aspectRatio,
+          viewMode:1,
+          autoCropArea:1,
+          background:false,
+          responsive:true,
+          zoomOnWheel:false,
+        });
+      });
+    };
+    reader.onerror=()=>reject(new Error('画像の読み込みに失敗しました'));
+    reader.readAsDataURL(file);
+  });
+}
+document.addEventListener('input',(e)=>{
+  if(e.target&&e.target.id==='cropZoomRange'&&_cropper){
+    const v=parseFloat(e.target.value);
+    _cropper.zoomTo(1+v*2);
+  }
+});
+function confirmCropModal(){
+  if(!_cropper){ return; }
+  _cropper.getCroppedCanvas({imageSmoothingQuality:'high',maxWidth:1600,maxHeight:1600}).toBlob((blob)=>{
+    const resolve=_cropResolve;
+    closeCropModalInternal();
+    if(resolve) resolve(blob);
+  },'image/jpeg',0.88);
+}
+function cancelCropModal(){
+  const reject=_cropReject;
+  closeCropModalInternal();
+  if(reject) reject(new Error('cropped_cancelled'));
+}
+function closeCropModalInternal(){
+  document.getElementById('cropModalOverlay').classList.remove('open');
+  if(_cropper){ _cropper.destroy(); _cropper=null; }
+  _cropResolve=null; _cropReject=null;
+}
+
+// 各アップロード箇所ごとの「切り取り済みBlob」保持用（アップロード実行時にこちらを使う）
+let _pendingSubmitPhotoBlob=null;
+let _pendingAlbumPhotoBlob=null;
+let _pendingRosterPhotoBlob=null;
+let _pendingLogoBlob=null;
+
+async function handleSubmitFileSelect(input){
+  const label=document.getElementById('submitFileName');
+  const file=input.files&&input.files[0];
+  if(!file){ _pendingSubmitPhotoBlob=null; label.textContent='写真を選択する'; label.style.color=''; label.style.fontWeight=''; return; }
+  try{
+    _pendingSubmitPhotoBlob=await openCropModal(file,4/3);
+    label.textContent='✅ '+file.name+'（切り取り済み）';
+    label.style.color='#1b2a4a'; label.style.fontWeight='600';
+  }catch(e){
+    _pendingSubmitPhotoBlob=null;
+    input.value='';
+    label.textContent='写真を選択する'; label.style.color=''; label.style.fontWeight='';
+  }
+}
+async function handleAlbumFileSelect(input){
+  const label=document.getElementById('albumFileName');
+  const file=input.files&&input.files[0];
+  if(!file){ _pendingAlbumPhotoBlob=null; label.textContent='写真を選択する'; label.style.color=''; label.style.fontWeight=''; return; }
+  try{
+    _pendingAlbumPhotoBlob=await openCropModal(file,NaN);
+    label.textContent='✅ '+file.name+'（切り取り済み）';
+    label.style.color='#1b2a4a'; label.style.fontWeight='600';
+  }catch(e){
+    _pendingAlbumPhotoBlob=null;
+    input.value='';
+    label.textContent='写真を選択する'; label.style.color=''; label.style.fontWeight='';
+  }
+}
+async function handleRosterPhotoFileSelect(input){
+  const label=document.getElementById('rosterPhotoFileName');
+  const file=input.files&&input.files[0];
+  if(!file){ _pendingRosterPhotoBlob=null; label.textContent='③ 写真ファイルを選択する'; return; }
+  const playerSel=document.getElementById('rosterPhotoPlayer');
+  const isTeamWhole=!playerSel||playerSel.disabled||!playerSel.value||playerSel.value==='_team_';
+  try{
+    _pendingRosterPhotoBlob=await openCropModal(file,isTeamWhole?4/3:1);
+    label.textContent='✅ '+file.name+'（切り取り済み）';
+  }catch(e){
+    _pendingRosterPhotoBlob=null;
+    input.value='';
+    label.textContent='③ 写真ファイルを選択する';
+  }
+}
+async function handleLogoFileSelect(input){
+  const label=document.getElementById('siteLogoFileName');
+  const file=input.files&&input.files[0];
+  if(!file){ _pendingLogoBlob=null; label.textContent='ロゴ画像を選択する'; return; }
+  try{
+    _pendingLogoBlob=await openCropModal(file,NaN);
+    label.textContent='✅ '+file.name+'（切り取り済み）';
+  }catch(e){
+    _pendingLogoBlob=null;
+    input.value='';
+    label.textContent='ロゴ画像を選択する';
+  }
+}
 
 // スパム・連打対策：投稿系フォーム共通のクールダウン（localStorageで端末単位に保持）
 const SUBMIT_COOLDOWN_MS=15000; // 15秒
@@ -1550,15 +1701,13 @@ function applyLogo(){
 async function uploadSiteLogo(){
   const fileInput=document.getElementById('siteLogoFileInput');
   const statusEl=document.getElementById('siteLogoStatus');
-  const file=fileInput && fileInput.files && fileInput.files[0];
-  if(!file){ if(statusEl) statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
-  if(!file.type.startsWith('image/')){ if(statusEl) statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
-  if(file.size>15*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
+  const blob=_pendingLogoBlob;
+  if(!blob){ if(statusEl) statusEl.textContent='❌ 画像ファイルを選択してください（切り取りが完了していない可能性があります）'; return; }
+  if(blob.size>15*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   if(statusEl) statusEl.textContent='アップロード中…';
   try{
-    const ext=file.name.split('.').pop()||'png';
-    const filePath='logo/logo_'+Date.now()+'.'+ext;
-    const {error:upErr}=await sb.storage.from('photos').upload(filePath,file,{contentType:file.type,upsert:false});
+    const filePath='logo/logo_'+Date.now()+'.jpg';
+    const {error:upErr}=await sb.storage.from('photos').upload(filePath,blob,{contentType:'image/jpeg',upsert:false});
     if(upErr){ if(statusEl) statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
     const url=urlData.publicUrl;
@@ -1570,6 +1719,7 @@ async function uploadSiteLogo(){
       statusEl.textContent='✅ ロゴを更新しました。全端末に反映されます。';
       setTimeout(()=>{statusEl.textContent='';},4000);
     }
+    _pendingLogoBlob=null;
     if(fileInput) fileInput.value='';
     const nameEl=document.getElementById('siteLogoFileName');
     if(nameEl) nameEl.textContent='ロゴ画像を選択する';
@@ -2441,14 +2591,12 @@ async function submitEntry(){
     const newId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
     let imageUrl=null;
 
-    // 画像ファイルがある場合はStorageにアップロード
-    if(fileInput.files && fileInput.files[0]){
-      const file=fileInput.files[0];
-      if(file.size>10*1024*1024){ alert('画像サイズは10MB以下にしてください'); return; }
-      const ext=file.name.split('.').pop()||'jpg';
-      const filePath=newId+'.'+ext;
-      const {error:upErr}=await sb.storage.from('photos').upload(filePath, file, {
-        contentType: file.type, upsert: false
+    // 画像ファイルがある場合はStorageにアップロード（切り取り済みBlobを使用）
+    if(_pendingSubmitPhotoBlob){
+      if(_pendingSubmitPhotoBlob.size>10*1024*1024){ alert('画像サイズは10MB以下にしてください'); return; }
+      const filePath=newId+'.jpg';
+      const {error:upErr}=await sb.storage.from('photos').upload(filePath, _pendingSubmitPhotoBlob, {
+        contentType: 'image/jpeg', upsert: false
       });
       if(upErr){ alert('画像のアップロードに失敗しました：'+upErr.message); return; }
       const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
@@ -2471,6 +2619,7 @@ async function submitEntry(){
     document.getElementById('submitTitle').value='';
     document.getElementById('submitName').value='';
     fileInput.value='';
+    _pendingSubmitPhotoBlob=null;
     updateFileName(fileInput);
 
     // 完了メッセージ
@@ -2611,16 +2760,14 @@ async function uploadRosterPhoto(){
   const statusEl=document.getElementById('rosterPhotoStatus');
   const teamName=teamSel?teamSel.value:'';
   const playerName=playerSel?playerSel.value:'_team_';
-  const file=fileInput&&fileInput.files&&fileInput.files[0];
+  const blob=_pendingRosterPhotoBlob;
   if(!teamName){ statusEl.textContent='❌ チームを選択してください'; return; }
-  if(!file){ statusEl.textContent='❌ 写真ファイルを選択してください'; return; }
-  if(!file.type.startsWith('image/')){ statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
-  if(file.size>15*1024*1024){ statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
+  if(!blob){ statusEl.textContent='❌ 写真ファイルを選択してください（切り取りが完了していない可能性があります）'; return; }
+  if(blob.size>15*1024*1024){ statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   statusEl.textContent='アップロード中…';
   try{
-    const ext=file.name.split('.').pop()||'jpg';
-    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
-    const {error:upErr}=await sb.storage.from('photos').upload(filePath,file,{contentType:file.type,upsert:false});
+    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+    const {error:upErr}=await sb.storage.from('photos').upload(filePath,blob,{contentType:'image/jpeg',upsert:false});
     if(upErr){ statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
     const url=urlData.publicUrl;
@@ -2638,6 +2785,7 @@ async function uploadRosterPhoto(){
     renderAllTeamViews();
     statusEl.textContent='✅ 写真を登録しました。';
     setTimeout(()=>{statusEl.textContent='';},3000);
+    _pendingRosterPhotoBlob=null;
     fileInput.value='';
     document.getElementById('rosterPhotoFileName').textContent='③ 写真ファイルを選択する';
   }catch(e){
@@ -3299,19 +3447,18 @@ async function addAlbumPhoto(){
   const caption=document.getElementById('albumCaption').value.trim();
   const fileInput=document.getElementById('albumFile');
   const statusEl=document.getElementById('albumAddStatus');
+  const blob=_pendingAlbumPhotoBlob;
 
   if(!title){ alert('タイトルを入力してください'); return; }
-  if(!fileInput.files||!fileInput.files[0]){ alert('写真を選択してください'); return; }
+  if(!blob){ alert('写真を選択してください（切り取りが完了していない可能性があります）'); return; }
   if(ALBUM_PHOTOS.length>=10){ alert('アルバムは最大10枚までです。先に不要な写真を削除してください。'); return; }
 
   statusEl.textContent='アップロード中...';
   try{
-    const file=fileInput.files[0];
     const newId='alb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-    const ext=file.name.split('.').pop()||'jpg';
-    const filePath='album/'+newId+'.'+ext;
+    const filePath='album/'+newId+'.jpg';
 
-    const {error:upErr}=await sb.storage.from('photos').upload(filePath,file,{contentType:file.type,upsert:false});
+    const {error:upErr}=await sb.storage.from('photos').upload(filePath,blob,{contentType:'image/jpeg',upsert:false});
     if(upErr){ statusEl.textContent='❌ アップロード失敗：'+upErr.message; return; }
 
     const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
@@ -3325,6 +3472,7 @@ async function addAlbumPhoto(){
 
     document.getElementById('albumTitle').value='';
     document.getElementById('albumCaption').value='';
+    _pendingAlbumPhotoBlob=null;
     fileInput.value='';
     updateAlbumFileName(fileInput);
     statusEl.textContent='✅ 追加しました！';
