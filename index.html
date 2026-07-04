@@ -535,8 +535,8 @@ img.clickable-photo{cursor:zoom-in;}
   <div class="hero-sub">みんなの力で、最高の記念大会を作ろう！</div>
   <div class="htags">
     <span class="htag" id="heroTournamentTag">創立50周年記念大会</span>
-    <span class="htag p">2025年5月3日〜5日</span>
-    <span class="htag">山口県宇部市</span>
+    <span class="htag p" id="heroEventDate">2025年5月3日〜5日</span>
+    <span class="htag" id="heroEventVenue">山口県宇部市</span>
   </div>
 </div>
 
@@ -1219,12 +1219,18 @@ img.clickable-photo{cursor:zoom-in;}
     <div class="admin-section" id="infoAdmin">
       <div class="admin-form-card">
         <div class="admin-form-title">🏷 サイト名・チーム名の設定</div>
-        <p style="font-size:12px;color:#666;margin-bottom:.6rem;">ページタイトルや見出しに表示される主催チーム名・大会名です。他クラブで利用する際はここを変更してください。</p>
+        <p style="font-size:12px;color:#666;margin-bottom:.6rem;">ページタイトルや見出しに表示される主催チーム名・大会名・開催日・開催地です。他クラブで利用する際はここを変更してください。</p>
         <div class="fr">
           <input type="text" id="siteNameTeamInput" placeholder="主催チーム名（例：東岐波クラブ）" maxlength="30" style="flex:1;">
         </div>
         <div class="fr">
           <input type="text" id="siteNameTitleInput" placeholder="大会名（例：創立50周年記念大会）" maxlength="40" style="flex:1;">
+        </div>
+        <div class="fr">
+          <input type="text" id="siteNameDateInput" placeholder="開催日（例：2025年5月3日〜5日）" maxlength="30" style="flex:1;">
+        </div>
+        <div class="fr">
+          <input type="text" id="siteNameVenueInput" placeholder="開催地（例：山口県宇部市）" maxlength="30" style="flex:1;">
         </div>
         <button class="ubtn" onclick="updateSiteName()">保存する</button>
         <div id="siteNameStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
@@ -1232,7 +1238,7 @@ img.clickable-photo{cursor:zoom-in;}
 
       <div class="admin-form-card">
         <div class="admin-form-title">🖼 ロゴ画像のアップロード</div>
-        <p style="font-size:12px;color:#666;margin-bottom:.6rem;">ヒーローエリア上部に表示されるロゴ画像です。アップロードすると全端末に即座に反映されます（5MB以下）。</p>
+        <p style="font-size:12px;color:#666;margin-bottom:.6rem;">ヒーローエリア上部に表示されるロゴ画像です。アップロードすると全端末に即座に反映されます（15MB以下）。</p>
         <div class="fr">
           <label for="siteLogoFileInput" style="display:flex;align-items:center;gap:8px;background:#f5f6fa;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#555;width:100%;box-sizing:border-box;">
             <span style="font-size:16px;">🖼</span>
@@ -1423,17 +1429,21 @@ const DEFAULT_PLAYERS=[
 ];
 
 /* =========================================================
-   サイト名・チーム名（Supabase settings テーブル key: 'site_name' で全端末共有）
+   サイト名・チーム名・開催日・開催地（Supabase settings テーブル key: 'site_name' で全端末共有）
    他クラブへの横展開を見据え、直書きせず設定値として一元管理する
    ========================================================= */
 let SITE_TEAM_NAME='東岐波クラブ';
 let SITE_TOURNAMENT_TITLE='創立50周年記念大会';
-async function saveSiteName(teamName,tournamentTitle){
-  const value=JSON.stringify({teamName,tournamentTitle});
+let SITE_EVENT_DATE='2025年5月3日〜5日';
+let SITE_EVENT_VENUE='山口県宇部市';
+async function saveSiteName(teamName,tournamentTitle,eventDate,eventVenue){
+  const value=JSON.stringify({teamName,tournamentTitle,eventDate,eventVenue});
   const {error}=await sb.from('settings').upsert({key:'site_name',value},{onConflict:'key'});
   if(error){ console.error('site_name保存エラー:',error); throw error; }
   SITE_TEAM_NAME=teamName;
   SITE_TOURNAMENT_TITLE=tournamentTitle;
+  SITE_EVENT_DATE=eventDate;
+  SITE_EVENT_VENUE=eventVenue;
   applySiteName();
 }
 // サイト名を画面上の各所へ反映する
@@ -1441,6 +1451,10 @@ function applySiteName(){
   document.title=`${SITE_TEAM_NAME} ${SITE_TOURNAMENT_TITLE}`;
   const heroTag=document.getElementById('heroTournamentTag');
   if(heroTag) heroTag.textContent=SITE_TOURNAMENT_TITLE;
+  const heroDate=document.getElementById('heroEventDate');
+  if(heroDate) heroDate.textContent=SITE_EVENT_DATE;
+  const heroVenue=document.getElementById('heroEventVenue');
+  if(heroVenue) heroVenue.textContent=SITE_EVENT_VENUE;
   const topMsg=document.getElementById('spTopMsg');
   if(topMsg) topMsg.textContent=`${SITE_TOURNAMENT_TITLE}へのご支援をお待ちしております`;
   const mtName=document.getElementById('mainTeamName');
@@ -1457,6 +1471,10 @@ function applySiteName(){
   if(siteNameTeamInput) siteNameTeamInput.value=SITE_TEAM_NAME;
   const siteNameTitleInput=document.getElementById('siteNameTitleInput');
   if(siteNameTitleInput) siteNameTitleInput.value=SITE_TOURNAMENT_TITLE;
+  const siteNameDateInput=document.getElementById('siteNameDateInput');
+  if(siteNameDateInput) siteNameDateInput.value=SITE_EVENT_DATE;
+  const siteNameVenueInput=document.getElementById('siteNameVenueInput');
+  if(siteNameVenueInput) siteNameVenueInput.value=SITE_EVENT_VENUE;
 }
 
 /* =========================================================
@@ -1476,7 +1494,7 @@ async function uploadSiteLogo(){
   const file=fileInput && fileInput.files && fileInput.files[0];
   if(!file){ if(statusEl) statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
   if(!file.type.startsWith('image/')){ if(statusEl) statusEl.textContent='❌ 画像ファイルを選択してください'; return; }
-  if(file.size>5*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは5MB以下にしてください'; return; }
+  if(file.size>15*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   if(statusEl) statusEl.textContent='アップロード中…';
   try{
     const ext=file.name.split('.').pop()||'png';
@@ -1500,17 +1518,19 @@ async function uploadSiteLogo(){
     if(statusEl) statusEl.textContent='❌ アップロードに失敗しました：'+e.message;
   }
 }
-// 管理画面：サイト名・チーム名の更新ボタン
+// 管理画面：サイト名・チーム名・開催日・開催地の更新ボタン
 async function updateSiteName(){
   const teamName=(document.getElementById('siteNameTeamInput').value||'').trim();
   const tournamentTitle=(document.getElementById('siteNameTitleInput').value||'').trim();
+  const eventDate=(document.getElementById('siteNameDateInput').value||'').trim();
+  const eventVenue=(document.getElementById('siteNameVenueInput').value||'').trim();
   const statusEl=document.getElementById('siteNameStatus');
-  if(!teamName||!tournamentTitle){
-    if(statusEl) statusEl.textContent='❌ チーム名・大会名の両方を入力してください';
+  if(!teamName||!tournamentTitle||!eventDate||!eventVenue){
+    if(statusEl) statusEl.textContent='❌ すべての項目を入力してください';
     return;
   }
   try{
-    await saveSiteName(teamName,tournamentTitle);
+    await saveSiteName(teamName,tournamentTitle,eventDate,eventVenue);
     // 大会要綱・選手紹介などフォールバック表示にも反映
     if(TOURNAMENT_INFO.length===0) renderTournamentInfo(getDisplayTournamentInfo());
     renderAllTeamViews();
@@ -3147,6 +3167,8 @@ function renderAlbumAdmin(){
   let _realtimeOk=false;
   function _refreshPublic(){
     mergeApproved(); rp(ct); rebuildCheerRows(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); updateDashboard();
+    // 選手カードに表示中の応援メッセージも最新化（開いたまま新着承認があっても反映されるように）
+    if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
   }
   function _refreshAdmin(){
     renderAdminCounts(); renderAdminAll(); renderDonationAdmin(); startSpBanner();
@@ -3155,6 +3177,7 @@ function renderAlbumAdmin(){
     sb.channel('realtime-all')
       .on('postgres_changes',{event:'*',schema:'public',table:'messages'},async()=>{
         await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
+        if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'photos'},async()=>{
         await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
@@ -3409,6 +3432,8 @@ async function loadSettingsFromSupabase(){
         const v=JSON.parse(row.value)||{};
         if(v.teamName) SITE_TEAM_NAME=v.teamName;
         if(v.tournamentTitle) SITE_TOURNAMENT_TITLE=v.tournamentTitle;
+        if(v.eventDate) SITE_EVENT_DATE=v.eventDate;
+        if(v.eventVenue) SITE_EVENT_VENUE=v.eventVenue;
       }catch(e){ /* パース失敗時はデフォルト値を維持 */ }
     }
     if(row.key==='logo_url' && row.value){
