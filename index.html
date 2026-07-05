@@ -4260,12 +4260,20 @@ function renderLatestScoreboard(){
   }
   const liveGames=GAMES.filter(g=>g.status==='live');
   const doneGames=GAMES.filter(g=>g.status==='done');
-  let displayGames=[];
-  if(liveGames.length>0){
-    displayGames=liveGames;
-  } else if(doneGames.length>0){
-    displayGames=doneGames.slice(-3).reverse();
-  }
+  // 速報中の試合はブロックを問わず全て表示する
+  // 速報中の試合が無いブロックについては、そのブロックの最新の確定済み試合で補完する
+  const liveBlockIds=new Set(liveGames.map(g=>g.block_id||'_none'));
+  const latestDoneByBlock={};
+  doneGames.forEach(g=>{
+    const bid=g.block_id||'_none';
+    if(!liveBlockIds.has(bid)) latestDoneByBlock[bid]=g; // GAMESは作成日時昇順のため、上書きで最新が残る
+  });
+  let displayGames=[...liveGames,...Object.values(latestDoneByBlock)];
+  displayGames.sort((a,b)=>{
+    const ao=BLOCKS.findIndex(bl=>bl.id===a.block_id);
+    const bo=BLOCKS.findIndex(bl=>bl.id===b.block_id);
+    return (ao===-1?999:ao)-(bo===-1?999:bo);
+  });
   if(displayGames.length===0){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">試合結果はまだ登録されていません</div>';
     return;
