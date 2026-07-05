@@ -3222,7 +3222,13 @@ async function unpublishCheer(id){
 }
 
 // 応援メッセージの3行を再構築（承認後の反映用）
-function rebuildCheerRows(){
+// ※内容に変化がない場合は再構築をスキップ（流れるアニメーションが定期ポーリング等で
+//   毎回作り直されて一瞬止まって見える不具合の対策）
+let _lastCheerSig='';
+function rebuildCheerRows(force){
+  const sig=CHEERS.map(c=>c._id).join(',');
+  if(!force && sig===_lastCheerSig) return; // 変化なし→スキップしてアニメーションを止めない
+  _lastCheerSig=sig;
   document.getElementById('cheerRowA').innerHTML='';
   document.getElementById('cheerRowB').innerHTML='';
   document.getElementById('cheerRowC').innerHTML='';
