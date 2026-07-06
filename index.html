@@ -14,10 +14,37 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 <style>
+/* ===== テーマ変数（Classic=既定値。見た目は今までと同一） ===== */
+:root{
+  --theme-nav-active-bg:#ffd400;
+  --theme-nav-active-text:#0a1830;
+  --theme-hero-bg:#0a1830;
+  --theme-hero-glow:rgba(0,0,0,0);
+  --theme-htag-bg:#ffd400;
+  --theme-htag-text:#0a1830;
+  --theme-htag-border:#ffd400;
+  --theme-htag-p-bg:#ffd400;
+  --theme-htag-p-text:#0a1830;
+  --theme-htag-p-border:#ffd400;
+  --theme-dash-card-bg:#0a1830;
+  --theme-dash-card-bg-2:var(--theme-dash-card-bg);
+  --theme-dash-card-bg-3:var(--theme-dash-card-bg);
+  --theme-dash-card-shadow:none;
+  --theme-dash-ring:rgba(0,0,0,0);
+  --theme-dash-value-color:#fff;
+  --theme-dash-label:#ffd400;
+  --theme-sl-color:#0a1830;
+  --theme-morebtn-bg:#0a1830;
+  --theme-morebtn-text:#fff;
+  --theme-morebtn-border:#0a1830;
+  --theme-morebtn-hover-bg:#142a4a;
+  --theme-ubtn-bg:#ffd400;
+  --theme-ubtn-text:#0a1830;
+}
 /* PAGE NAV */
 .page-nav{display:flex;gap:2px;background:#fff;border:1px solid #e0e2ea;border-radius:999px;padding:3px;margin-bottom:1rem;max-width:700px;margin-left:auto;margin-right:auto;}
 .page-nav-btn{flex:1;padding:7px 2px;border-radius:999px;border:none;background:none;font-size:11px;font-weight:600;color:#888;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.page-nav-btn.on{background:#1a3260;color:#fff;}
+.page-nav-btn.on{background:var(--theme-nav-active-bg);color:var(--theme-nav-active-text);}
 .page-view{display:none;}
 .page-view.on{display:block;}
 
@@ -91,10 +118,12 @@ table.pl-roster .pos-cell{color:#9e1f30;font-weight:700;white-space:nowrap;}
 
 /* DASHBOARD */
 .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.dash-card{background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);border-radius:10px;padding:8px 6px;text-align:center;position:relative;overflow:hidden;}
-.dash-card::before{content:'';position:absolute;top:-16px;right:-16px;width:60px;height:60px;border:2px solid rgba(255,255,255,.06);border-radius:50%;}
-.dash-value{font-size:20px;font-weight:800;color:#fff;line-height:1;letter-spacing:-.01em;}
-.dash-label{font-size:9px;font-weight:700;color:#c9a227;margin-top:3px;letter-spacing:.03em;}
+.dash-card{background:var(--theme-dash-card-bg);border-radius:10px;padding:8px 6px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--theme-dash-card-shadow);}
+.dash-card:nth-child(3n+2){background:var(--theme-dash-card-bg-2);}
+.dash-card:nth-child(3n){background:var(--theme-dash-card-bg-3);}
+.dash-card::before{content:'';position:absolute;top:-16px;right:-16px;width:60px;height:60px;border:2px solid var(--theme-dash-ring);border-radius:50%;}
+.dash-value{font-size:20px;font-weight:800;color:var(--theme-dash-value-color);line-height:1;letter-spacing:-.01em;}
+.dash-label{font-size:9px;font-weight:700;color:var(--theme-dash-label);margin-top:3px;letter-spacing:.03em;}
 .dash-icon{font-size:16px;margin-bottom:2px;}
 .dash-sub{font-size:8px;color:rgba(255,255,255,.45);margin-top:2px;line-height:1.3;}
 .dash-value.counting{animation:countPop .3s ease;}
@@ -109,20 +138,20 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .wrap{max-width:700px;margin:0 auto;padding:.8rem;}
 
 /* HERO */
-.hero{background:linear-gradient(155deg,#060e1e 0%,#1a3260 45%,#2a0d3a 100%);border-radius:14px;padding:1.6rem 1.5rem 1.3rem;margin-bottom:1.2rem;overflow:hidden;text-align:center;position:relative;}
-.hero::after{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(216,51,132,.22),transparent 70%);}
+.hero{background:var(--theme-hero-bg);border-radius:14px;padding:1.6rem 1.5rem 1.3rem;margin-bottom:1.2rem;overflow:hidden;text-align:center;position:relative;}
+.hero::after{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--theme-hero-glow),transparent 70%);}
 .confetti{position:absolute;border-radius:2px;opacity:.85;animation:fall linear infinite;z-index:0;}
 @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);}100%{transform:translateY(220px) rotate(360deg);}}
 .logo-wrap{margin:0 auto .9rem;display:block;position:relative;z-index:1;background:#fdfaf3;border-radius:16px;padding:.9rem 1rem .6rem;max-width:340px;box-shadow:0 6px 20px rgba(0,0,0,.35),0 0 0 3px rgba(200,168,75,.5);}
 .logo-img{max-width:320px;width:100%;display:block;margin:0 auto;}
 .hero-sub{font-size:13px;color:rgba(255,255,255,.72);margin-bottom:.5rem;position:relative;z-index:1;}
 .htags{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;}
-.htag{font-size:11px;padding:3px 12px;border-radius:999px;background:rgba(200,168,75,.18);color:#e8c96b;border:1px solid rgba(200,168,75,.35);}
-.htag.p{background:rgba(216,51,132,.18);color:#f48cb7;border-color:rgba(216,51,132,.35);}
+.htag{font-size:11px;padding:3px 12px;border-radius:999px;background:var(--theme-htag-bg);color:var(--theme-htag-text);border:1px solid var(--theme-htag-border);}
+.htag.p{background:var(--theme-htag-p-bg);color:var(--theme-htag-p-text);border-color:var(--theme-htag-p-border);}
 
 /* SECTION CARD */
 .sc{background:#fff;border:1px solid #e8eaf0;border-radius:14px;padding:1.25rem;margin-bottom:1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-.sl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;color:#1a3260;text-transform:uppercase;margin-bottom:10px;}
+.sl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--theme-sl-color);text-transform:uppercase;margin-bottom:10px;}
 .sl::before{content:'';display:block;width:3px;height:14px;background:linear-gradient(to bottom,#d63384,#c8a84b);border-radius:2px;}
 
 /* DONATION */
@@ -169,8 +198,8 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .sponsor-msg{font-size:10px;color:#999;display:block;margin-top:1px;}
 
 /* MORE BUTTON */
-.more-btn{display:block;width:100%;text-align:center;font-size:12px;color:#1a3260;background:#eef1fa;border:1px solid #c8d0e8;border-radius:999px;padding:7px 0;margin-top:4px;margin-bottom:.6rem;cursor:pointer;font-weight:600;transition:background .15s;}
-.more-btn:hover{background:#e0e6f8;}
+.more-btn{display:block;width:100%;text-align:center;font-size:12px;color:var(--theme-morebtn-text);background:var(--theme-morebtn-bg);border:1px solid var(--theme-morebtn-border);border-radius:999px;padding:7px 0;margin-top:4px;margin-bottom:.6rem;cursor:pointer;font-weight:600;transition:background .15s;}
+.more-btn:hover{background:var(--theme-morebtn-hover-bg);}
 .more-btn:last-child{margin-bottom:0;}
 
 /* MODAL */
@@ -295,7 +324,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .ut{font-size:13px;font-weight:600;color:#222;margin-bottom:10px;}
 .fr{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
 .fr select,.fr input{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#333;flex:1;min-width:110px;}
-.ubtn{background:linear-gradient(90deg,#1a3260,#d63384);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;width:100%;margin-top:4px;font-weight:600;}
+.ubtn{background:var(--theme-ubtn-bg);color:var(--theme-ubtn-text);border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;width:100%;margin-top:4px;font-weight:600;}
 
 /* SPONSORS */
 /* 特別協賛 固定バナー */
@@ -514,6 +543,137 @@ img.clickable-photo{cursor:zoom-in;}
 .ds-box{flex:1;background:#f6f7fb;border-radius:10px;padding:.7rem;text-align:center;}
 .ds-label{font-size:10.5px;color:#888;}
 .ds-value{font-size:16px;font-weight:700;color:#1a3260;margin-top:2px;}
+
+/* ===== テーマ：紺×ゴールド（gold） ===== */
+[data-theme="gold"]{
+  --theme-nav-active-bg:linear-gradient(135deg,#c9a227,#e8c96b);
+  --theme-nav-active-text:#1a1200;
+  --theme-hero-bg:linear-gradient(160deg,#0a1428 0%,#1a3260 100%);
+  --theme-hero-glow:rgba(201,162,39,.3);
+  --theme-htag-bg:rgba(201,162,39,.12);
+  --theme-htag-text:#e8c96b;
+  --theme-htag-border:rgba(201,162,39,.5);
+  --theme-htag-p-bg:rgba(201,162,39,.12);
+  --theme-htag-p-text:#e8c96b;
+  --theme-htag-p-border:rgba(201,162,39,.5);
+  --theme-dash-card-bg:linear-gradient(150deg,#1b2a4a,#0e1830);
+  --theme-dash-card-bg-2:var(--theme-dash-card-bg);
+  --theme-dash-card-bg-3:var(--theme-dash-card-bg);
+  --theme-dash-value-color:#fff;
+  --theme-dash-label:#e8c96b;
+  --theme-sl-color:#c9a227;
+  --theme-morebtn-bg:linear-gradient(135deg,#1a3260,#0e1830);
+  --theme-morebtn-text:#e8c96b;
+  --theme-morebtn-border:#0e1830;
+  --theme-morebtn-hover-bg:linear-gradient(135deg,#0e1830,#1a3260);
+  --theme-ubtn-bg:linear-gradient(135deg,#c9a227,#e8c96b);
+  --theme-ubtn-text:#1a1200;
+}
+
+/* ===== テーマ：ビビッドブロック・ポップ（pop） ===== */
+[data-theme="pop"]{
+  --theme-nav-active-bg:#ffd400;
+  --theme-nav-active-text:#1a1a1a;
+  --theme-hero-bg:#2f6fed;
+  --theme-hero-glow:rgba(255,255,255,.16);
+  --theme-htag-bg:#ff4d4d;
+  --theme-htag-text:#fff;
+  --theme-htag-border:#ff4d4d;
+  --theme-htag-p-bg:#ff4d4d;
+  --theme-htag-p-text:#fff;
+  --theme-htag-p-border:#ff4d4d;
+  --theme-dash-card-bg:#fff1a8;
+  --theme-dash-card-bg-2:#ffd0d0;
+  --theme-dash-card-bg-3:#c9f0d8;
+  --theme-dash-ring:rgba(0,0,0,0);
+  --theme-dash-value-color:#1a1a1a;
+  --theme-dash-label:#555;
+  --theme-sl-color:#2f6fed;
+  --theme-morebtn-bg:#ffd400;
+  --theme-morebtn-text:#1a1a1a;
+  --theme-morebtn-border:#ffd400;
+  --theme-morebtn-hover-bg:#f0c400;
+  --theme-ubtn-bg:#ffd400;
+  --theme-ubtn-text:#1a1a1a;
+}
+
+/* ===== テーマ：パステル・キャンディ（pastel） ===== */
+[data-theme="pastel"]{
+  --theme-nav-active-bg:#ff8a65;
+  --theme-nav-active-text:#fff;
+  --theme-hero-bg:linear-gradient(135deg,#ffb199 0%,#ff8a65 50%,#ffd36e 100%);
+  --theme-hero-glow:rgba(255,255,255,.25);
+  --theme-htag-bg:rgba(255,255,255,.35);
+  --theme-htag-text:#fff;
+  --theme-htag-border:rgba(255,255,255,.5);
+  --theme-htag-p-bg:rgba(255,255,255,.35);
+  --theme-htag-p-text:#fff;
+  --theme-htag-p-border:rgba(255,255,255,.5);
+  --theme-dash-card-bg:#fff;
+  --theme-dash-card-bg-2:var(--theme-dash-card-bg);
+  --theme-dash-card-bg-3:var(--theme-dash-card-bg);
+  --theme-dash-ring:rgba(0,0,0,0);
+  --theme-dash-card-shadow:0 2px 6px rgba(255,138,101,.15);
+  --theme-dash-value-color:#ff8a65;
+  --theme-dash-label:#c9a89a;
+  --theme-sl-color:#ff8a65;
+  --theme-morebtn-bg:linear-gradient(135deg,#ffb199,#ff8a65);
+  --theme-morebtn-text:#fff;
+  --theme-morebtn-border:#ff8a65;
+  --theme-morebtn-hover-bg:linear-gradient(135deg,#ff8a65,#ffb199);
+  --theme-ubtn-bg:linear-gradient(135deg,#ffb199,#ff8a65);
+  --theme-ubtn-text:#fff;
+}
+
+/* ===== テーマ切り替え（⚙️管理タブ内・パスワード不要エリア） ===== */
+.theme-pick-btn{display:block;width:100%;text-align:left;font-size:12.5px;padding:8px 10px;border-radius:8px;border:none;background:#f4f6fa;color:#333;margin-bottom:5px;cursor:pointer;font-weight:600;}
+.theme-pick-btn.on{background:var(--theme-nav-active-bg);color:var(--theme-nav-active-text);}
+.theme-pick-reset{display:block;width:100%;text-align:center;font-size:11px;color:#888;background:none;border:1px dashed #ccc;border-radius:8px;padding:6px 0;margin-top:4px;cursor:pointer;}
+
+/* ===== 遊んでみるボタン ===== */
+.play-game-btn{display:block;width:100%;text-align:center;background:#ffde00;color:#1a1a1a;border:none;border-radius:10px;padding:10px 8px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:1.2rem;box-shadow:0 3px 0 #a8940a;}
+.play-game-btn:active{box-shadow:0 1px 0 #a8940a;transform:translateY(2px);}
+
+/* ===== バッティングゲーム（ファミスタ風・専用デザイン） ===== */
+.game-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;align-items:center;justify-content:center;padding:1rem;}
+.game-overlay.open{display:flex;}
+.game-box{position:relative;width:100%;max-width:340px;background:#3a9c4a;border:4px solid #1a1a1a;border-radius:10px;padding:1.4rem 1rem 1.2rem;font-family:'Press Start 2P',monospace;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.4);max-height:92vh;overflow-y:auto;}
+.game-close{position:absolute;top:8px;right:8px;background:#1a1a1a;color:#fff;border:2px solid #fff;width:26px;height:26px;font-size:12px;cursor:pointer;}
+.game-title{color:#fff;font-size:12px;line-height:1.8;text-shadow:2px 2px 0 #1a1a1a;margin-bottom:6px;}
+.game-sub{color:#ffde00;font-size:7px;line-height:1.8;margin-bottom:14px;text-shadow:1px 1px 0 #1a1a1a;}
+.game-field{position:relative;height:160px;background:linear-gradient(#8fd4f0 0%,#8fd4f0 30%,#4bb05c 30%,#4bb05c 100%);border:3px solid #1a1a1a;margin-bottom:12px;overflow:hidden;}
+.game-cloud{position:absolute;top:8px;width:22px;height:8px;background:#fff;opacity:.9;border-radius:6px;}
+.game-cloud.c1{left:12%;}
+.game-cloud.c2{left:62%;top:16px;width:16px;}
+.game-light{position:absolute;top:4px;width:8px;height:12px;background:#ffde00;box-shadow:0 0 8px rgba(255,222,0,.9);}
+.game-light.left{left:6px;}
+.game-light.right{right:6px;}
+.game-pitcher{position:absolute;left:50%;top:24px;width:9px;height:15px;background:#1a1a1a;border-radius:3px 3px 0 0;transform:translateX(-50%);}
+.game-outfield-arc{position:absolute;left:50%;bottom:0;width:220px;height:220px;border:3px solid rgba(255,255,255,.5);border-radius:50%;transform:translateX(-50%) translateY(60%);}
+.game-diamond{position:absolute;left:50%;bottom:14px;width:58px;height:58px;transform:translateX(-50%) rotate(45deg);background:#c98a4b;border:3px solid #8a5a2e;}
+.game-mound{position:absolute;left:50%;top:50%;width:13px;height:13px;background:#b87a3f;border:2px solid #8a5a2e;border-radius:50%;transform:translate(-50%,-50%) rotate(-45deg);}
+.game-plate{position:absolute;left:50%;bottom:9px;width:11px;height:8px;background:#fff;border:2px solid #1a1a1a;transform:translateX(-50%);}
+.game-ball{position:absolute;left:50%;top:14px;width:10px;height:10px;margin-left:-5px;background:#fff;border:2px solid #1a1a1a;border-radius:50%;transform:scale(1);transition:top linear,transform linear;}
+.game-ball::before,.game-ball::after{content:'';position:absolute;width:4px;height:1px;background:#c0272d;top:2px;}
+.game-ball::before{left:0;transform:rotate(25deg);}
+.game-ball::after{right:0;top:5px;transform:rotate(25deg);}
+.game-pitch-label{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:6px;color:#fff;background:rgba(26,26,26,.55);padding:3px 6px;letter-spacing:.05em;}
+.game-result{min-height:34px;color:#fff;font-size:11px;line-height:1.8;margin-bottom:10px;text-shadow:2px 2px 0 #1a1a1a;}
+.game-result.result-hr{color:#ffde00;}
+.game-result.result-hit{color:#7ec8e3;}
+.game-result.result-foul{color:#ddd;}
+.game-result.result-out{color:#ff8080;}
+.game-swing-btn{display:none;width:100%;background:#e8262e;color:#fff;border:3px solid #8a1414;border-radius:6px;padding:14px 8px;font-size:12px;font-family:'Press Start 2P',monospace;cursor:pointer;margin-bottom:8px;box-shadow:0 4px 0 #6a0e0e;}
+.game-swing-btn:active{box-shadow:0 1px 0 #6a0e0e;transform:translateY(3px);}
+.game-swing-btn.show{display:block;}
+.game-start-btn,.game-retry-btn{width:100%;background:#ffde00;color:#1a1a1a;border:3px solid #a8940a;border-radius:6px;padding:12px 8px;font-size:11px;font-family:'Press Start 2P',monospace;cursor:pointer;box-shadow:0 4px 0 #7a6a06;}
+.game-start-btn:active,.game-retry-btn:active{box-shadow:0 1px 0 #7a6a06;transform:translateY(3px);}
+.game-history{display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
+.game-history span{font-size:6.5px;color:#fff;background:#1a1a1a;border:2px solid #fff;padding:5px 6px;line-height:1.6;}
+@media(max-width:360px){
+  .game-title{font-size:10px;}
+  .game-field{height:140px;}
+}
 </style>
 </head>
 <body>
@@ -522,6 +682,36 @@ img.clickable-photo{cursor:zoom-in;}
 <div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
   <span class="lightbox-close" onclick="closeLightbox()">✕</span>
   <img id="lightboxImg" src="" alt="拡大写真" onclick="event.stopPropagation()">
+</div>
+
+<!-- バッティングゲーム モーダル（ファミスタ風・専用デザイン） -->
+<div class="game-overlay" id="gameOverlay">
+  <div class="game-box">
+    <button class="game-close" onclick="closeGameModal()">✕</button>
+    <div class="game-title">バッティングチャレンジ</div>
+    <div class="game-sub" id="gamePitchCount">3球勝負！ベストの結果を目指そう</div>
+
+    <div class="game-field">
+      <div class="game-cloud c1"></div>
+      <div class="game-cloud c2"></div>
+      <div class="game-light left"></div>
+      <div class="game-light right"></div>
+      <div class="game-outfield-arc"></div>
+      <div class="game-diamond"><div class="game-mound"></div></div>
+      <div class="game-plate"></div>
+      <div class="game-pitcher"></div>
+      <div class="game-ball" id="gameBall"></div>
+      <div class="game-pitch-label" id="gamePitchLabel" style="display:none;"></div>
+    </div>
+
+    <div class="game-result" id="gameResultText"></div>
+
+    <button class="game-swing-btn" id="gameSwingBtn" onclick="swingBat()">🏏 打つ！</button>
+    <button class="game-start-btn" id="gameStartBtn" onclick="startGame()">▶ スタート</button>
+    <button class="game-retry-btn" id="gameRetryBtn" onclick="startGame()" style="display:none;">🔄 もう一度</button>
+
+    <div class="game-history" id="gameHistory"></div>
+  </div>
 </div>
 
 <!-- 特別協賛 固定バナー（全タブ共通・常時表示） -->
@@ -566,7 +756,7 @@ img.clickable-photo{cursor:zoom-in;}
   <span class="confetti" style="left:90%;top:0;width:7px;height:7px;background:#fff;border-radius:50%;animation-duration:2.8s;animation-delay:1s;"></span>
   <span class="confetti" style="left:50%;top:0;width:6px;height:9px;background:#e8c96b;animation-duration:3.5s;animation-delay:.3s;"></span>
   <div class="logo-wrap">
-    <img id="siteLogoImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23e8e8e8'/%3E%3Ctext x='100' y='105' font-size='16' text-anchor='middle' fill='%23999' font-family='sans-serif'%3E%E3%83%AD%E3%82%B4%E6%9C%AA%E8%A8%AD%E5%AE%9A%3C/text%3E%3C/svg%3E" alt="東岐波クラブ 50th Anniversary ロゴ" class="logo-img">
+    <img id="siteLogoImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3C/svg%3E" alt="東岐波クラブ 50th Anniversary ロゴ" class="logo-img">
   </div>
   <div class="hero-sub" id="heroSubtitle">みんなの力で、最高の記念大会を作ろう！</div>
   <div class="htags">
@@ -575,6 +765,9 @@ img.clickable-photo{cursor:zoom-in;}
     <span class="htag" id="heroEventVenue">山口県宇部市</span>
   </div>
 </div>
+
+<!-- 遊んでみるボタン -->
+<button class="play-game-btn" onclick="openGameModal()">🎮 遊んでみる（バッティングゲーム）</button>
 
 <!-- DASHBOARD -->
 <div class="sc" id="dashboardSection">
@@ -1017,6 +1210,12 @@ img.clickable-photo{cursor:zoom-in;}
 <!-- ADMIN PANEL -->
 <div class="page-view" id="page-admin">
 <div class="admin-panel" id="adminPanel">
+  <div class="admin-form-card" id="publicThemeCard" style="max-width:320px;margin:1.5rem auto 0;">
+    <div class="admin-form-title">🎨 サイトのテーマ変更</div>
+    <p style="font-size:12px;color:#666;margin-bottom:.6rem;">パスワード不要で、この端末の見た目だけ好きなテーマに変更できます。</p>
+    <div id="themePickMenu"></div>
+    <button class="theme-pick-reset" id="themePickResetBtn" onclick="resetThemeLocal()" style="display:none;">サイトのおすすめに戻す</button>
+  </div>
   <div id="adminLoginView" class="admin-login">
     <h2>🔒 管理者ログイン</h2>
     <input type="password" id="adminPw" placeholder="管理者パスワード" onkeydown="if(event.key==='Enter')adminLogin()">
@@ -1324,6 +1523,15 @@ img.clickable-photo{cursor:zoom-in;}
         </div>
         <button class="ubtn" onclick="updateSiteName()">保存する</button>
         <div id="siteNameStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
+      </div>
+
+      <div class="admin-form-card">
+        <div class="admin-form-title">🎨 サイト全体のテーマ（見た目）</div>
+        <p style="font-size:12px;color:#666;margin-bottom:.6rem;">ここで選んだテーマが、端末で個別に選び直していない全ての来場者に表示されます（保存すると即座に全端末へ反映）。来場者は画面の🎨ボタンから自分の端末だけ好きなテーマに変更できます。</p>
+        <div class="fr">
+          <select id="siteThemeSelect" style="flex:1;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#333;"></select>
+        </div>
+        <div id="siteThemeStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
       </div>
 
       <div class="admin-form-card">
@@ -1664,6 +1872,244 @@ let SITE_TOURNAMENT_TITLE='創立50周年記念大会';
 let SITE_EVENT_DATE='2025年5月3日〜5日';
 let SITE_EVENT_VENUE='山口県宇部市';
 let SITE_HERO_SUBTITLE='みんなの力で、最高の記念大会を作ろう！';
+
+/* ---------- テーマ切り替え ---------- */
+// 追加予定：minecraft（マインクラフト風、構造が特殊なため別途対応予定）
+const THEME_LIST=[
+  {id:'classic', emoji:'⚾', label:'Classic'},
+  {id:'gold',    emoji:'🏆', label:'紺×ゴールド'},
+  {id:'pop',     emoji:'🎉', label:'ビビッドポップ'},
+  {id:'pastel',  emoji:'🌸', label:'パステル'},
+];
+const THEME_OVERRIDE_KEY='hk_theme_override'; // 端末ごとの上書き（localStorage・パスワード不要）
+let SITE_THEME='classic'; // サイト全体のデフォルト（管理者設定・Supabase保存）
+
+function applyThemeToDOM(themeId){
+  if(themeId && themeId!=='classic'){
+    document.documentElement.setAttribute('data-theme', themeId);
+  }else{
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+function getLocalThemeOverride(){
+  try{ return localStorage.getItem(THEME_OVERRIDE_KEY)||''; }catch(e){ return ''; }
+}
+function getEffectiveTheme(){
+  return getLocalThemeOverride() || SITE_THEME || 'classic';
+}
+function refreshThemeUI(){
+  document.querySelectorAll('.theme-pick-btn').forEach(b=>{
+    b.classList.toggle('on', b.dataset.themeId===getEffectiveTheme());
+  });
+  const resetBtn=document.getElementById('themePickResetBtn');
+  if(resetBtn) resetBtn.style.display=getLocalThemeOverride()?'block':'none';
+  const adminSel=document.getElementById('siteThemeSelect');
+  if(adminSel) adminSel.value=SITE_THEME;
+}
+// 訪問者向け：この端末だけテーマを変更（パスワード不要・localStorageのみ）
+function pickThemeLocal(themeId){
+  try{ localStorage.setItem(THEME_OVERRIDE_KEY, themeId); }catch(e){}
+  applyThemeToDOM(themeId);
+  refreshThemeUI();
+}
+function resetThemeLocal(){
+  try{ localStorage.removeItem(THEME_OVERRIDE_KEY); }catch(e){}
+  applyThemeToDOM(SITE_THEME);
+  refreshThemeUI();
+}
+// 管理者向け：サイト全体のデフォルトテーマを変更（Supabase保存・全端末に反映）
+async function saveSiteTheme(themeId){
+  const statusEl=document.getElementById('siteThemeStatus');
+  if(statusEl) statusEl.textContent='保存中…';
+  const {error}=await sb.from('settings').upsert({key:'site_theme',value:themeId},{onConflict:'key'});
+  if(error){
+    console.error('site_theme保存エラー:',error);
+    if(statusEl) statusEl.textContent='❌ 保存に失敗しました：'+error.message;
+    return;
+  }
+  SITE_THEME=themeId;
+  if(!getLocalThemeOverride()) applyThemeToDOM(themeId);
+  refreshThemeUI();
+  if(statusEl) statusEl.textContent='✅ 保存しました（全端末に反映されます）';
+}
+function buildThemePicker(){
+  const menu=document.getElementById('themePickMenu');
+  if(!menu || menu.dataset.built) return;
+  menu.dataset.built='1';
+  THEME_LIST.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='theme-pick-btn';
+    b.dataset.themeId=t.id;
+    b.textContent=t.emoji+' '+t.label;
+    b.onclick=()=>pickThemeLocal(t.id);
+    menu.appendChild(b);
+  });
+  const adminSel=document.getElementById('siteThemeSelect');
+  if(adminSel && !adminSel.dataset.built){
+    adminSel.dataset.built='1';
+    THEME_LIST.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.id; opt.textContent=t.emoji+' '+t.label;
+      adminSel.appendChild(opt);
+    });
+    adminSel.onchange=()=>saveSiteTheme(adminSel.value);
+  }
+  refreshThemeUI();
+}
+// ページ読み込み時：Supabase通信の成否に関わらず、必ずテーマボタンを生成する
+// （通信エラー時でも端末側のテーマ切り替え機能自体は使えるようにするため）
+buildThemePicker();
+// localStorageの上書きを即座に反映（Supabase読み込み前のチラつき防止）
+applyThemeToDOM(getLocalThemeOverride());
+
+/* ---------- バッティングゲーム（3球勝負・ベスト結果） ---------- */
+const GAME_TOTAL_PITCHES=3;
+const GAME_RESULT_RANK={'空振り':0,'ファウル':1,'ヒット':2,'ホームラン':3};
+let gamePitchNum=0;
+let gamePitchToken=0;
+let gameResults=[];
+let gamePitchStartTime=0;
+let gamePitchDuration=0;
+let gameSwung=false;
+let gameMissTimer=null;
+let gameAdvanceTimer=null;
+
+function openGameModal(){
+  const ov=document.getElementById('gameOverlay');
+  if(ov) ov.classList.add('open');
+  resetGameUI();
+}
+function closeGameModal(){
+  const ov=document.getElementById('gameOverlay');
+  if(ov) ov.classList.remove('open');
+  clearTimeout(gameMissTimer);
+  clearTimeout(gameAdvanceTimer);
+  gamePitchToken++;
+}
+function resetGameUI(){
+  gamePitchNum=0;
+  gameResults=[];
+  const ball=document.getElementById('gameBall');
+  if(ball){ ball.style.transition='none'; ball.style.top='14px'; ball.style.marginLeft='-5px'; ball.style.transform='scale(1)'; }
+  const pitchLabel=document.getElementById('gamePitchLabel');
+  if(pitchLabel) pitchLabel.style.display='none';
+  const resultEl=document.getElementById('gameResultText');
+  if(resultEl){ resultEl.textContent=''; resultEl.className='game-result'; }
+  const histEl=document.getElementById('gameHistory');
+  if(histEl) histEl.innerHTML='';
+  const subEl=document.getElementById('gamePitchCount');
+  if(subEl) subEl.textContent='3球勝負！ベストの結果を目指そう';
+  document.getElementById('gameSwingBtn').classList.remove('show');
+  document.getElementById('gameStartBtn').style.display='block';
+  document.getElementById('gameRetryBtn').style.display='none';
+}
+function startGame(){
+  gamePitchNum=0;
+  gameResults=[];
+  document.getElementById('gameHistory').innerHTML='';
+  document.getElementById('gameStartBtn').style.display='none';
+  document.getElementById('gameRetryBtn').style.display='none';
+  pitchBall();
+}
+function pitchBall(){
+  gamePitchNum++;
+  if(gamePitchNum>GAME_TOTAL_PITCHES){ finishGame(); return; }
+  gamePitchToken++;
+  const myToken=gamePitchToken;
+  const subEl=document.getElementById('gamePitchCount');
+  if(subEl) subEl.textContent=gamePitchNum+'球目 / '+GAME_TOTAL_PITCHES+'球';
+  const resultEl=document.getElementById('gameResultText');
+  if(resultEl){ resultEl.textContent=''; resultEl.className='game-result'; }
+  gameSwung=false;
+  gamePitchDuration=1000+Math.floor(Math.random()*500); // 1.0〜1.5秒でランダムに緩急
+
+  // 球種をランダムに決定（ストレート40%・カーブ左/右・スライダー）
+  const r=Math.random();
+  let pitchName, curveAmp, curveDir;
+  if(r<0.4){ pitchName='ストレート'; curveAmp=0; curveDir=0; }
+  else if(r<0.65){ pitchName='カーブ（左）'; curveAmp=16; curveDir=-1; }
+  else if(r<0.9){ pitchName='カーブ（右）'; curveAmp=16; curveDir=1; }
+  else{ pitchName='スライダー'; curveAmp=24; curveDir=(Math.random()<0.5?-1:1); }
+  const pitchLabel=document.getElementById('gamePitchLabel');
+  if(pitchLabel){ pitchLabel.textContent=pitchName; pitchLabel.style.display='block'; }
+
+  const ball=document.getElementById('gameBall');
+  const swingBtn=document.getElementById('gameSwingBtn');
+  if(swingBtn) swingBtn.classList.add('show');
+  if(ball){
+    ball.style.transition='none';
+    ball.style.top='14px';
+    ball.style.marginLeft='-5px';
+    ball.style.transform='scale(1)';
+    // 強制リフローしてからアニメーション開始
+    void ball.offsetWidth;
+    ball.style.transition='top '+gamePitchDuration+'ms linear, transform '+gamePitchDuration+'ms linear';
+    ball.style.top='112px';
+    ball.style.transform='scale(2.2)';
+  }
+  gamePitchStartTime=performance.now();
+
+  // 変化球の左右カーブ（見た目のみ。打撃タイミングの判定には影響しません）
+  function curveTick(){
+    if(myToken!==gamePitchToken) return;
+    const el=document.getElementById('gameBall');
+    if(!el) return;
+    const progress=Math.min(1,(performance.now()-gamePitchStartTime)/gamePitchDuration);
+    const off=curveAmp*progress*progress*curveDir; // 終盤ほど大きく曲がる
+    el.style.marginLeft=(-5+off)+'px';
+    if(progress<1) requestAnimationFrame(curveTick);
+  }
+  requestAnimationFrame(curveTick);
+
+  clearTimeout(gameMissTimer);
+  gameMissTimer=setTimeout(()=>{
+    if(!gameSwung) judgeSwing(true);
+  }, gamePitchDuration+280);
+}
+function swingBat(){
+  if(gameSwung) return;
+  judgeSwing(false);
+}
+function judgeSwing(missedEntirely){
+  gameSwung=true;
+  clearTimeout(gameMissTimer);
+  const swingBtn=document.getElementById('gameSwingBtn');
+  if(swingBtn) swingBtn.classList.remove('show');
+  const elapsed=performance.now()-gamePitchStartTime;
+  const diff=Math.abs(elapsed-gamePitchDuration);
+  let result, cls;
+  if(missedEntirely || diff>350){ result='空振り'; cls='result-out'; }
+  else if(diff<=60){ result='ホームラン'; cls='result-hr'; }
+  else if(diff<=180){ result='ヒット'; cls='result-hit'; }
+  else{ result='ファウル'; cls='result-foul'; }
+  gameResults.push(result);
+  const resultEl=document.getElementById('gameResultText');
+  if(resultEl){
+    resultEl.textContent=result+(result==='ホームラン'?'！！🎉':result==='ヒット'?'！':'…');
+    resultEl.className='game-result '+cls;
+  }
+  const histEl=document.getElementById('gameHistory');
+  if(histEl){
+    const span=document.createElement('span');
+    span.textContent=gamePitchNum+'球目:'+result;
+    histEl.appendChild(span);
+  }
+  clearTimeout(gameAdvanceTimer);
+  gameAdvanceTimer=setTimeout(()=>{ pitchBall(); }, 1100);
+}
+function finishGame(){
+  let best='空振り';
+  gameResults.forEach(r=>{ if(GAME_RESULT_RANK[r]>GAME_RESULT_RANK[best]) best=r; });
+  const subEl=document.getElementById('gamePitchCount');
+  if(subEl) subEl.textContent='結果発表';
+  const resultEl=document.getElementById('gameResultText');
+  if(resultEl){
+    const cls=best==='ホームラン'?'result-hr':best==='ヒット'?'result-hit':best==='ファウル'?'result-foul':'result-out';
+    resultEl.textContent='3球中ベスト：'+best+(best==='ホームラン'?'！！🎉':'');
+    resultEl.className='game-result '+cls;
+  }
+  document.getElementById('gameRetryBtn').style.display='block';
+}
 async function saveSiteName(teamName,tournamentTitle,eventDate,eventVenue,heroSubtitle){
   const value=JSON.stringify({teamName,tournamentTitle,eventDate,eventVenue,heroSubtitle});
   const {error}=await sb.from('settings').upsert({key:'site_name',value},{onConflict:'key'});
@@ -1715,6 +2161,16 @@ function applySiteName(){
    未設定時はHTML埋め込みのデフォルトロゴ（base64）を表示
    ========================================================= */
 let LOGO_URL='';
+// ちらつき防止：前回表示したロゴをキャッシュから即座に反映（Supabase読み込み完了を待たない）
+(function(){
+  try{
+    const cached=localStorage.getItem('hk_logo_url_cache');
+    if(cached){
+      const el=document.getElementById('siteLogoImg');
+      if(el) el.src=cached;
+    }
+  }catch(e){}
+})();
 function applyLogo(){
   const el=document.getElementById('siteLogoImg');
   if(el) el.alt=`${SITE_TEAM_NAME} ${SITE_TOURNAMENT_TITLE} ロゴ`;
@@ -1722,6 +2178,7 @@ function applyLogo(){
   if(noticeEl) noticeEl.style.display=LOGO_URL?'none':'block';
   if(!LOGO_URL) return;
   if(el) el.src=LOGO_URL;
+  try{ localStorage.setItem('hk_logo_url_cache', LOGO_URL); }catch(e){}
 }
 async function uploadSiteLogo(){
   const fileInput=document.getElementById('siteLogoFileInput');
@@ -3858,9 +4315,15 @@ async function loadSettingsFromSupabase(){
     if(row.key==='logo_url' && row.value){
       LOGO_URL=row.value;
     }
+    if(row.key==='site_theme' && row.value){
+      SITE_THEME=row.value;
+    }
   });
   applySiteName();
   applyLogo();
+  buildThemePicker();
+  if(!getLocalThemeOverride()) applyThemeToDOM(SITE_THEME);
+  refreshThemeUI();
 }
 
 function isInPeriod(type){
