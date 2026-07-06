@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <script>
 const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
@@ -637,7 +639,113 @@ img.clickable-photo{cursor:zoom-in;}
   --theme-ubtn-text:#fff;
 }
 
-/* ===== テーマ切り替え（⚙️管理タブ内・パスワード不要エリア） ===== */
+/* ===== テーマ：ピクセルクラフト（minecraft） ===== */
+[data-theme="minecraft"]{
+  --theme-nav-active-bg:#5b8c3e;
+  --theme-nav-active-text:#fff;
+  --theme-hero-bg:#4b9fdb;
+  --theme-hero-glow:rgba(0,0,0,0);
+  --theme-htag-bg:#8b5a2b;
+  --theme-htag-text:#fff;
+  --theme-htag-border:#2b2b2b;
+  --theme-htag-p-bg:#f4c542;
+  --theme-htag-p-text:#4a3600;
+  --theme-htag-p-border:#2b2b2b;
+  --theme-dash-card-bg:#3d434c;
+  --theme-dash-card-bg-2:var(--theme-dash-card-bg);
+  --theme-dash-card-bg-3:var(--theme-dash-card-bg);
+  --theme-dash-card-shadow:none;
+  --theme-dash-ring:rgba(0,0,0,0);
+  --theme-dash-value-color:#fff;
+  --theme-dash-label:#f4c542;
+  --theme-sl-color:#2b2f36;
+  --theme-morebtn-bg:#5b8c3e;
+  --theme-morebtn-text:#fff;
+  --theme-morebtn-border:#2b2b2b;
+  --theme-morebtn-hover-bg:#4f7a35;
+  --theme-ubtn-bg:#5b8c3e;
+  --theme-ubtn-text:#fff;
+  --theme-body-bg:linear-gradient(180deg,#bfe6f5 0%,#bfe6f5 55%,#e8f4e0 55%,#e8f4e0 100%);
+  --theme-hero-glow2:rgba(0,0,0,0);
+  --theme-hero-ring:none;
+  --theme-sc-border:#2b2b2b;
+  --theme-sc-shadow:4px 4px 0 #2b2b2b;
+}
+/* 共通の岩肌テクスチャ（斑点） */
+[data-theme="minecraft"] .page-nav,
+[data-theme="minecraft"] .dash-card,
+[data-theme="minecraft"] .sb{
+  background-image:
+    radial-gradient(circle,rgba(255,255,255,.10) 1.5px,transparent 1.6px) 6px 6px/26px 26px,
+    radial-gradient(circle,rgba(0,0,0,.18) 1.5px,transparent 1.6px) 18px 16px/26px 26px;
+}
+/* 角丸を全廃してブロックらしい直角に */
+[data-theme="minecraft"] .page-nav,
+[data-theme="minecraft"] .page-nav-btn,
+[data-theme="minecraft"] .sc,
+[data-theme="minecraft"] .dash-card,
+[data-theme="minecraft"] .more-btn,
+[data-theme="minecraft"] .ubtn,
+[data-theme="minecraft"] .htag,
+[data-theme="minecraft"] .sb,
+[data-theme="minecraft"] .hero,
+[data-theme="minecraft"] .logo-wrap{
+  border-radius:0!important;
+}
+/* フォント（和文はDotGothic16、見出し・数字はPress Start 2P） */
+[data-theme="minecraft"] body{font-family:'DotGothic16',monospace;}
+[data-theme="minecraft"] .sl,
+[data-theme="minecraft"] .dash-value,
+[data-theme="minecraft"] .sbh{font-family:'Press Start 2P',monospace;}
+[data-theme="minecraft"] .sl{font-size:9.5px;text-transform:none;}
+[data-theme="minecraft"] .sl::before{background:#f4c542;width:12px;height:12px;}
+/* ナビ：石ブロック */
+[data-theme="minecraft"] .page-nav{background-color:#8a8a8a;border:3px solid #2b2b2b;box-shadow:4px 4px 0 #2b2b2b;padding:6px;}
+[data-theme="minecraft"] .page-nav-btn{border:2px solid #2b2b2b;background-color:#5f5f5f;color:#eee;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35),inset 2px 2px 0 rgba(255,255,255,.15);}
+[data-theme="minecraft"] .page-nav-btn.on{background-color:var(--theme-nav-active-bg);box-shadow:inset -2px -2px 0 #3f6b2a,inset 2px 2px 0 rgba(255,255,255,.4);}
+/* セクションカード */
+[data-theme="minecraft"] .sc{border:3px solid #2b2b2b;box-shadow:4px 4px 0 #2b2b2b;background:#eef1e6;}
+/* ダッシュボード：採掘した鉱物スロット風 */
+[data-theme="minecraft"] .dash-card{border:3px solid #2b2b2b;box-shadow:inset 3px 3px 0 rgba(0,0,0,.45),inset -2px -2px 0 rgba(255,255,255,.08);}
+[data-theme="minecraft"] .dash-card::before{content:'';position:absolute;top:-2px;left:-2px;right:auto;width:5px;height:5px;border:none;background:#f4c542;opacity:.85;border-radius:0;}
+[data-theme="minecraft"] .dash-card::after{content:'';position:absolute;bottom:-2px;right:-2px;width:5px;height:5px;background:#f4c542;opacity:.85;}
+/* ボタン：ブロックの押し感 */
+[data-theme="minecraft"] .more-btn,
+[data-theme="minecraft"] .ubtn{border:3px solid #2b2b2b;box-shadow:inset 2px 2px 0 rgba(255,255,255,.35),inset -3px -3px 0 #3f6b2a,0 4px 0 #2b2b2b;transition:none;}
+[data-theme="minecraft"] .more-btn:active,
+[data-theme="minecraft"] .ubtn:active{box-shadow:inset 2px 2px 0 rgba(255,255,255,.2),inset -3px -3px 0 #3f6b2a;transform:translateY(4px);}
+/* タグ */
+[data-theme="minecraft"] .htag{border:2px solid #2b2b2b;box-shadow:inset -2px -2px 0 rgba(0,0,0,.25);}
+/* スコアボード */
+[data-theme="minecraft"] .sb{background-color:#2b2f36;box-shadow:inset 2px 2px 0 rgba(255,255,255,.1),inset -2px -2px 0 rgba(0,0,0,.4);}
+[data-theme="minecraft"] .sbh{font-size:8px;letter-spacing:.08em;}
+/* ヒーロー：昼の空と山（他テーマでは非表示） */
+[data-theme="minecraft"] .hero{
+  background:
+    linear-gradient(180deg,
+      #4b9fdb 0%, #4b9fdb 28%,
+      #6cbdec 28%, #6cbdec 52%,
+      #9ad4f2 52%, #9ad4f2 76%,
+      #cdeefb 76%, #cdeefb 100%);
+  border:4px solid #2b2b2b;box-shadow:6px 6px 0 #2b2b2b;
+}
+[data-theme="minecraft"] .hero-sub{color:#1e3a52;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.4);}
+[data-theme="minecraft"] .logo-wrap{box-shadow:0 0 0 3px #2b2b2b,4px 4px 0 #2b2b2b;}
+[data-theme="minecraft"] .confetti{display:none;}
+.mc-mtn-back,.mc-mtn-front,.mc-sun,.mc-cloud{display:none;}
+[data-theme="minecraft"] .mc-mtn-back,
+[data-theme="minecraft"] .mc-mtn-front,
+[data-theme="minecraft"] .mc-sun,
+[data-theme="minecraft"] .mc-cloud{display:block;}
+.mc-mtn-back{position:absolute;left:0;right:0;bottom:0;height:64%;background:#7a93b8;opacity:.75;
+  clip-path:polygon(0 100%,0 55%,8% 55%,8% 40%,18% 40%,18% 25%,28% 25%,28% 42%,40% 42%,40% 18%,50% 18%,50% 34%,62% 34%,62% 48%,74% 48%,74% 30%,86% 30%,86% 50%,100% 50%,100% 100%);}
+.mc-mtn-front{position:absolute;left:0;right:0;bottom:0;height:40%;background:#4a7a4f;
+  clip-path:polygon(0 100%,0 60%,12% 60%,12% 38%,24% 38%,24% 55%,36% 55%,36% 30%,48% 30%,48% 50%,60% 50%,60% 32%,72% 32%,72% 58%,84% 58%,84% 40%,100% 40%,100% 100%);}
+.mc-sun{position:absolute;top:14px;right:20px;width:30px;height:30px;background:#ffd94a;box-shadow:0 0 0 6px rgba(255,217,74,.35),0 0 0 12px rgba(255,217,74,.15);}
+.mc-cloud{position:absolute;background:#fff;opacity:.95;}
+.mc-cloud.c1{top:16px;left:8%;width:34px;height:10px;box-shadow:8px -6px 0 #fff,16px 0 0 #fff,-6px 4px 0 4px #fff;}
+.mc-cloud.c2{top:34px;left:60%;width:24px;height:8px;box-shadow:6px -5px 0 #fff,-5px 3px 0 3px #fff;}
+.mc-cloud.c3{top:22px;left:36%;width:16px;height:7px;box-shadow:5px -4px 0 #fff;}
 .theme-pick-btn{display:block;width:100%;text-align:left;font-size:12.5px;padding:8px 10px;border-radius:8px;border:none;background:#f4f6fa;color:#333;margin-bottom:5px;cursor:pointer;font-weight:600;}
 .theme-pick-btn.on{background:var(--theme-nav-active-bg);color:var(--theme-nav-active-text);}
 .theme-pick-reset{display:block;width:100%;text-align:center;font-size:11px;color:#888;background:none;border:1px dashed #ccc;border-radius:8px;padding:6px 0;margin-top:4px;cursor:pointer;}
@@ -760,6 +868,10 @@ img.clickable-photo{cursor:zoom-in;}
 <!-- HERO -->
 
 <div class="hero">
+  <div class="mc-mtn-back"></div>
+  <div class="mc-mtn-front"></div>
+  <div class="mc-sun"></div>
+  <div class="mc-cloud c1"></div><div class="mc-cloud c2"></div><div class="mc-cloud c3"></div>
   <span class="confetti" style="left:8%;top:0;width:8px;height:8px;background:#e8c96b;animation-duration:3.2s;animation-delay:0s;"></span>
   <span class="confetti" style="left:20%;top:0;width:6px;height:10px;background:#f48cb7;animation-duration:2.6s;animation-delay:.4s;"></span>
   <span class="confetti" style="left:35%;top:0;width:7px;height:7px;background:#fff;border-radius:50%;animation-duration:3.6s;animation-delay:.8s;"></span>
@@ -1886,12 +1998,12 @@ let SITE_EVENT_VENUE='山口県宇部市';
 let SITE_HERO_SUBTITLE='みんなの力で、最高の記念大会を作ろう！';
 
 /* ---------- テーマ切り替え ---------- */
-// 追加予定：minecraft（マインクラフト風、構造が特殊なため別途対応予定）
 const THEME_LIST=[
-  {id:'classic', emoji:'⚾', label:'Classic'},
-  {id:'gold',    emoji:'🏆', label:'豪華'},
-  {id:'pop',     emoji:'🎉', label:'ビビッドポップ'},
-  {id:'pastel',  emoji:'🌸', label:'パステル'},
+  {id:'classic',   emoji:'⚾', label:'Classic'},
+  {id:'gold',      emoji:'🏆', label:'豪華'},
+  {id:'pop',       emoji:'🎉', label:'ビビッドポップ'},
+  {id:'pastel',    emoji:'🌸', label:'パステル'},
+  {id:'minecraft', emoji:'⛏️', label:'ピクセルクラフト'},
 ];
 const THEME_OVERRIDE_KEY='hk_theme_override'; // 端末ごとの上書き（localStorage・パスワード不要）
 let SITE_THEME='classic'; // サイト全体のデフォルト（管理者設定・Supabase保存）
