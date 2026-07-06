@@ -14,32 +14,37 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 <style>
-/* ===== テーマ変数（Classic=既定値。見た目は今までと同一） ===== */
+/* ===== テーマ変数（Classic=既定値。7/5版デザインに準拠） ===== */
 :root{
-  --theme-nav-active-bg:#ffd400;
-  --theme-nav-active-text:#0a1830;
-  --theme-hero-bg:#0a1830;
-  --theme-hero-glow:rgba(0,0,0,0);
-  --theme-htag-bg:#ffd400;
-  --theme-htag-text:#0a1830;
-  --theme-htag-border:#ffd400;
-  --theme-htag-p-bg:#ffd400;
-  --theme-htag-p-text:#0a1830;
-  --theme-htag-p-border:#ffd400;
-  --theme-dash-card-bg:#0a1830;
+  --theme-nav-active-bg:#1a3260;
+  --theme-nav-active-text:#fff;
+  --theme-hero-bg:linear-gradient(155deg,#060e1e 0%,#1a3260 45%,#2a0d3a 100%);
+  --theme-hero-glow:rgba(216,51,132,.22);
+  --theme-htag-bg:rgba(200,168,75,.18);
+  --theme-htag-text:#e8c96b;
+  --theme-htag-border:rgba(200,168,75,.35);
+  --theme-htag-p-bg:rgba(216,51,132,.18);
+  --theme-htag-p-text:#f48cb7;
+  --theme-htag-p-border:rgba(216,51,132,.35);
+  --theme-dash-card-bg:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);
   --theme-dash-card-bg-2:var(--theme-dash-card-bg);
   --theme-dash-card-bg-3:var(--theme-dash-card-bg);
   --theme-dash-card-shadow:none;
-  --theme-dash-ring:rgba(0,0,0,0);
+  --theme-dash-ring:rgba(255,255,255,.06);
   --theme-dash-value-color:#fff;
-  --theme-dash-label:#ffd400;
-  --theme-sl-color:#0a1830;
-  --theme-morebtn-bg:#0a1830;
-  --theme-morebtn-text:#fff;
-  --theme-morebtn-border:#0a1830;
-  --theme-morebtn-hover-bg:#142a4a;
-  --theme-ubtn-bg:#ffd400;
-  --theme-ubtn-text:#0a1830;
+  --theme-dash-label:#c9a227;
+  --theme-sl-color:#1a3260;
+  --theme-morebtn-bg:#eef1fa;
+  --theme-morebtn-text:#1a3260;
+  --theme-morebtn-border:#c8d0e8;
+  --theme-morebtn-hover-bg:#e0e6f8;
+  --theme-ubtn-bg:linear-gradient(90deg,#1a3260,#d63384);
+  --theme-ubtn-text:#fff;
+  --theme-body-bg:#f4f6fa;
+  --theme-hero-glow2:rgba(0,0,0,0);
+  --theme-hero-ring:none;
+  --theme-sc-border:#e8eaf0;
+  --theme-sc-shadow:0 1px 4px rgba(0,0,0,.06);
 }
 /* PAGE NAV */
 .page-nav{display:flex;gap:2px;background:#fff;border:1px solid #e0e2ea;border-radius:999px;padding:3px;margin-bottom:1rem;max-width:700px;margin-left:auto;margin-right:auto;}
@@ -134,12 +139,13 @@ table.pl-roster .pos-cell{color:#9e1f30;font-weight:700;white-space:nowrap;}
 </style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#f4f6fa;color:#222;min-height:100vh;}
+body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:var(--theme-body-bg);color:#222;min-height:100vh;}
 .wrap{max-width:700px;margin:0 auto;padding:.8rem;}
 
 /* HERO */
-.hero{background:var(--theme-hero-bg);border-radius:14px;padding:1.6rem 1.5rem 1.3rem;margin-bottom:1.2rem;overflow:hidden;text-align:center;position:relative;}
+.hero{background:var(--theme-hero-bg);border-radius:14px;padding:1.6rem 1.5rem 1.3rem;margin-bottom:1.2rem;overflow:hidden;text-align:center;position:relative;box-shadow:var(--theme-hero-ring);}
 .hero::after{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--theme-hero-glow),transparent 70%);}
+.hero::before{content:'';position:absolute;bottom:-60px;left:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,var(--theme-hero-glow2),transparent 70%);pointer-events:none;}
 .confetti{position:absolute;border-radius:2px;opacity:.85;animation:fall linear infinite;z-index:0;}
 @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);}100%{transform:translateY(220px) rotate(360deg);}}
 .logo-wrap{margin:0 auto .9rem;display:block;position:relative;z-index:1;background:#fdfaf3;border-radius:16px;padding:.9rem 1rem .6rem;max-width:340px;box-shadow:0 6px 20px rgba(0,0,0,.35),0 0 0 3px rgba(200,168,75,.5);}
@@ -150,7 +156,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:#
 .htag.p{background:var(--theme-htag-p-bg);color:var(--theme-htag-p-text);border-color:var(--theme-htag-p-border);}
 
 /* SECTION CARD */
-.sc{background:#fff;border:1px solid #e8eaf0;border-radius:14px;padding:1.25rem;margin-bottom:1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.sc{background:#fff;border:1px solid var(--theme-sc-border);border-radius:14px;padding:1.25rem;margin-bottom:1.2rem;box-shadow:var(--theme-sc-shadow);}
 .sl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--theme-sl-color);text-transform:uppercase;margin-bottom:10px;}
 .sl::before{content:'';display:block;width:3px;height:14px;background:linear-gradient(to bottom,#d63384,#c8a84b);border-radius:2px;}
 
@@ -544,30 +550,35 @@ img.clickable-photo{cursor:zoom-in;}
 .ds-label{font-size:10.5px;color:#888;}
 .ds-value{font-size:16px;font-weight:700;color:#1a3260;margin-top:2px;}
 
-/* ===== テーマ：紺×ゴールド（gold） ===== */
+/* ===== テーマ：豪華（id内部名は互換のため"gold"のまま） ===== */
 [data-theme="gold"]{
-  --theme-nav-active-bg:linear-gradient(135deg,#c9a227,#e8c96b);
+  --theme-nav-active-bg:linear-gradient(135deg,#a9811d,#e8c96b 45%,#fff3c4 55%,#c9a227);
   --theme-nav-active-text:#1a1200;
-  --theme-hero-bg:linear-gradient(160deg,#0a1428 0%,#1a3260 100%);
-  --theme-hero-glow:rgba(201,162,39,.3);
-  --theme-htag-bg:rgba(201,162,39,.12);
+  --theme-hero-bg:linear-gradient(160deg,#060c1a 0%,#0a1428 22%,#142a52 52%,#1a3260 78%,#22406e 100%);
+  --theme-hero-glow:rgba(232,201,107,.35);
+  --theme-hero-glow2:rgba(201,162,39,.18);
+  --theme-hero-ring:0 0 0 1px rgba(201,162,39,.4),0 14px 34px rgba(0,0,0,.4);
+  --theme-htag-bg:rgba(201,162,39,.14);
   --theme-htag-text:#e8c96b;
-  --theme-htag-border:rgba(201,162,39,.5);
-  --theme-htag-p-bg:rgba(201,162,39,.12);
+  --theme-htag-border:rgba(201,162,39,.55);
+  --theme-htag-p-bg:rgba(201,162,39,.14);
   --theme-htag-p-text:#e8c96b;
-  --theme-htag-p-border:rgba(201,162,39,.5);
-  --theme-dash-card-bg:linear-gradient(150deg,#1b2a4a,#0e1830);
+  --theme-htag-p-border:rgba(201,162,39,.55);
+  --theme-dash-card-bg:linear-gradient(150deg,#22345c,#1b2a4a 45%,#0e1830);
   --theme-dash-card-bg-2:var(--theme-dash-card-bg);
   --theme-dash-card-bg-3:var(--theme-dash-card-bg);
   --theme-dash-value-color:#fff;
   --theme-dash-label:#e8c96b;
-  --theme-sl-color:#c9a227;
+  --theme-sl-color:#a9811d;
   --theme-morebtn-bg:linear-gradient(135deg,#1a3260,#0e1830);
   --theme-morebtn-text:#e8c96b;
   --theme-morebtn-border:#0e1830;
   --theme-morebtn-hover-bg:linear-gradient(135deg,#0e1830,#1a3260);
-  --theme-ubtn-bg:linear-gradient(135deg,#c9a227,#e8c96b);
+  --theme-ubtn-bg:linear-gradient(135deg,#a9811d,#e8c96b 50%,#c9a227);
   --theme-ubtn-text:#1a1200;
+  --theme-body-bg:linear-gradient(180deg,#0a1428 0%,#132a4f 140px,#f4f6fa 420px,#f4f6fa 100%);
+  --theme-sc-border:rgba(201,162,39,.3);
+  --theme-sc-shadow:0 2px 12px rgba(201,162,39,.1),0 1px 4px rgba(0,0,0,.05);
 }
 
 /* ===== テーマ：ビビッドブロック・ポップ（pop） ===== */
@@ -1877,7 +1888,7 @@ let SITE_HERO_SUBTITLE='みんなの力で、最高の記念大会を作ろう�
 // 追加予定：minecraft（マインクラフト風、構造が特殊なため別途対応予定）
 const THEME_LIST=[
   {id:'classic', emoji:'⚾', label:'Classic'},
-  {id:'gold',    emoji:'🏆', label:'紺×ゴールド'},
+  {id:'gold',    emoji:'🏆', label:'豪華'},
   {id:'pop',     emoji:'🎉', label:'ビビッドポップ'},
   {id:'pastel',  emoji:'🌸', label:'パステル'},
 ];
