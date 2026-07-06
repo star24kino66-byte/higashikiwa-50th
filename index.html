@@ -679,17 +679,8 @@ img.clickable-photo{cursor:zoom-in;}
     radial-gradient(circle,rgba(255,255,255,.10) 1.5px,transparent 1.6px) 6px 6px/26px 26px,
     radial-gradient(circle,rgba(0,0,0,.18) 1.5px,transparent 1.6px) 18px 16px/26px 26px;
 }
-/* 角丸を全廃してブロックらしい直角に */
-[data-theme="minecraft"] .page-nav,
-[data-theme="minecraft"] .page-nav-btn,
-[data-theme="minecraft"] .sc,
-[data-theme="minecraft"] .dash-card,
-[data-theme="minecraft"] .more-btn,
-[data-theme="minecraft"] .ubtn,
-[data-theme="minecraft"] .htag,
-[data-theme="minecraft"] .sb,
-[data-theme="minecraft"] .hero,
-[data-theme="minecraft"] .logo-wrap{
+/* 角丸を全廃してブロックらしい直角に（全ページ・全要素・インラインstyle指定も含めて統一） */
+[data-theme="minecraft"] *{
   border-radius:0!important;
 }
 /* フォント（和文はDotGothic16、見出し・数字はPress Start 2P） */
