@@ -785,6 +785,14 @@ img.clickable-photo{cursor:zoom-in;}
   .game-title{font-size:10px;}
   .game-field{height:140px;}
 }
+
+/* ▼写真保護：右クリック/ドラッグ/長押し保存の抑止（完全防止ではなく気軽な保存のハードルを上げる目的） */
+img{
+  -webkit-user-drag:none;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
 </style>
 </head>
 <body>
@@ -1753,6 +1761,14 @@ img.clickable-photo{cursor:zoom-in;}
 </div>
 
 <script>
+// ▼写真保護：画像の右クリック保存・ドラッグ保存を抑止（完全防止はできないが気軽な保存を防ぐ目的）
+document.addEventListener('contextmenu', function(e){
+  if(e.target && e.target.tagName==='IMG'){ e.preventDefault(); }
+});
+document.addEventListener('dragstart', function(e){
+  if(e.target && e.target.tagName==='IMG'){ e.preventDefault(); }
+});
+
 // XSSエスケープ：ユーザー入力をHTMLに埋め込む際に必ず使用
 function esc(s){
   if(s==null)return'';
