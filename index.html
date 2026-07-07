@@ -1713,7 +1713,15 @@ img{
         <div style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.2rem;text-align:center;color:#888;font-size:13px;cursor:pointer;margin-bottom:.8rem;" onclick="document.getElementById('infoImagesFileInput').click()">
           📷 画像を選択（複数可）
         </div>
-        <input type="file" id="infoImagesFileInput" accept="image/*" multiple style="display:none;" onchange="uploadInfoImages(this.files);this.value='';">
+        <input type="file" id="infoImagesFileInput" accept="image/*" multiple style="display:none;" onchange="handleInfoImagesFileSelect(this.files);this.value='';">
+        <div id="infoImagesPreviewArea" style="display:none;background:#f7f8fc;border-radius:10px;padding:.8rem;margin-bottom:.8rem;">
+          <div style="font-size:12px;color:#666;margin-bottom:.6rem;">選択した画像にタイトルを付けてください（空欄でも登録できます）</div>
+          <div id="infoImagesPreviewList"></div>
+          <div style="display:flex;gap:8px;margin-top:.6rem;">
+            <button class="crop-cancel-btn" style="flex:1;" onclick="cancelInfoImagesPreview()">キャンセル</button>
+            <button class="crop-confirm-btn" style="flex:2;" onclick="confirmUploadInfoImages()">この内容でアップロード</button>
+          </div>
+        </div>
         <div id="infoImagesStatus" style="font-size:12px;color:#666;margin-bottom:.8rem;"></div>
         <div id="infoImagesAdminList"></div>
       </div>
@@ -2571,7 +2579,8 @@ function downloadInfoCurrent(){
 
 // 大会要綱：参考画像（トーナメント表・会場マップ等。Supabase settings key: 'tournament_info_images'）最大20枚
 const INFO_IMAGES_MAX=20;
-let INFO_IMAGES=[]; // [{id,path,url}]
+let INFO_IMAGES=[]; // [{id,path,url,title}]
+let _pendingInfoImageFiles=[]; // プレビュー中の選択ファイル（アップロード確定前）
 async function saveInfoImages(images){
   const {error}=await sb.from('settings').upsert({key:'tournament_info_images',value:JSON.stringify(images)},{onConflict:'key'});
   if(error){ console.error('tournament_info_images保存エラー:',error); throw error; }
@@ -2585,14 +2594,22 @@ function renderInfoImages(){
       if(pubWrap) pubWrap.style.display='none';
     }else{
       if(pubWrap) pubWrap.style.display='';
-      pubGrid.innerHTML=INFO_IMAGES.map(img=>`<img src="${img.url}" class="clickable-photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e5e5e5;" onclick="openLightbox('${img.url}')">`).join('');
+      pubGrid.innerHTML=INFO_IMAGES.map(img=>`<div style="width:140px;">
+        <img src="${img.url}" class="clickable-photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e5e5e5;display:block;" onclick="openLightbox('${img.url}')">
+        ${img.title?`<div style="font-size:11px;color:#555;text-align:center;margin-top:4px;line-height:1.3;">${esc(img.title)}</div>`:''}
+      </div>`).join('');
     }
   }
   const adminList=document.getElementById('infoImagesAdminList');
   const adminCount=document.getElementById('infoImagesCount');
   if(adminCount) adminCount.textContent=`${INFO_IMAGES.length}/${INFO_IMAGES_MAX}`;
   if(adminList){
-    adminList.innerHTML=INFO_IMAGES.map(img=>`<div style="position:relative;display:inline-block;margin:0 6px 6px 0;"><img src="${img.url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;"><span onclick="deleteInfoImage('${img.id}')" style="position:absolute;top:-6px;right:-6px;background:#c8273c;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</span></div>`).join('');
+    adminList.innerHTML=INFO_IMAGES.map(img=>`<div style="position:relative;display:inline-block;margin:0 6px 10px 0;width:80px;vertical-align:top;">
+      <img src="${img.url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;display:block;">
+      <span onclick="deleteInfoImage('${img.id}')" style="position:absolute;top:-6px;right:-6px;background:#c8273c;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</span>
+      <span onclick="editInfoImageTitle('${img.id}')" style="position:absolute;top:-6px;left:-6px;background:#1a3260;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✎</span>
+      <div style="font-size:10px;color:#666;text-align:center;margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${img.title?esc(img.title):'（タイトル未設定）'}</div>
+    </div>`).join('');
   }
 }
 function resizeImageFile(file,maxDim,quality){
@@ -2617,7 +2634,8 @@ function resizeImageFile(file,maxDim,quality){
     reader.readAsDataURL(file);
   });
 }
-async function uploadInfoImages(fileList){
+// ファイル選択後：即アップロードせず、タイトル入力用のプレビュー画面を表示する
+function handleInfoImagesFileSelect(fileList){
   const statusEl=document.getElementById('infoImagesStatus');
   const files=Array.from(fileList||[]);
   if(files.length===0) return;
@@ -2626,31 +2644,63 @@ async function uploadInfoImages(fileList){
     return;
   }
   const room=INFO_IMAGES_MAX-INFO_IMAGES.length;
-  const targetFiles=files.slice(0,room);
+  _pendingInfoImageFiles=files.slice(0,room).filter(f=>f.size<=10*1024*1024);
+  if(statusEl){
+    statusEl.textContent=(files.length>room)?`⚠️ 上限のため先頭${room}枚のみプレビューしています。`:'';
+  }
+  renderInfoImagesPreview();
+}
+function renderInfoImagesPreview(){
+  const area=document.getElementById('infoImagesPreviewArea');
+  const list=document.getElementById('infoImagesPreviewList');
+  if(!area||!list) return;
+  if(_pendingInfoImageFiles.length===0){ area.style.display='none'; list.innerHTML=''; return; }
+  area.style.display='';
+  list.innerHTML=_pendingInfoImageFiles.map((file,idx)=>{
+    const url=URL.createObjectURL(file);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <img src="${url}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;flex-shrink:0;">
+      <input type="text" class="info-img-title-input" data-idx="${idx}" placeholder="画像のタイトル（例：トーナメント表）" maxlength="30" style="flex:1;font-size:12px;padding:7px 9px;border:1px solid #d8dce8;border-radius:6px;">
+    </div>`;
+  }).join('');
+}
+function cancelInfoImagesPreview(){
+  _pendingInfoImageFiles=[];
+  renderInfoImagesPreview();
+  const statusEl=document.getElementById('infoImagesStatus');
+  if(statusEl) statusEl.textContent='';
+}
+async function confirmUploadInfoImages(){
+  const statusEl=document.getElementById('infoImagesStatus');
+  const targetFiles=_pendingInfoImageFiles;
+  if(targetFiles.length===0) return;
+  const titleInputs=[...document.querySelectorAll('.info-img-title-input')];
+  const titles=targetFiles.map((f,idx)=>{
+    const input=titleInputs.find(el=>Number(el.dataset.idx)===idx);
+    return (input&&input.value||'').trim();
+  });
+  const area=document.getElementById('infoImagesPreviewArea');
+  if(area) area.style.display='none';
   if(statusEl) statusEl.textContent='アップロード中…';
   const images=[...INFO_IMAGES];
-  for(const file of targetFiles){
+  for(let i=0;i<targetFiles.length;i++){
+    const file=targetFiles[i];
     try{
-      if(file.size>10*1024*1024){ continue; }
       const blob=await resizeImageFile(file,1600,0.85);
       const path=`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
       const {error:upErr}=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
       if(upErr){ console.error('参考画像アップロードエラー:',upErr); continue; }
       const {data:urlData}=sb.storage.from('photos').getPublicUrl(path);
-      images.push({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),path,url:urlData.publicUrl});
+      images.push({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),path,url:urlData.publicUrl,title:titles[i]||''});
     }catch(err){
       console.error('参考画像処理エラー:',err);
     }
   }
   await saveInfoImages(images);
   renderInfoImages();
-  if(statusEl){
-    if(files.length>room){
-      statusEl.textContent=`✅ ${room}枚を追加しました（上限${INFO_IMAGES_MAX}枚のため一部のみ）。`;
-    }else{
-      statusEl.textContent=`✅ ${targetFiles.length}枚を追加しました。`;
-    }
-  }
+  _pendingInfoImageFiles=[];
+  renderInfoImagesPreview();
+  if(statusEl) statusEl.textContent=`✅ ${targetFiles.length}枚を追加しました。`;
 }
 async function deleteInfoImage(id){
   const target=INFO_IMAGES.find(i=>i.id===id);
@@ -2660,6 +2710,15 @@ async function deleteInfoImage(id){
   if(target&&target.path){
     sb.storage.from('photos').remove([target.path]).catch(e=>console.error('参考画像削除エラー:',e));
   }
+}
+async function editInfoImageTitle(id){
+  const target=INFO_IMAGES.find(i=>i.id===id);
+  if(!target) return;
+  const newTitle=prompt('画像のタイトルを入力してください（空欄で未設定にできます）',target.title||'');
+  if(newTitle===null) return; // キャンセル
+  const images=INFO_IMAGES.map(i=>i.id===id?{...i,title:newTitle.trim()}:i);
+  await saveInfoImages(images);
+  renderInfoImages();
 }
 
 function getViewedGames(){
