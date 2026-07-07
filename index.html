@@ -3878,7 +3878,7 @@ async function bulkApprovePhotos(){
 async function bulkRejectPhotos(){
   if(!confirm('承認待ち写真を全件却下しますか？')) return;
   try{
-    for(const p of pendingPhotos){ await sb.from('photos').update({status:'rejected'}).eq('id',p._id); }
+    for(const p of pendingPhotos){ await sb.from('photos').delete().eq('id',p._id); }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
 }
@@ -3894,7 +3894,7 @@ async function bulkRejectSelectedPhotos(){
   const ids=[...document.querySelectorAll('.photo-check:checked')].map(c=>c.dataset.id);
   if(!ids.length){ alert('選択されていません'); return; }
   try{
-    for(const id of ids){ await sb.from('photos').update({status:'rejected'}).eq('id',id); }
+    for(const id of ids){ await sb.from('photos').delete().eq('id',id); }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
 }
@@ -4161,7 +4161,7 @@ async function rejectPhoto(id){
     const {data:cur,error:ce}=await sb.from('photos').select('status').eq('id',id).single();
     if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
     if(cur.status!=='pending'){ alert('この投稿は既に他の担当者が処理済みです。画面を更新します。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
-    const {error}=await sb.from('photos').update({status:'rejected'}).eq('id',id);
+    const {error}=await sb.from('photos').delete().eq('id',id);
     if(error){ alert('却下に失敗しました：'+error.message); return; }
     await loadPhotosFromSupabase(); renderAdminAll();
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
@@ -4169,7 +4169,7 @@ async function rejectPhoto(id){
 async function unpublishPhoto(id){
   if(!confirm('この投稿の掲載を取り下げます。よろしいですか？')) return;
   try{
-    const {error}=await sb.from('photos').update({status:'rejected'}).eq('id',id);
+    const {error}=await sb.from('photos').delete().eq('id',id);
     if(error){ alert('取り下げに失敗しました：'+error.message); return; }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
