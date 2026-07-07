@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <script>
@@ -421,6 +422,10 @@ img.clickable-photo{cursor:zoom-in;}
 .pending-actions{display:flex;gap:5px;flex-shrink:0;}
 .btn-approve{background:#1a3260;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
 .btn-reject{background:#fff;color:#d63384;border:1.5px solid #f0a0c8;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.pager-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:.7rem;}
+.pager-btn{background:#1a3260;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.pager-btn:disabled{background:#ccc;cursor:default;}
+.pager-info{font-size:12px;color:#666;}
 .pending-count{background:#d63384;color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:4px;}
 .admin-login{max-width:320px;margin:4rem auto;background:#fff;border-radius:14px;padding:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,.1);}
 .admin-login h2{font-size:16px;font-weight:700;color:#1a3260;margin-bottom:1rem;text-align:center;}
@@ -1304,6 +1309,11 @@ img{
     </div>
   </div>
 
+  <div class="sc" id="infoImagesSection" style="display:none;margin-top:1rem;">
+    <div class="sl">📎 参考画像</div>
+    <div id="infoImagesGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+  </div>
+
 </div>
 </div><!-- /page-info -->
 
@@ -1583,17 +1593,19 @@ img{
     <!-- 選手CSV（自チーム＋対戦チーム 統合） -->
     <div class="admin-section" id="csvAdmin">
       <div class="admin-form-card">
-        <div class="admin-form-title">① 選手名簿 CSV登録（自チーム・対戦チーム共通）</div>
+        <div class="admin-form-title">① 選手名簿 Excel登録（自チーム・対戦チーム共通）</div>
         <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
-          チームごとに空行で区切ります。各ブロックの1行目がチーム情報、2行目以降が選手名簿：<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">チーム名,監督,コーチ,区分</code>（1行目・区分は「自チーム」または「対戦」）<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">背番号,学年,氏名,利き投打,ポジション,将来の夢,主将</code>（2行目以降）<br>
-          例）<code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">10,6年,田中翔太,右投右打,投手,プロ野球選手,主将</code>
+          Excelファイル（.xlsx）で登録できます。まずは下の「テンプレートをダウンロード」から形式をご確認ください。<br>
+          名簿を修正する時は「現在の名簿をダウンロード」で取得したファイルを編集して再アップロードすると、写真・応援メッセージの紐付けがそのまま維持されます。
         </p>
-        <div id="teamsCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('teamsCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleTeamsCsvDrop(event)">
-          📂 選手名簿CSVをここにドロップ（全チーム分をまとめて1ファイル）
+        <div style="display:flex;gap:8px;margin-bottom:.8rem;flex-wrap:wrap;">
+          <button class="ubtn" style="width:auto;flex:1;background:#6b7a99;font-size:12px;padding:8px 10px;" onclick="downloadTeamsRosterTemplate()">📄 テンプレートをダウンロード</button>
+          <button class="ubtn" style="width:auto;flex:1;background:#1a3260;font-size:12px;padding:8px 10px;" onclick="downloadTeamsRosterCurrent()">⬇️ 現在の名簿をダウンロード</button>
         </div>
-        <input type="file" id="teamsCsvFileInput" accept=".csv" style="display:none;" onchange="handleTeamsCsvFile(this.files[0])">
+        <div id="teamsCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('teamsCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleTeamsCsvDrop(event)">
+          📂 選手名簿Excel（.xlsx）をここにドロップ（全チーム分をまとめて1ファイル）
+        </div>
+        <input type="file" id="teamsCsvFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleTeamsCsvFile(this.files[0])">
         <div id="teamsCsvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
       </div>
 
@@ -1673,18 +1685,32 @@ img{
       </div>
 
       <div class="admin-form-card">
-        <div class="admin-form-title">📋 大会設定 CSVドロップ</div>
+        <div class="admin-form-title">📋 大会要綱 Excel登録</div>
         <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
-          大会名・開催日・会場・参加チーム数・主催など、大会に関する項目をまとめて設定できます。<br>
-          <b>項目名</b>と<b>内容</b>の2列形式。行数・項目名は自由です：<br>
-          <code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">項目名,内容</code><br>
-          例）<code style="background:#f0f2f8;padding:2px 6px;border-radius:4px;font-size:11px;">開催日,2025年5月3日〜5日</code>
+          大会名・開催日・会場など、大会に関する項目をExcelでまとめて設定できます。<b>項目名</b>と<b>内容</b>の2列形式です。
         </p>
-        <div id="infoCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;" onclick="document.getElementById('infoCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleInfoCsvDrop(event)">
-          📂 大会設定CSVをここにドロップ
+        <div style="display:flex;gap:8px;margin-bottom:.8rem;flex-wrap:wrap;">
+          <button class="ubtn" style="width:auto;flex:1;background:#6b7a99;font-size:12px;padding:8px 10px;" onclick="downloadInfoTemplate()">📄 テンプレートをダウンロード</button>
+          <button class="ubtn" style="width:auto;flex:1;background:#1a3260;font-size:12px;padding:8px 10px;" onclick="downloadInfoCurrent()">⬇️ 現在の要綱をダウンロード</button>
         </div>
-        <input type="file" id="infoCsvFileInput" accept=".csv" style="display:none;" onchange="handleInfoCsvFile(this.files[0])">
+        <div id="infoCsvDropZone" style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.5rem;text-align:center;color:#888;font-size:13px;cursor:pointer;" onclick="document.getElementById('infoCsvFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='#1a3260';" ondragleave="this.style.borderColor='#c8d0e8';" ondrop="handleInfoCsvDrop(event)">
+          📂 大会要綱Excel（.xlsx）をここにドロップ
+        </div>
+        <input type="file" id="infoCsvFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleInfoCsvFile(this.files[0])">
         <div id="infoCsvStatus" style="font-size:12px;color:#666;margin-top:.6rem;"></div>
+      </div>
+
+      <div class="admin-form-card">
+        <div class="admin-form-title">🗺 大会要綱：参考画像（トーナメント表・会場マップ等）</div>
+        <p style="font-size:12px;color:#666;line-height:1.6;margin-bottom:.6rem;">
+          大会要綱ページの下部に、トーナメント表や会場マップなどの画像を表示できます（最大<span id="infoImagesCount">0/20</span>）。
+        </p>
+        <div style="border:2px dashed #c8d0e8;border-radius:10px;padding:1.2rem;text-align:center;color:#888;font-size:13px;cursor:pointer;margin-bottom:.8rem;" onclick="document.getElementById('infoImagesFileInput').click()">
+          📷 画像を選択（複数可）
+        </div>
+        <input type="file" id="infoImagesFileInput" accept="image/*" multiple style="display:none;" onchange="uploadInfoImages(this.files);this.value='';">
+        <div id="infoImagesStatus" style="font-size:12px;color:#666;margin-bottom:.8rem;"></div>
+        <div id="infoImagesAdminList"></div>
       </div>
     </div>
 
@@ -1778,6 +1804,18 @@ function esc(s){
 // 応援メッセージ⇔選手の紐付け用：全角/半角スペース・前後空白の差異を吸収して比較する
 function normalizeForMatch(s){
   return (s==null?'':String(s)).replace(/[\s\u3000]+/g,'').trim();
+}
+// 応援メッセージの選手紐付け照合：選手ID(playerId)が保存されているメッセージはID一致のみで判定し、
+// IDが無い過去メッセージ（選手ID導入以前の投稿）だけ従来の「チーム名＋氏名」一致にフォールバックする
+function matchCheersForPlayer(teamName, playerId, playerName){
+  return CHEERS.filter(c=>{
+    if(c.playerId){ return !!playerId && c.playerId===playerId; }
+    return normalizeForMatch(c.team)===normalizeForMatch(teamName)&&normalizeForMatch(c.name)===normalizeForMatch(playerName);
+  });
+}
+// 選手の一意ID発番（名前・背番号が変わっても写真・応援メッセージの紐付けを維持するためのキー）
+function genPlayerId(){
+  return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 }
 // 管理番号ラベル（メッセージ：M1,M2... / 写真：F1,F2...）。seq_no未設定（SQL未実行）の間は表示しない
 function msgLabel(seqNo){ return (seqNo==null)?'':'M'+seqNo; }
@@ -2394,6 +2432,47 @@ async function saveTeamsRoster(teams){
   TEAMS_ROSTER=teams;
 }
 
+// 選手名簿：Excelテンプレート（サンプル）ダウンロード
+function downloadTeamsRosterTemplate(){
+  const aoa=[
+    ['東岐波クラブ','山田太郎','鈴木次郎','自チーム'],
+    ['1','6年','田中一郎','右投右打','投手','プロ野球選手','◎',''],
+    ['2','5年','佐藤二郎','左投左打','外野手','','',''],
+    [],
+    ['対戦チームの例','','','対戦チーム'],
+    ['1','6年','山本三郎','','','','',''],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'選手名簿');
+  XLSX.writeFile(wb,'選手名簿_テンプレート.xlsx');
+}
+// 選手名簿：現在の登録データをExcelでダウンロード（ID未設定の選手にはこの時点で発番・保存してから出力）
+async function downloadTeamsRosterCurrent(){
+  let changed=false;
+  const teams=(TEAMS_ROSTER||[]).map(t=>({
+    ...t,
+    roster:(t.roster||[]).map(p=>{
+      if(!p.id){ changed=true; return {...p,id:genPlayerId()}; }
+      return p;
+    })
+  }));
+  if(teams.length===0){ alert('まだ名簿データが登録されていません。'); return; }
+  if(changed){ await saveTeamsRoster(teams); renderAllTeamViews(); }
+  const aoa=[];
+  teams.forEach((t,i)=>{
+    if(i>0) aoa.push([]);
+    aoa.push([t.name,t.manager||'',t.coaches||'',t.isHost?'自チーム':'対戦チーム']);
+    (t.roster||[]).forEach(p=>{
+      aoa.push([p.num||'',p.grade||'',p.name||'',p.batThrow||'',p.pos||'',p.dream||'',p.captain||'',p.id||'']);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'選手名簿');
+  XLSX.writeFile(wb,'選手名簿_現在データ.xlsx');
+}
+
 // 大会要綱（Supabase settings key: 'tournament_info'）
 let TOURNAMENT_INFO=[];
 function getDefaultTournamentInfo(){
@@ -2410,6 +2489,122 @@ async function saveTournamentInfo(items){
   const {error}=await sb.from('settings').upsert({key:'tournament_info',value:JSON.stringify(items)},{onConflict:'key'});
   if(error){ console.error('tournament_info保存エラー:',error); throw error; }
   TOURNAMENT_INFO=items;
+}
+// 大会要綱：Excelテンプレート（サンプル）ダウンロード
+function downloadInfoTemplate(){
+  const aoa=[
+    ['項目名','内容'],
+    ['大会名','東岐波クラブ創立50周年記念大会'],
+    ['開催日','2027年9月〇〇日〜〇〇日'],
+    ['会場','〇〇球場'],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'大会要綱');
+  XLSX.writeFile(wb,'大会要綱_テンプレート.xlsx');
+}
+// 大会要綱：現在の登録データをExcelでダウンロード
+function downloadInfoCurrent(){
+  const items=getDisplayTournamentInfo();
+  const aoa=[['項目名','内容'],...items.map(it=>[it.key,it.val])];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'大会要綱');
+  XLSX.writeFile(wb,'大会要綱_現在データ.xlsx');
+}
+
+
+// 大会要綱：参考画像（トーナメント表・会場マップ等。Supabase settings key: 'tournament_info_images'）最大20枚
+const INFO_IMAGES_MAX=20;
+let INFO_IMAGES=[]; // [{id,path,url}]
+async function saveInfoImages(images){
+  const {error}=await sb.from('settings').upsert({key:'tournament_info_images',value:JSON.stringify(images)},{onConflict:'key'});
+  if(error){ console.error('tournament_info_images保存エラー:',error); throw error; }
+  INFO_IMAGES=images;
+}
+function renderInfoImages(){
+  const pubWrap=document.getElementById('infoImagesSection');
+  const pubGrid=document.getElementById('infoImagesGrid');
+  if(pubGrid){
+    if(INFO_IMAGES.length===0){
+      if(pubWrap) pubWrap.style.display='none';
+    }else{
+      if(pubWrap) pubWrap.style.display='';
+      pubGrid.innerHTML=INFO_IMAGES.map(img=>`<img src="${img.url}" class="clickable-photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e5e5e5;" onclick="openLightbox('${img.url}')">`).join('');
+    }
+  }
+  const adminList=document.getElementById('infoImagesAdminList');
+  const adminCount=document.getElementById('infoImagesCount');
+  if(adminCount) adminCount.textContent=`${INFO_IMAGES.length}/${INFO_IMAGES_MAX}`;
+  if(adminList){
+    adminList.innerHTML=INFO_IMAGES.map(img=>`<div style="position:relative;display:inline-block;margin:0 6px 6px 0;"><img src="${img.url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;"><span onclick="deleteInfoImage('${img.id}')" style="position:absolute;top:-6px;right:-6px;background:#c8273c;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</span></div>`).join('');
+  }
+}
+function resizeImageFile(file,maxDim,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxDim||h>maxDim){
+          if(w>=h){ h=Math.round(h*maxDim/w); w=maxDim; } else { w=Math.round(w*maxDim/h); h=maxDim; }
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('変換失敗')),'image/jpeg',quality);
+      };
+      img.onerror=()=>reject(new Error('画像の読み込みに失敗しました'));
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>reject(new Error('ファイルの読み込みに失敗しました'));
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadInfoImages(fileList){
+  const statusEl=document.getElementById('infoImagesStatus');
+  const files=Array.from(fileList||[]);
+  if(files.length===0) return;
+  if(INFO_IMAGES.length>=INFO_IMAGES_MAX){
+    if(statusEl) statusEl.textContent=`❌ 参考画像は最大${INFO_IMAGES_MAX}枚までです。`;
+    return;
+  }
+  const room=INFO_IMAGES_MAX-INFO_IMAGES.length;
+  const targetFiles=files.slice(0,room);
+  if(statusEl) statusEl.textContent='アップロード中…';
+  const images=[...INFO_IMAGES];
+  for(const file of targetFiles){
+    try{
+      if(file.size>10*1024*1024){ continue; }
+      const blob=await resizeImageFile(file,1600,0.85);
+      const path=`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+      const {error:upErr}=await sb.storage.from('photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+      if(upErr){ console.error('参考画像アップロードエラー:',upErr); continue; }
+      const {data:urlData}=sb.storage.from('photos').getPublicUrl(path);
+      images.push({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),path,url:urlData.publicUrl});
+    }catch(err){
+      console.error('参考画像処理エラー:',err);
+    }
+  }
+  await saveInfoImages(images);
+  renderInfoImages();
+  if(statusEl){
+    if(files.length>room){
+      statusEl.textContent=`✅ ${room}枚を追加しました（上限${INFO_IMAGES_MAX}枚のため一部のみ）。`;
+    }else{
+      statusEl.textContent=`✅ ${targetFiles.length}枚を追加しました。`;
+    }
+  }
+}
+async function deleteInfoImage(id){
+  const target=INFO_IMAGES.find(i=>i.id===id);
+  const images=INFO_IMAGES.filter(i=>i.id!==id);
+  await saveInfoImages(images);
+  renderInfoImages();
+  if(target&&target.path){
+    sb.storage.from('photos').remove([target.path]).catch(e=>console.error('参考画像削除エラー:',e));
+  }
 }
 
 function getViewedGames(){
@@ -2835,13 +3030,13 @@ function renderCheerModalList(){
   }
   list.innerHTML=html;
 }
-function openPlayerCheersModal(teamName,playerName){
+function openPlayerCheersModal(teamName,playerName,playerId){
   currentModalType='playerCheer';
   const overlay=document.getElementById('modalOverlay');
   const title=document.getElementById('modalTitle');
   const list=document.getElementById('modalList');
   list.innerHTML='';
-  const msgs=CHEERS.filter(c=>normalizeForMatch(c.team)===normalizeForMatch(teamName)&&normalizeForMatch(c.name)===normalizeForMatch(playerName));
+  const msgs=matchCheersForPlayer(teamName,playerId||null,playerName);
   title.textContent=`${playerName} さんへの応援メッセージ（全${msgs.length}件）`;
   msgs.forEach(c=>{
     const row=document.createElement('div');
@@ -3079,10 +3274,10 @@ async function loadCheersFromSupabase(){
     const {data,error}=await sb.from('messages').select('*').order('created_at',{ascending:true});
     if(error){ console.error('Supabase読み込みエラー詳細:', error.message||error); return; }
     pendingCheers=(data||[]).filter(r=>r['status']==='pending').map(r=>({
-      _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at']
+      _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at'], playerId:r['player_id']||null
     }));
     approvedCheersExtra=(data||[]).filter(r=>r['status']==='approved').map(r=>({
-      _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at']
+      _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at'], playerId:r['player_id']||null
     }));
   } catch(e){ console.error('loadCheers例外:',e); }
 }
@@ -3112,7 +3307,7 @@ function mergeApproved(){
   });
   approvedCheersExtra.forEach(c=>{
     if(!CHEERS.some(x=>x._id===c._id)){
-      CHEERS.push({team:c.team||'応援',name:c.name,msg:c.msg,from:c.from,_id:c._id,seqNo:c.seqNo});
+      CHEERS.push({team:c.team||'応援',name:c.name,msg:c.msg,from:c.from,_id:c._id,seqNo:c.seqNo,playerId:c.playerId||null});
     }
   });
 }
@@ -3267,8 +3462,9 @@ function updateCheerPlayerList(){
   if(list.length===0){ noMsg.style.display='block'; return; }
   list.forEach(p=>{
     const opt=document.createElement('option');
-    opt.value=p.name||(p.num+'番');
+    opt.value=p.id||(p.name||(p.num+'番'));
     opt.textContent=(p.num?p.num+'番 ':'')+p.name;
+    opt.dataset.name=p.name||(p.num+'番');
     playerSel.appendChild(opt);
   });
 }
@@ -3412,11 +3608,14 @@ async function submitCheer(){
   const fromName=document.getElementById('cheerFrom').value.trim();
   const msg=document.getElementById('cheerMsg').value.trim();
   const teamName=teamSel?teamSel.value:'';
-  const playerName=playerSel?playerSel.value:'';
+  const playerVal=playerSel?playerSel.value:''; // 選手ID（または旧形式：氏名そのもの）
+  const selectedOpt=playerSel&&playerSel.selectedIndex>=0?playerSel.options[playerSel.selectedIndex]:null;
+  const playerId=(playerVal&&playerVal!=='_team_')?playerVal:null;
+  const playerDisplayName=selectedOpt&&selectedOpt.dataset.name?selectedOpt.dataset.name:playerVal;
 
   if(!teamName||!fromName||!msg){ alert('チーム・お名前・メッセージを入力してください'); return; }
   if(msg.length>50){ alert('応援メッセージは50文字以内で入力してください'); return; }
-  const targetName=(!playerName||playerName==='_team_')?'（チーム全体）':playerName;
+  const targetName=(!playerVal||playerVal==='_team_')?'（チーム全体）':playerDisplayName;
 
   // スパム・連打対策：直近の投稿から一定時間は再投稿不可
   const cheerCdKey='cheerLastSubmitAt';
@@ -3430,13 +3629,20 @@ async function submitCheer(){
   const btn=document.querySelector('button[onclick="submitCheer()"]');
   if(btn){ btn.disabled=true; btn.textContent='送信中…'; }
   try{
-    const {error}=await sb.from('messages').insert({
+    const payload={
       'team': teamName,
       'name': targetName,
       'from_label': fromName,
       'msg': msg,
       'status': 'pending'
-    });
+    };
+    if(playerId) payload.player_id=playerId;
+    let {error}=await sb.from('messages').insert(payload);
+    if(error && playerId){
+      // messagesテーブルにplayer_id列が未追加の環境向けフォールバック（SQL未実行でも投稿自体は継続できるように）
+      delete payload.player_id;
+      ({error}=await sb.from('messages').insert(payload));
+    }
     if(error){ alert('送信に失敗しました：'+error.message); return; }
     markSubmitCooldown(cheerCdKey);
 
@@ -3532,9 +3738,20 @@ async function renderAdminAll(){
   renderApprovedCheerList();
   renderDonationAdmin();
 }
+const ADMIN_PHOTO_PAGE_SIZE=10;
+let _pendingPhotoPage=0;
+function changePendingPhotoPage(delta){
+  const totalPages=Math.max(1,Math.ceil(pendingPhotos.length/ADMIN_PHOTO_PAGE_SIZE));
+  _pendingPhotoPage=Math.min(Math.max(0,_pendingPhotoPage+delta),totalPages-1);
+  renderPendingPhotoList();
+}
 function renderPendingPhotoList(){
   const list=document.getElementById('pendingPhotoList');
-  if(pendingPhotos.length===0){ list.innerHTML='<div class="admin-empty">承認待ちの写真はありません</div>'; return; }
+  if(pendingPhotos.length===0){ _pendingPhotoPage=0; list.innerHTML='<div class="admin-empty">承認待ちの写真はありません</div>'; return; }
+  const totalPages=Math.max(1,Math.ceil(pendingPhotos.length/ADMIN_PHOTO_PAGE_SIZE));
+  if(_pendingPhotoPage>totalPages-1) _pendingPhotoPage=totalPages-1;
+  if(_pendingPhotoPage<0) _pendingPhotoPage=0;
+  const pageItems=pendingPhotos.slice(_pendingPhotoPage*ADMIN_PHOTO_PAGE_SIZE,_pendingPhotoPage*ADMIN_PHOTO_PAGE_SIZE+ADMIN_PHOTO_PAGE_SIZE);
   let html=`<div style="margin-bottom:.5rem;display:flex;gap:6px;flex-wrap:wrap;">
     <button class="btn-approve" onclick="bulkApprovePhotos()">✅ 全件承認</button>
     <button class="btn-reject" onclick="bulkRejectPhotos()">❌ 全件却下</button>
@@ -3543,7 +3760,7 @@ function renderPendingPhotoList(){
   </div>
   <table class="photo-table photo-table--pending">
   <thead><tr><th></th><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>日時</th><th>操作</th></tr></thead><tbody>`;
-  pendingPhotos.forEach((p,idx)=>{
+  pageItems.forEach((p,idx)=>{
     const no=photoLabel(p.seqNo);
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
     const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
@@ -3560,6 +3777,11 @@ function renderPendingPhotoList(){
       </td></tr>`;
   });
   html+='</tbody></table>';
+  html+=`<div class="pager-bar">
+    <button class="pager-btn" ${_pendingPhotoPage<=0?'disabled':''} onclick="changePendingPhotoPage(-1)">◀ 前へ</button>
+    <span class="pager-info">${_pendingPhotoPage+1} / ${totalPages} ページ（全${pendingPhotos.length}件）</span>
+    <button class="pager-btn" ${_pendingPhotoPage>=totalPages-1?'disabled':''} onclick="changePendingPhotoPage(1)">次へ ▶</button>
+  </div>`;
   list.innerHTML=html;
 }
 function toggleAllPhotoChecks(cb){ document.querySelectorAll('.photo-check').forEach(c=>c.checked=cb.checked); }
@@ -3653,25 +3875,43 @@ async function bulkRejectSelectedCheers(){
   } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
 }
 let _approvedPhotoTeamFilter='';
+let _approvedPhotoPage=0;
+function changeApprovedPhotoPage(delta){
+  const filtered=_approvedPhotoTeamFilter?approvedPhotosExtra.filter(p=>p.team===_approvedPhotoTeamFilter):approvedPhotosExtra;
+  const totalPages=Math.max(1,Math.ceil(filtered.length/ADMIN_PHOTO_PAGE_SIZE));
+  _approvedPhotoPage=Math.min(Math.max(0,_approvedPhotoPage+delta),totalPages-1);
+  renderApprovedPhotoList();
+}
+function onApprovedPhotoTeamFilterChange(sel){
+  _approvedPhotoTeamFilter=sel.value;
+  _approvedPhotoPage=0;
+  renderApprovedPhotoList();
+}
 function renderApprovedPhotoList(){
   const list=document.getElementById('approvedPhotoList');
-  if(approvedPhotosExtra.length===0){ list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
+  if(approvedPhotosExtra.length===0){ _approvedPhotoPage=0; list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
   const teams=[...new Set(approvedPhotosExtra.map(p=>p.team).filter(Boolean))].sort();
   const filtered=_approvedPhotoTeamFilter?approvedPhotosExtra.filter(p=>p.team===_approvedPhotoTeamFilter):approvedPhotosExtra;
   let html=`<div style="margin-bottom:.6rem;">
-    <select id="approvedPhotoTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="_approvedPhotoTeamFilter=this.value;renderApprovedPhotoList();">
+    <select id="approvedPhotoTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="onApprovedPhotoTeamFilterChange(this)">
       <option value="">チーム：すべて（${approvedPhotosExtra.length}件）</option>
       ${teams.map(t=>`<option value="${esc(t)}" ${t===_approvedPhotoTeamFilter?'selected':''}>${esc(t)}（${approvedPhotosExtra.filter(p=>p.team===t).length}件）</option>`).join('')}
     </select>
   </div>`;
   if(filtered.length===0){
+    _approvedPhotoPage=0;
     html+='<div class="admin-empty">該当するチームの承認済み写真はありません</div>';
     list.innerHTML=html;
     return;
   }
+  const sorted=filtered.slice().reverse();
+  const totalPages=Math.max(1,Math.ceil(sorted.length/ADMIN_PHOTO_PAGE_SIZE));
+  if(_approvedPhotoPage>totalPages-1) _approvedPhotoPage=totalPages-1;
+  if(_approvedPhotoPage<0) _approvedPhotoPage=0;
+  const pageItems=sorted.slice(_approvedPhotoPage*ADMIN_PHOTO_PAGE_SIZE,_approvedPhotoPage*ADMIN_PHOTO_PAGE_SIZE+ADMIN_PHOTO_PAGE_SIZE);
   html+=`<table class="photo-table photo-table--approved">
   <thead><tr><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>いいね・状態・操作</th></tr></thead><tbody>`;
-  filtered.slice().reverse().forEach((p,idx)=>{
+  pageItems.forEach((p,idx)=>{
     const no=photoLabel(p.seqNo);
     const isBest=bestShots[p.cat]===p._id;
     const thumb=(p.thumb&&(p.thumb.startsWith('data:')||p.thumb.startsWith('http')))?`<img src="${p.thumb}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
@@ -3688,6 +3928,11 @@ function renderApprovedPhotoList(){
     </tr>`;
   });
   html+='</tbody></table>';
+  html+=`<div class="pager-bar">
+    <button class="pager-btn" ${_approvedPhotoPage<=0?'disabled':''} onclick="changeApprovedPhotoPage(-1)">◀ 前へ</button>
+    <span class="pager-info">${_approvedPhotoPage+1} / ${totalPages} ページ（${_approvedPhotoTeamFilter?filtered.length+'件中':'全'+approvedPhotosExtra.length+'件'}）</span>
+    <button class="pager-btn" ${_approvedPhotoPage>=totalPages-1?'disabled':''} onclick="changeApprovedPhotoPage(1)">次へ ▶</button>
+  </div>`;
   list.innerHTML=html;
 }
 /* ---- ベスト9選定 管理UI ---- */
@@ -4168,6 +4413,7 @@ function renderAlbumAdmin(){
   renderAllTeamViews();
   // 大会要綱の初期描画
   renderTournamentInfo(getDisplayTournamentInfo());
+  renderInfoImages();
 
   // ---- Supabase Realtime 自動同期 ----
   let _realtimeOk=false;
@@ -4179,18 +4425,41 @@ function renderAlbumAdmin(){
   function _refreshAdmin(){
     renderAdminCounts(); renderAdminAll(); renderDonationAdmin(); startSpBanner();
   }
+
+  // 投稿ラッシュ対策：短時間に連続する変更通知を1回にまとめて実行するデバウンス
+  // （例：試合直後に写真が連続投稿されても、その都度全端末が全件再取得しないようにする）
+  const REALTIME_DEBOUNCE_MS=800;   // 最後のイベントからこの時間だけ待ってから実行
+  const REALTIME_MAX_WAIT_MS=4000;  // 連投が続いても最大この時間で強制的に同期する
+  function _makeBurstSync(fn){
+    let timer=null, firstAt=0;
+    return function(){
+      const now=Date.now();
+      if(!firstAt) firstAt=now;
+      if(timer) clearTimeout(timer);
+      const elapsed=now-firstAt;
+      const delay=(elapsed>=REALTIME_MAX_WAIT_MS)?0:REALTIME_DEBOUNCE_MS;
+      timer=setTimeout(async()=>{
+        timer=null; firstAt=0;
+        try{ await fn(); }catch(e){ console.error('Realtime同期エラー:',e); }
+      }, delay);
+    };
+  }
+  const _scheduleMessagesSync=_makeBurstSync(async()=>{
+    await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
+    if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
+  });
+  const _schedulePhotosSync=_makeBurstSync(async()=>{
+    await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
+  });
+  const _scheduleDonorsSync=_makeBurstSync(async()=>{
+    await loadDonorsFromSupabase(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); renderDonationAdmin(); updateDashboard();
+  });
+
   try{
     sb.channel('realtime-all')
-      .on('postgres_changes',{event:'*',schema:'public',table:'messages'},async()=>{
-        await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
-        if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'photos'},async()=>{
-        await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
-      })
-      .on('postgres_changes',{event:'*',schema:'public',table:'donors'},async()=>{
-        await loadDonorsFromSupabase(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); renderDonationAdmin(); updateDashboard();
-      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'messages'}, _scheduleMessagesSync)
+      .on('postgres_changes',{event:'*',schema:'public',table:'photos'}, _schedulePhotosSync)
+      .on('postgres_changes',{event:'*',schema:'public',table:'donors'}, _scheduleDonorsSync)
       .subscribe(status=>{
         _realtimeOk=(status==='SUBSCRIBED');
         console.log('Realtime:',status);
@@ -4274,6 +4543,8 @@ function execReset(target){
         const def=getDefaultTournamentInfo();
         await saveTournamentInfo(def);
         renderTournamentInfo(def);
+        await saveInfoImages([]);
+        renderInfoImages();
       })();
       break;
     case 'cheers':
@@ -4433,6 +4704,9 @@ async function loadSettingsFromSupabase(){
     if(row.key==='tournament_info'){
       try{ TOURNAMENT_INFO=JSON.parse(row.value)||[]; }catch(e){ TOURNAMENT_INFO=[]; }
     }
+    if(row.key==='tournament_info_images'){
+      try{ INFO_IMAGES=JSON.parse(row.value)||[]; }catch(e){ INFO_IMAGES=[]; }
+    }
     if(row.key==='site_name'){
       try{
         const v=JSON.parse(row.value)||{};
@@ -4455,6 +4729,16 @@ async function loadSettingsFromSupabase(){
   buildThemePicker();
   if(!getLocalThemeOverride()) applyThemeToDOM(SITE_THEME);
   refreshThemeUI();
+  // 選手IDが未設定のデータ（ID導入以前の名簿）を自動発番して永続化（初回移行）
+  if(TEAMS_ROSTER.length>0){
+    let idsChanged=false;
+    TEAMS_ROSTER.forEach(t=>{
+      (t.roster||[]).forEach(p=>{
+        if(!p.id){ p.id=genPlayerId(); idsChanged=true; }
+      });
+    });
+    if(idsChanged){ saveTeamsRoster(TEAMS_ROSTER).catch(e=>console.error('選手ID自動発番の保存に失敗:',e)); }
+  }
 }
 
 function isInPeriod(type){
@@ -4589,75 +4873,131 @@ function decodeCsvBuffer(buf){
   }
 }
 
-// 「本当に空の行」も「カンマだけの行（Excel保存時によくある）」も空行とみなしてブロック分割
-function splitCsvIntoBlocks(text){
-  const rawLines=text.split(/\r?\n/);
+// アップロードされたファイル（Excel .xlsx/.xls、または互換用にCSV）を「行×列」の配列に変換して返す
+function readWorkbookRows(file){
+  return new Promise((resolve,reject)=>{
+    const name=(file.name||'').toLowerCase();
+    const isExcel=name.endsWith('.xlsx')||name.endsWith('.xls');
+    const isCsv=name.endsWith('.csv')||name.endsWith('.txt');
+    if(!isExcel&&!isCsv){
+      reject(new Error('対応していないファイル形式です。Excelファイル（.xlsx）を選択してください。'));
+      return;
+    }
+    if(!file.size){
+      reject(new Error('ファイルの中身が空です。'));
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        if(isExcel){
+          const wb=XLSX.read(e.target.result,{type:'array'});
+          const sheet=wb.Sheets[wb.SheetNames[0]];
+          if(!sheet){ reject(new Error('シートが見つかりません。Excelファイルの中身をご確認ください。')); return; }
+          const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:false,defval:''});
+          resolve(rows.map(r=>(r||[]).map(c=>String(c==null?'':c).trim())));
+        }else{
+          // 互換用：CSV/テキストとしてのフォールバック読み込み（Shift-JIS対応）
+          const text=decodeCsvBuffer(e.target.result);
+          const rows=text.split(/\r?\n/).map(line=>line.split(',').map(c=>c.trim()));
+          resolve(rows);
+        }
+      }catch(err){
+        reject(new Error('ファイルの形式を読み取れませんでした。正しいExcelファイルかご確認ください。'));
+      }
+    };
+    reader.onerror=()=>reject(new Error('ファイルの読み込みに失敗しました'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+// 「本当に空の行」も「セルが全部空の行」も空行とみなしてチームごとのブロックに分割
+function splitRowsIntoBlocks(rows){
   const blocks=[];
   let current=[];
-  rawLines.forEach(line=>{
-    const cols=line.split(',').map(c=>c.trim());
-    const isBlank=cols.every(c=>c==='');
+  (rows||[]).forEach(cols=>{
+    const isBlank=!cols||cols.every(c=>(c||'')==='');
     if(isBlank){
       if(current.length>0){ blocks.push(current); current=[]; }
     } else {
-      current.push(line);
+      current.push(cols);
     }
   });
   if(current.length>0) blocks.push(current);
   return blocks;
 }
 
-function handleTeamsCsvFile(file){
+async function handleTeamsCsvFile(file){
   if(!file) return;
   const statusEl=document.getElementById('teamsCsvStatus');
-  const reader=new FileReader();
-  reader.onload=async function(e){
-    try{
-      const text=decodeCsvBuffer(e.target.result);
-      const blocks=splitCsvIntoBlocks(text);
-      const teams=[];
-      blocks.forEach(rows=>{
-        if(rows.length<1) return;
-        const header=rows[0].split(',').map(c=>c.trim());
-        if(!header[0]) return;
-        const team={
-          name:header[0]||'', manager:header[1]||'', coaches:header[2]||'',
-          isHost:(header[3]||'')==='自チーム', roster:[]
-        };
-        for(let i=1;i<rows.length;i++){
-          const cols=rows[i].split(',').map(c=>c.trim());
-          if(cols.length<3) continue;
-          team.roster.push({
-            num:cols[0]||'', grade:cols[1]||'', name:cols[2]||'',
-            batThrow:cols[3]||'', pos:cols[4]||'', dream:cols[5]||'', captain:cols[6]||''
-          });
+  try{
+    statusEl.textContent='読み込み中…';
+    const rows=await readWorkbookRows(file);
+    const blocks=splitRowsIntoBlocks(rows);
+    const teams=[];
+    blocks.forEach(blockRows=>{
+      if(blockRows.length<1) return;
+      const header=blockRows[0];
+      if(!header[0]) return;
+      const team={
+        name:header[0]||'', manager:header[1]||'', coaches:header[2]||'',
+        isHost:(header[3]||'')==='自チーム', roster:[]
+      };
+      for(let i=1;i<blockRows.length;i++){
+        const cols=blockRows[i];
+        if(!cols||cols.length<3||!cols[2]) continue;
+        team.roster.push({
+          num:cols[0]||'', grade:cols[1]||'', name:cols[2]||'',
+          batThrow:cols[3]||'', pos:cols[4]||'', dream:cols[5]||'', captain:cols[6]||'',
+          id:(cols[7]||'').trim() // 空の場合は下の処理で「氏名一致からの引き継ぎ→無ければ新規発番」を行う
+        });
+      }
+      teams.push(team);
+    });
+    if(teams.length===0){ statusEl.textContent='❌ データがありません（Excelの形式をご確認ください）'; return; }
+    // ID・写真の引き継ぎ：
+    // ① アップロードされたExcelにID列があればそれを最優先で採用
+    // ② ID列が空の場合、同チーム内で氏名が一致する前回の選手からIDを引き継ぐ（名前が変わっていなければIDは維持される）
+    // ③ どちらも無い場合（本当に新規の選手）だけ新しいIDを発番
+    // 写真は決定したIDでチームをまたいで一致を探し、無ければ従来通り氏名一致にフォールバック
+    const oldTeams=TEAMS_ROSTER.length>0?TEAMS_ROSTER:[];
+    const oldPlayersById={};
+    oldTeams.forEach(t=>(t.roster||[]).forEach(p=>{ if(p.id) oldPlayersById[p.id]=p; }));
+    teams.forEach(team=>{
+      const oldTeam=oldTeams.find(t=>normalizeForMatch(t.name)===normalizeForMatch(team.name));
+      if(oldTeam&&oldTeam.teamPhotoUrl) team.teamPhotoUrl=oldTeam.teamPhotoUrl;
+      team.roster.forEach(p=>{
+        if(!p.id){
+          const byName=oldTeam&&(oldTeam.roster||[]).find(op=>normalizeForMatch(op.name)===normalizeForMatch(p.name));
+          p.id=(byName&&byName.id)?byName.id:genPlayerId();
         }
-        teams.push(team);
-      });
-      if(teams.length===0){ statusEl.textContent='❌ CSVにデータがありません'; return; }
-      // 既存データに登録済みの写真（チーム集合写真・個人写真）を、チーム名・氏名が一致するものに引き継ぐ
-      const oldTeams=TEAMS_ROSTER.length>0?TEAMS_ROSTER:[];
-      teams.forEach(team=>{
-        const oldTeam=oldTeams.find(t=>normalizeForMatch(t.name)===normalizeForMatch(team.name));
-        if(oldTeam&&oldTeam.teamPhotoUrl) team.teamPhotoUrl=oldTeam.teamPhotoUrl;
-        if(oldTeam){
-          team.roster.forEach(p=>{
-            const oldPlayer=(oldTeam.roster||[]).find(op=>normalizeForMatch(op.name)===normalizeForMatch(p.name));
-            if(oldPlayer&&oldPlayer.photoUrl) p.photoUrl=oldPlayer.photoUrl;
-          });
+        let oldPlayer=(p.id&&oldPlayersById[p.id])?oldPlayersById[p.id]:null;
+        if(!oldPlayer&&oldTeam){
+          oldPlayer=(oldTeam.roster||[]).find(op=>normalizeForMatch(op.name)===normalizeForMatch(p.name));
         }
+        if(oldPlayer&&oldPlayer.photoUrl) p.photoUrl=oldPlayer.photoUrl;
       });
-      statusEl.textContent='保存中…';
-      await saveTeamsRoster(teams);
-      renderAllTeamViews();
-      const totalPlayers=teams.reduce((s,t)=>s+t.roster.length,0);
-      statusEl.textContent=`✅ ${teams.length}チーム（計${totalPlayers}人）のデータを保存しました。`;
-    }catch(err){
-      statusEl.textContent='❌ CSVの読み込みに失敗しました：'+err.message;
+    });
+    // ID健全性チェック：同じIDが複数選手に使われていないか（Excel編集ミス対策）
+    const idCount={};
+    const flatPlayers=[];
+    teams.forEach(t=>t.roster.forEach(p=>flatPlayers.push({team:t.name,...p})));
+    flatPlayers.forEach(p=>{ if(p.id) idCount[p.id]=(idCount[p.id]||0)+1; });
+    const dupIds=Object.keys(idCount).filter(id=>idCount[id]>1);
+    if(dupIds.length>0){
+      const dupList=flatPlayers.filter(p=>dupIds.includes(p.id)).map(p=>`${p.team}:${p.name}`).join('、');
+      statusEl.textContent=`❌ 同じIDが複数の選手に使われています（${dupList}）。Excelを確認してください。`;
+      return;
     }
-  };
-  reader.readAsArrayBuffer(file);
+    statusEl.textContent='保存中…';
+    await saveTeamsRoster(teams);
+    renderAllTeamViews();
+    const totalPlayers=teams.reduce((s,t)=>s+t.roster.length,0);
+    statusEl.textContent=`✅ ${teams.length}チーム（計${totalPlayers}人）のデータを保存しました。`;
+  }catch(err){
+    statusEl.textContent='❌ 読み込みに失敗しました：'+err.message;
+  }
 }
+
 
 const PLACEHOLDER_IMG="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='72' height='72' fill='%23cfd3da'/%3E%3Ccircle cx='36' cy='28' r='14' fill='%23a8adb6'/%3E%3Cellipse cx='36' cy='68' rx='26' ry='22' fill='%23a8adb6'/%3E%3C/svg%3E";
 
@@ -4743,13 +5083,13 @@ function renderTeamPlayerCards(teamName){
     const isRed=i%3===1;
     const card=document.createElement('div');
     card.className='pl-player-card'+(isRed?' accent-red':'');
-    // この選手宛ての承認済みメッセージ（全角/半角スペース差異を吸収して照合）
-    const myMsgs=CHEERS.filter(c=>normalizeForMatch(c.team)===normalizeForMatch(teamName)&&normalizeForMatch(c.name)===normalizeForMatch(p.name));
+    // この選手宛ての承認済みメッセージ（選手ID優先、無ければ氏名一致にフォールバック）
+    const myMsgs=matchCheersForPlayer(teamName,p.id,p.name);
     // 表示は1件のみ。2件以上ある場合はポップアップで全件表示するボタンを出す
     const msgsHtml=myMsgs.length>0
       ?`<div class="player-cheers">
           <div class="player-cheer-item">${msgLabel(myMsgs[0].seqNo)?`<span class="row-no">${msgLabel(myMsgs[0].seqNo)}</span>`:''}<span class="player-cheer-msg">"${esc(myMsgs[0].msg)}"</span><span class="player-cheer-from">${esc(myMsgs[0].from)}より</span></div>
-          ${myMsgs.length>1?`<button type="button" class="player-cheer-more" data-team="${esc(teamName)}" data-player="${esc(p.name)}" onclick="openPlayerCheersModal(this.dataset.team,this.dataset.player)">💬 応援メッセージ${myMsgs.length}件をすべて見る</button>`:''}
+          ${myMsgs.length>1?`<button type="button" class="player-cheer-more" data-team="${esc(teamName)}" data-player="${esc(p.name)}" data-player-id="${esc(p.id||'')}" onclick="openPlayerCheersModal(this.dataset.team,this.dataset.player,this.dataset.playerId)">💬 応援メッセージ${myMsgs.length}件をすべて見る</button>`:''}
         </div>`
       :'';
     // 写真を主役に大きく表示（案B）。番号と学年は写真上にオーバーレイ
@@ -4780,30 +5120,28 @@ function handleInfoCsvDrop(e){
 function handleInfoCsvFile(file){
   if(!file) return;
   const statusEl=document.getElementById('infoCsvStatus');
-  const reader=new FileReader();
-  reader.onload=async function(e){
+  (async()=>{
     try{
-      const text=decodeCsvBuffer(e.target.result);
-      const rows=text.split(/\r?\n/).filter(r=>r.trim());
+      statusEl.textContent='読み込み中…';
+      const rows=await readWorkbookRows(file);
       const items=[];
-      rows.forEach(row=>{
-        const cols=row.split(',');
-        if(cols.length>=2){
-          const key=cols[0].trim();
-          const val=cols.slice(1).join(',').trim(); // 内容にカンマが含まれる場合も対応
-          if(key) items.push({key,val});
-        }
+      rows.forEach(cols=>{
+        if(!cols||cols.length<1) return;
+        const key=(cols[0]||'').trim();
+        if(!key) return;
+        if(key==='項目名') return; // テンプレートの見出し行はスキップ
+        const val=(cols.slice(1).join(',')||'').trim();
+        items.push({key,val});
       });
-      if(items.length===0){ statusEl.textContent='❌ CSVにデータがありません'; return; }
+      if(items.length===0){ statusEl.textContent='❌ データがありません（Excelの形式をご確認ください）'; return; }
       statusEl.textContent='保存中…';
       await saveTournamentInfo(items);
       renderTournamentInfo(items);
       statusEl.textContent=`✅ ${items.length}件の要綱データを保存しました。`;
     }catch(err){
-      statusEl.textContent='❌ CSVの読み込みに失敗しました：'+err.message;
+      statusEl.textContent='❌ 読み込みに失敗しました：'+err.message;
     }
-  };
-  reader.readAsArrayBuffer(file);
+  })();
 }
 
 function renderTournamentInfo(items){
