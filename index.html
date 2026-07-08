@@ -143,6 +143,7 @@ function friendlyErrorMessage(e, fallback){
 @media(max-width:480px){
   .pl-player-grid{gap:8px;}
   .pl-player-card{flex:0 0 calc(50% - 4px);max-width:calc(50% - 4px);}
+  .admin-header #realtimeBadge{order:3;flex-basis:100%;margin-left:0 !important;}
 }
 @media(max-width:400px){
   .page-nav{padding:2px;gap:0;}
@@ -202,7 +203,7 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 @keyframes fall{0%{transform:translateY(-20px) rotate(0deg);}100%{transform:translateY(220px) rotate(360deg);}}
 .logo-wrap{margin:0 auto .9rem;display:block;position:relative;z-index:1;background:#fdfaf3;border-radius:16px;padding:.9rem 1rem .6rem;max-width:340px;box-shadow:0 6px 20px rgba(0,0,0,.35),0 0 0 3px rgba(200,168,75,.5);}
 .logo-img{max-width:320px;width:100%;display:block;margin:0 auto;}
-.hero-sub{font-size:clamp(10.5px,3.4vw,13px);color:rgba(255,255,255,.72);margin-bottom:.5rem;position:relative;z-index:1;white-space:normal;overflow-wrap:break-word;line-height:1.5;padding:0 10px;}
+.hero-sub{font-size:clamp(10.5px,3.4vw,13px);color:rgba(255,255,255,.72);margin-bottom:.5rem;position:relative;z-index:1;white-space:pre-line;overflow-wrap:break-word;line-height:1.5;padding:0 10px;}
 .htags{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;}
 .htag{font-size:11px;padding:3px 12px;border-radius:999px;background:var(--theme-htag-bg);color:var(--theme-htag-text);border:1px solid var(--theme-htag-border);}
 .htag.p{background:var(--theme-htag-p-bg);color:var(--theme-htag-p-text);border-color:var(--theme-htag-p-border);}
@@ -433,9 +434,9 @@ img.clickable-photo{cursor:zoom-in;}
 .admin-entry{background:#f0f1f5;border-radius:10px;padding:.7rem 1rem;margin-bottom:.6rem;cursor:pointer;text-align:center;font-size:13px;color:#666;}
 .admin-panel{background:#f0f2f8;overflow-y:auto;padding-bottom:80px;}
 .admin-inner{max-width:700px;margin:0 auto;padding:.8rem .8rem 3rem;}
-.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:.5rem 0;}
-.admin-title{font-size:17px;font-weight:700;color:#1a3260;}
-.admin-close{background:#1a3260;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;cursor:pointer;font-weight:600;min-height:44px;}
+.admin-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;margin-bottom:1rem;padding:.5rem 0;}
+.admin-title{font-size:17px;font-weight:700;color:#1a3260;white-space:nowrap;}
+.admin-close{background:#1a3260;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;cursor:pointer;font-weight:600;min-height:44px;white-space:nowrap;}
 /* タブ：グループ見出し付きレイアウト */
 .admin-tabs{display:flex;flex-direction:column;gap:0;margin-bottom:1rem;}
 .admin-tab-group{margin-bottom:10px;}
@@ -1721,7 +1722,7 @@ img{
           <input type="text" id="siteNameVenueInput" placeholder="開催地（例：山口県宇部市）" maxlength="30" style="flex:1;">
         </div>
         <div class="fr">
-          <input type="text" id="siteNameSubtitleInput" placeholder="ヒーロー見出し下の一言（例：みんなの力で、最高の記念大会を作ろう！）" maxlength="40" style="flex:1;">
+          <textarea id="siteNameSubtitleInput" placeholder="ヒーロー見出し下の一言（例：みんなの力で、最高の記念大会を作ろう！）&#10;Enterキーで改行位置を指定できます（未入力なら自動折返し）" maxlength="60" rows="2" style="flex:1;resize:vertical;font-family:inherit;"></textarea>
         </div>
         <button class="ubtn" onclick="updateSiteName()">保存する</button>
         <div id="siteNameStatus" style="font-size:12px;color:#666;margin-top:.4rem;"></div>
