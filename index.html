@@ -15,6 +15,54 @@
 const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 通信タイムアウト対策：Supabaseの呼び出しが一定時間で応答しない場合に
+// 「保存できたか分からない」状態を防ぐためのラッパー。
+// 使い方：await withTimeout(sb.from('photos').update(...), 8000)
+function withTimeout(promiseLike, ms=8000){
+  ms = ms || 8000;
+  return new Promise((resolve,reject)=>{
+    let done=false;
+    const timer=setTimeout(()=>{
+      if(done) return;
+      done=true;
+      reject(new Error('TIMEOUT'));
+    }, ms);
+    Promise.resolve(promiseLike).then(res=>{
+      if(done) return;
+      done=true;
+      clearTimeout(timer);
+      resolve(res);
+    }).catch(err=>{
+      if(done) return;
+      done=true;
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+// タイムアウト・通信エラーを一律で分かりやすいメッセージに変換
+// Realtime接続状態を管理画面のバッジに反映する
+function updateRealtimeBadge(status){
+  const el=document.getElementById('realtimeBadge');
+  if(!el) return;
+  if(status==='SUBSCRIBED'){
+    el.textContent='🟢 リアルタイム同期中';
+    el.style.color='#2a7d2a';
+  } else {
+    el.textContent='🟡 通信不安定：10秒ごとに自動更新中';
+    el.style.color='#b8860b';
+  }
+}
+function friendlyErrorMessage(e, fallback){
+  if(e && e.message==='TIMEOUT'){
+    return '通信が混雑しています。電波の良い場所でもう一度お試しください。';
+  }
+  if(e && (e.message==='Failed to fetch' || e.name==='TypeError')){
+    return '通信エラーが発生しました。電波状況をご確認の上、もう一度お試しください。';
+  }
+  return fallback || '操作に失敗しました。もう一度お試しください。';
+}
 </script>
 <style>
 /* ===== テーマ変数（Classic=既定値。7/5版デザインに準拠） ===== */
@@ -525,6 +573,7 @@ img.clickable-photo{cursor:zoom-in;}
 .best9-pub-card.is-dummy{opacity:.75;}
 .best9-like-card{border-color:#c9a227 !important;background:#fffdf0 !important;}
 .best9-pub-badge{font-size:clamp(7.5px,2.4vw,9px);font-weight:700;background:#1b2a4a;color:#fff;text-align:center;padding:4px 4px;letter-spacing:.02em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.best9-pub-badge.badge-long{font-size:clamp(6.3px,2.0vw,7.5px);letter-spacing:0;}
 .like-badge{background:linear-gradient(90deg,#8a6800,#c9a227) !important;}
 .best9-pub-img{width:100%;height:90px;object-fit:cover;display:block;}
 .best9-pub-emoji{height:90px;display:flex;align-items:center;justify-content:center;font-size:36px;background:#eef0f8;}
@@ -1365,6 +1414,7 @@ img{
     <div class="admin-inner">
     <div class="admin-header">
       <div class="admin-title">📋 管理者画面</div>
+      <span id="realtimeBadge" style="font-size:11px;margin-left:8px;font-weight:bold;">🟡 通信不安定：10秒ごとに自動更新中</span>
       <button class="admin-close" onclick="closeAdminPanel()">← トップへ戻る</button>
     </div>
     <div class="admin-tabs">
@@ -2788,12 +2838,12 @@ buildCheerCol('cheerRowB',cB);
 buildCheerCol('cheerRowC',cC);
 
 const CATS=[
+  ['fiftieth','50周年記念賞','🏆'],
+  ['cute','ベストショット賞','📸'],
+  ['team','チームワーク賞','🤝'],
   ['hard','がんばった賞','🔥'],
   ['smile','笑顔賞','😊'],
-  ['cheer','応援賞','📣'],
-  ['team','チームワーク賞','🤝'],
-  ['fiftieth','50周年記念賞','🏆'],
-  ['cute','ベストショット賞','📸']
+  ['cheer','応援賞','📣']
 ];
 // いいねランキング上位3枠（自動）は LIKE_SLOTS で管理
 const LIKE_SLOTS=3;
@@ -2902,8 +2952,10 @@ function renderBest9Grid(){
     const imgHtml=(photo.thumb&&(photo.thumb.startsWith('data:')||photo.thumb.startsWith('http')))
       ?`<img src="${photo.thumb}" class="best9-pub-img clickable-photo" onclick="openLightbox(this.src)">`
       :`<div class="best9-pub-emoji">${photo.e||'📷'}</div>`;
+    // 賞名が長い場合（例：ベストショット賞）はバッジのフォントを一段小さくして1行に収める
+    const badgeLongCls=(catName&&catName.length>=7)?' badge-long':'';
     card.innerHTML=`
-      <div class="best9-pub-badge">${catIco} ${catName}</div>
+      <div class="best9-pub-badge${badgeLongCls}">${catIco} ${catName}</div>
       ${imgHtml}
       ${(!isDummy&&photoLabel(photo.seqNo))?`<div class="best9-pub-no"><span class="row-no">${photoLabel(photo.seqNo)}</span></div>`:''}
       <div class="best9-pub-title">${photo.n||''}</div>
@@ -3520,9 +3572,9 @@ async function submitEntry(){
     if(_pendingSubmitPhotoBlob){
       if(_pendingSubmitPhotoBlob.size>10*1024*1024){ alert('画像サイズは10MB以下にしてください'); return; }
       const filePath=newId+'.jpg';
-      const {error:upErr}=await sb.storage.from('photos').upload(filePath, _pendingSubmitPhotoBlob, {
+      const {error:upErr}=await withTimeout(sb.storage.from('photos').upload(filePath, _pendingSubmitPhotoBlob, {
         contentType: 'image/jpeg', upsert: false
-      });
+      }), 15000);
       if(upErr){ alert('画像のアップロードに失敗しました：'+upErr.message); return; }
       const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
       imageUrl=urlData.publicUrl;
@@ -3544,22 +3596,22 @@ async function submitEntry(){
     }
 
     // photosテーブルにinsert（thumb_url列が未作成の環境でも失敗しないようgracefulフォールバック）
-    let {error:dbErr}=await sb.from('photos').insert({
+    let {error:dbErr}=await withTimeout(sb.from('photos').insert({
       id:newId, title, author, cat, team,
       player:playerName,
       status:'pending',
       image_url:imageUrl,
       thumb_url:thumbUrl
-    });
+    }), 8000);
     if(dbErr&&/thumb_url/i.test(dbErr.message||'')){
-      ({error:dbErr}=await sb.from('photos').insert({
+      ({error:dbErr}=await withTimeout(sb.from('photos').insert({
         id:newId, title, author, cat, team,
         player:playerName,
         status:'pending',
         image_url:imageUrl
-      }));
+      }), 8000));
     }
-    if(dbErr){ alert('投稿の保存に失敗しました：'+dbErr.message); return; }
+    if(dbErr){ alert('投稿の保存に失敗しました：'+friendlyErrorMessage(dbErr)); return; }
     markSubmitCooldown(photoCdKey);
 
     // フォームリセット
@@ -3580,7 +3632,7 @@ async function submitEntry(){
     await loadPhotosFromSupabase();
     renderAdminCounts();
   } catch(e){
-    alert('エラーが発生しました。もう一度お試しください。');
+    alert(friendlyErrorMessage(e));
   } finally{
     if(btn){ btn.disabled=false; btn.textContent='投稿する'; }
   }
@@ -3778,13 +3830,13 @@ async function submitCheer(){
       'status': 'pending'
     };
     if(playerId) payload.player_id=playerId;
-    let {error}=await sb.from('messages').insert(payload);
+    let {error}=await withTimeout(sb.from('messages').insert(payload), 8000);
     if(error && playerId){
       // messagesテーブルにplayer_id列が未追加の環境向けフォールバック（SQL未実行でも投稿自体は継続できるように）
       delete payload.player_id;
-      ({error}=await sb.from('messages').insert(payload));
+      ({error}=await withTimeout(sb.from('messages').insert(payload), 8000));
     }
-    if(error){ alert('送信に失敗しました：'+error.message); return; }
+    if(error){ alert('送信に失敗しました：'+friendlyErrorMessage(error)); return; }
     markSubmitCooldown(cheerCdKey);
 
     if(teamSel){ teamSel.value=''; }
@@ -3797,7 +3849,7 @@ async function submitCheer(){
     await loadCheersFromSupabase();
     renderAdminCounts();
   } catch(e){
-    alert('エラーが発生しました。もう一度お試しください。');
+    alert(friendlyErrorMessage(e));
   } finally{
     if(btn){ btn.disabled=false; btn.textContent='送信する'; }
   }
@@ -3894,10 +3946,10 @@ function renderPendingPhotoList(){
   if(_pendingPhotoPage<0) _pendingPhotoPage=0;
   const pageItems=pendingPhotos.slice(_pendingPhotoPage*ADMIN_PHOTO_PAGE_SIZE,_pendingPhotoPage*ADMIN_PHOTO_PAGE_SIZE+ADMIN_PHOTO_PAGE_SIZE);
   let html=`<div style="margin-bottom:.5rem;display:flex;gap:6px;flex-wrap:wrap;">
-    <button class="btn-approve" onclick="bulkApprovePhotos()">✅ 全件承認</button>
-    <button class="btn-reject" onclick="bulkRejectPhotos()">❌ 全件却下</button>
-    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedPhotos()">選択を承認</button>
-    <button class="btn-reject" onclick="bulkRejectSelectedPhotos()">選択を却下</button>
+    <button class="btn-approve" onclick="bulkApprovePhotos(this)">✅ 全件承認</button>
+    <button class="btn-reject" onclick="bulkRejectPhotos(this)">❌ 全件却下</button>
+    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedPhotos(this)">選択を承認</button>
+    <button class="btn-reject" onclick="bulkRejectSelectedPhotos(this)">選択を却下</button>
   </div>
   <table class="photo-table photo-table--pending">
   <thead><tr><th></th><th>宛先</th><th>投稿者</th><th>写真・タイトル・賞</th><th>日時</th><th>操作</th></tr></thead><tbody>`;
@@ -3927,35 +3979,43 @@ function renderPendingPhotoList(){
   list.innerHTML=html;
 }
 function toggleAllPhotoChecks(cb){ document.querySelectorAll('.photo-check').forEach(c=>c.checked=cb.checked); }
-async function bulkApprovePhotos(){
+// 写真の一括承認/却下の共通処理。
+// ・in()で1回のリクエストにまとめて通信回数を削減
+// ・.eq('status','pending')を条件に加えることで、他の担当者が既に処理済みのものは対象外にする（簡易楽観ロック）
+// ・実際に処理できた件数と要求件数を比較し、ズレがあれば「一部は他の担当者が処理済み」と案内する
+async function bulkPhotoAction(ids, action, btnEl){
+  if(!ids.length){ alert('選択されていません'); return; }
+  if(btnEl) btnEl.disabled=true;
+  try{
+    const base=sb.from('photos');
+    const req=action==='approve'
+      ? base.update({status:'approved'}).in('id',ids).eq('status','pending').select('id')
+      : base.delete().in('id',ids).eq('status','pending').select('id');
+    const {data,error}=await withTimeout(req, 10000);
+    if(error){ alert((action==='approve'?'一括承認':'一括却下')+'に失敗しました：'+friendlyErrorMessage(error)); return; }
+    const doneCount=data?data.length:0;
+    if(doneCount<ids.length){
+      alert(`${ids.length-doneCount}件は既に他の担当者が処理済みでした。画面を更新します。`);
+    }
+    await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
+  } catch(e){ alert('操作に失敗しました：'+friendlyErrorMessage(e)); console.error(e); }
+  finally{ if(btnEl) btnEl.disabled=false; }
+}
+async function bulkApprovePhotos(btnEl){
   if(!confirm('承認待ち写真を全件承認しますか？')) return;
-  try{
-    for(const p of pendingPhotos){ await sb.from('photos').update({status:'approved'}).eq('id',p._id); }
-    await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkPhotoAction(pendingPhotos.map(p=>p._id), 'approve', btnEl);
 }
-async function bulkRejectPhotos(){
+async function bulkRejectPhotos(btnEl){
   if(!confirm('承認待ち写真を全件却下しますか？')) return;
-  try{
-    for(const p of pendingPhotos){ await sb.from('photos').delete().eq('id',p._id); }
-    await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkPhotoAction(pendingPhotos.map(p=>p._id), 'reject', btnEl);
 }
-async function bulkApproveSelectedPhotos(){
+async function bulkApproveSelectedPhotos(btnEl){
   const ids=[...document.querySelectorAll('.photo-check:checked')].map(c=>c.dataset.id);
-  if(!ids.length){ alert('選択されていません'); return; }
-  try{
-    for(const id of ids){ await sb.from('photos').update({status:'approved'}).eq('id',id); }
-    await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkPhotoAction(ids, 'approve', btnEl);
 }
-async function bulkRejectSelectedPhotos(){
+async function bulkRejectSelectedPhotos(btnEl){
   const ids=[...document.querySelectorAll('.photo-check:checked')].map(c=>c.dataset.id);
-  if(!ids.length){ alert('選択されていません'); return; }
-  try{
-    for(const id of ids){ await sb.from('photos').delete().eq('id',id); }
-    await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkPhotoAction(ids, 'reject', btnEl);
 }
 const ADMIN_CHEER_PAGE_SIZE=10;
 let _pendingCheerPage=0;
@@ -3972,10 +4032,10 @@ function renderPendingCheerList(){
   if(_pendingCheerPage<0) _pendingCheerPage=0;
   const pageItems=pendingCheers.slice(_pendingCheerPage*ADMIN_CHEER_PAGE_SIZE,_pendingCheerPage*ADMIN_CHEER_PAGE_SIZE+ADMIN_CHEER_PAGE_SIZE);
   let html=`<div style="margin-bottom:.5rem;display:flex;gap:6px;flex-wrap:wrap;">
-    <button class="btn-approve" onclick="bulkApproveCheers()">✅ 全件承認</button>
-    <button class="btn-reject" onclick="bulkRejectCheers()">❌ 全件却下</button>
-    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedCheers()">選択を承認</button>
-    <button class="btn-reject" onclick="bulkRejectSelectedCheers()">選択を却下</button>
+    <button class="btn-approve" onclick="bulkApproveCheers(this)">✅ 全件承認</button>
+    <button class="btn-reject" onclick="bulkRejectCheers(this)">❌ 全件却下</button>
+    <button class="btn-approve" style="background:#555;" onclick="bulkApproveSelectedCheers(this)">選択を承認</button>
+    <button class="btn-reject" onclick="bulkRejectSelectedCheers(this)">選択を却下</button>
   </div>
   <table class="cheer-table cheer-table--pending">
   <thead><tr style="background:#f0f2f8;"><th style="width:28px;"><input type="checkbox" id="cheerCheckAll" onchange="toggleAllCheerChecks(this)"></th><th style="width:25%;">宛先</th><th>メッセージ</th><th style="width:72px;">投稿者</th><th style="width:60px;">日時</th><th>操作</th></tr></thead><tbody>`;
@@ -4002,35 +4062,42 @@ function renderPendingCheerList(){
   list.innerHTML=html;
 }
 function toggleAllCheerChecks(cb){ document.querySelectorAll('.cheer-check').forEach(c=>c.checked=cb.checked); }
-async function bulkApproveCheers(){
+// メッセージの一括承認/却下の共通処理（写真側のbulkPhotoActionと同じ考え方）
+async function bulkCheerAction(ids, action, btnEl){
+  if(!ids.length){ alert('選択されていません'); return; }
+  if(btnEl) btnEl.disabled=true;
+  try{
+    const base=sb.from('messages');
+    const req=action==='approve'
+      ? base.update({'status':'approved'}).in('id',ids).eq('status','pending').select('id')
+      : base.delete().in('id',ids).eq('status','pending').select('id');
+    const {data,error}=await withTimeout(req, 10000);
+    if(error){ alert((action==='approve'?'一括承認':'一括却下')+'に失敗しました：'+friendlyErrorMessage(error)); return; }
+    const doneCount=data?data.length:0;
+    if(doneCount<ids.length){
+      alert(`${ids.length-doneCount}件は既に他の担当者が処理済みでした。画面を更新します。`);
+    }
+    await loadCheersFromSupabase();
+    if(action==='approve'){ mergeApproved(); rebuildCheerRows(); }
+    renderAdminAll();
+  } catch(e){ alert('操作に失敗しました：'+friendlyErrorMessage(e)); console.error(e); }
+  finally{ if(btnEl) btnEl.disabled=false; }
+}
+async function bulkApproveCheers(btnEl){
   if(!confirm('承認待ちメッセージを全件承認しますか？')) return;
-  try{
-    for(const c of pendingCheers){ await sb.from('messages').update({'status':'approved'}).eq('id',c._id); }
-    await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkCheerAction(pendingCheers.map(c=>c._id), 'approve', btnEl);
 }
-async function bulkRejectCheers(){
+async function bulkRejectCheers(btnEl){
   if(!confirm('承認待ちメッセージを全件却下しますか？')) return;
-  try{
-    for(const c of pendingCheers){ await sb.from('messages').delete().eq('id',c._id); }
-    await loadCheersFromSupabase(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkCheerAction(pendingCheers.map(c=>c._id), 'reject', btnEl);
 }
-async function bulkApproveSelectedCheers(){
+async function bulkApproveSelectedCheers(btnEl){
   const ids=[...document.querySelectorAll('.cheer-check:checked')].map(c=>c.dataset.id);
-  if(!ids.length){ alert('選択されていません'); return; }
-  try{
-    for(const id of ids){ await sb.from('messages').update({'status':'approved'}).eq('id',id); }
-    await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkCheerAction(ids, 'approve', btnEl);
 }
-async function bulkRejectSelectedCheers(){
+async function bulkRejectSelectedCheers(btnEl){
   const ids=[...document.querySelectorAll('.cheer-check:checked')].map(c=>c.dataset.id);
-  if(!ids.length){ alert('選択されていません'); return; }
-  try{
-    for(const id of ids){ await sb.from('messages').delete().eq('id',id); }
-    await loadCheersFromSupabase(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  await bulkCheerAction(ids, 'reject', btnEl);
 }
 let _approvedPhotoTeamFilter='';
 let _approvedPhotoPage=0;
@@ -4646,8 +4713,9 @@ function renderAlbumAdmin(){
       .subscribe(status=>{
         _realtimeOk=(status==='SUBSCRIBED');
         console.log('Realtime:',status);
+        updateRealtimeBadge(status);
       });
-  }catch(e){ console.warn('Realtime初期化失敗、ポーリングに切替:', e); }
+  }catch(e){ console.warn('Realtime初期化失敗、ポーリングに切替:', e); updateRealtimeBadge('CHANNEL_ERROR'); }
 
   // フォールバック：Realtimeが繋がっていない場合は10秒ポーリング
   setInterval(async()=>{
@@ -4655,6 +4723,18 @@ function renderAlbumAdmin(){
     await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase()]);
     _refreshPublic(); _refreshAdmin();
   }, 10000);
+
+  // 画面復帰時（アプリ切り替え・画面ロック解除など）は、ポーリングの最大10秒待ちを待たずに
+  // その場で最新データを取り直す。管理画面を開いている場合は管理側の表示も更新する。
+  document.addEventListener('visibilitychange', async()=>{
+    if(document.visibilityState!=='visible') return;
+    try{
+      await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase()]);
+      _refreshPublic();
+      const adminMain=document.getElementById('adminMainView');
+      if(adminMain && adminMain.style.display!=='none'){ _refreshAdmin(); }
+    }catch(e){ console.warn('復帰時の再取得に失敗:', e); }
+  });
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
