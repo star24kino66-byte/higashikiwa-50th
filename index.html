@@ -4149,9 +4149,17 @@ async function bulkRejectSelectedCheers(btnEl){
   await bulkCheerAction(ids, 'reject', btnEl);
 }
 let _approvedPhotoTeamFilter='';
+let _approvedPhotoSearchQuery='';
 let _approvedPhotoPage=0;
+function matchesApprovedPhotoSearch(p,q){
+  if(!q) return true;
+  const hay=[p.n,p.author,p.team,catLabel[p.cat]||p.cat,photoLabel(p.seqNo)].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
 function changeApprovedPhotoPage(delta){
-  const filtered=_approvedPhotoTeamFilter?approvedPhotosExtra.filter(p=>p.team===_approvedPhotoTeamFilter):approvedPhotosExtra;
+  const filtered=approvedPhotosExtra
+    .filter(p=>!_approvedPhotoTeamFilter||p.team===_approvedPhotoTeamFilter)
+    .filter(p=>matchesApprovedPhotoSearch(p,_approvedPhotoSearchQuery));
   const totalPages=Math.max(1,Math.ceil(filtered.length/ADMIN_PHOTO_PAGE_SIZE));
   _approvedPhotoPage=Math.min(Math.max(0,_approvedPhotoPage+delta),totalPages-1);
   renderApprovedPhotoList();
@@ -4161,20 +4169,31 @@ function onApprovedPhotoTeamFilterChange(sel){
   _approvedPhotoPage=0;
   renderApprovedPhotoList();
 }
+function onApprovedPhotoSearchInput(inputEl){
+  _approvedPhotoSearchQuery=inputEl.value;
+  _approvedPhotoPage=0;
+  const cursorPos=inputEl.selectionStart;
+  renderApprovedPhotoList();
+  const newInput=document.getElementById('approvedPhotoSearchInput');
+  if(newInput){ newInput.focus(); try{ newInput.setSelectionRange(cursorPos,cursorPos); }catch(e){} }
+}
 function renderApprovedPhotoList(){
   const list=document.getElementById('approvedPhotoList');
   if(approvedPhotosExtra.length===0){ _approvedPhotoPage=0; list.innerHTML='<div class="admin-empty">承認済みの投稿写真はまだありません</div>'; return; }
   const teams=[...new Set(approvedPhotosExtra.map(p=>p.team).filter(Boolean))].sort();
-  const filtered=_approvedPhotoTeamFilter?approvedPhotosExtra.filter(p=>p.team===_approvedPhotoTeamFilter):approvedPhotosExtra;
-  let html=`<div style="margin-bottom:.6rem;">
+  const filtered=approvedPhotosExtra
+    .filter(p=>!_approvedPhotoTeamFilter||p.team===_approvedPhotoTeamFilter)
+    .filter(p=>matchesApprovedPhotoSearch(p,_approvedPhotoSearchQuery));
+  let html=`<div style="margin-bottom:.6rem;display:flex;gap:6px;flex-wrap:wrap;">
     <select id="approvedPhotoTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="onApprovedPhotoTeamFilterChange(this)">
       <option value="">チーム：すべて（${approvedPhotosExtra.length}件）</option>
       ${teams.map(t=>`<option value="${esc(t)}" ${t===_approvedPhotoTeamFilter?'selected':''}>${esc(t)}（${approvedPhotosExtra.filter(p=>p.team===t).length}件）</option>`).join('')}
     </select>
+    <input id="approvedPhotoSearchInput" type="text" placeholder="🔍 管理No・タイトル・投稿者・賞名で検索" value="${esc(_approvedPhotoSearchQuery)}" style="flex:1;min-width:160px;font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" oninput="onApprovedPhotoSearchInput(this)">
   </div>`;
   if(filtered.length===0){
     _approvedPhotoPage=0;
-    html+='<div class="admin-empty">該当するチームの承認済み写真はありません</div>';
+    html+='<div class="admin-empty">該当する承認済み写真はありません</div>';
     list.innerHTML=html;
     return;
   }
@@ -4205,37 +4224,73 @@ function renderApprovedPhotoList(){
   html+='</tbody></table>';
   html+=`<div class="pager-bar">
     <button class="pager-btn" ${_approvedPhotoPage<=0?'disabled':''} onclick="changeApprovedPhotoPage(-1)">◀ 前へ</button>
-    <span class="pager-info">${_approvedPhotoPage+1} / ${totalPages} ページ（${_approvedPhotoTeamFilter?filtered.length+'件中':'全'+approvedPhotosExtra.length+'件'}）</span>
+    <span class="pager-info">${_approvedPhotoPage+1} / ${totalPages} ページ（${(_approvedPhotoTeamFilter||_approvedPhotoSearchQuery)?filtered.length+'件中':'全'+approvedPhotosExtra.length+'件'}）</span>
     <button class="pager-btn" ${_approvedPhotoPage>=totalPages-1?'disabled':''} onclick="changeApprovedPhotoPage(1)">次へ ▶</button>
   </div>`;
   list.innerHTML=html;
 }
 /* ---- ベスト9選定 管理UI ---- */
-function renderBestNineAdmin(){
+const BEST9_ADMIN_PAGE_SIZE=10;
+let _bestNineCatFilter=null; // nullなら初回にCATS[0]で初期化
+let _bestNinePage=0;
+function changeBestNinePage(delta){
+  _bestNinePage+=delta;
+  renderBestNineAdmin(true);
+}
+function renderBestNineAdmin(keepPage){
   const list=document.getElementById('bestNineList');
   if(!list) return;
+  if(!keepPage) _bestNinePage=0;
+  if(!_bestNineCatFilter) _bestNineCatFilter=CATS[0][0];
   const selectedCount=Object.keys(bestShots).filter(k=>bestShots[k]).length;
-  list.innerHTML=`<div style="margin-bottom:1rem;padding:.8rem;background:#f0f9f0;border-radius:8px;border:1px solid #b2ddb2;"><b style="color:#276527;">🏆 ベスト9選定状況：${selectedCount} / 9 賞 選定済み</b><span style="font-size:12px;color:#555;display:block;margin-top:2px;">承認済み写真から各賞1枚を選んでください。選定した写真は公開サイトで強調表示されます。</span></div>`;
-  CATS.forEach(([catKey,catName,catIco])=>{
-    const section=document.createElement('div');
-    section.className='best9-section';
-    const bestId=bestShots[catKey];
-    const photos=(approvedPhotosExtra||[]).filter(p=>p.cat===catKey);
-    let headerHtml=`<div class="best9-header"><span class="best9-label">${catIco} ${catName}</span>${bestId?`<span class="best9-status selected">✅ 選定済み</span>`:`<span class="best9-status unselected">未選定</span>`}${bestId?`<button class="best9-clear-btn" onclick="clearBestShot('${catKey}')">解除</button>`:''}</div>`;
-    if(photos.length===0){
-      section.innerHTML=headerHtml+'<div class="best9-empty">この賞の承認済み写真がまだありません</div>';
-    } else {
-      let gridHtml='<div class="best9-grid">';
-      photos.forEach(p=>{
-        const isBest=p._id===bestId;
-        const b9ThumbSrc=(p.thumbSmall&&(p.thumbSmall.startsWith('data:')||p.thumbSmall.startsWith('http')))?p.thumbSmall:p.thumb;
-        gridHtml+=`<div class="best9-photo-card${isBest?' is-best':''}" onclick="setBestShot('${catKey}','${p._id}')"><div class="best9-photo-wrap">${(b9ThumbSrc&&(b9ThumbSrc.startsWith('data:')||b9ThumbSrc.startsWith('http')))?`<img src="${b9ThumbSrc}" class="best9-thumb" onclick="event.stopPropagation();openLightbox('${p.thumb}')">`:'<div class="best9-thumb-placeholder">📷</div>'}</div><div class="best9-photo-info"><div class="best9-photo-name">${p.n||'無題'}</div><div class="best9-photo-meta">チーム：${p.team||'不明'} ／ 👍${p.l||0}</div></div>${isBest?'<div class="best9-crown">🏆 選定中</div>':'<div class="best9-select-hint">タップで選定</div>'}</div>`;
-      });
-      gridHtml+='</div>';
-      section.innerHTML=headerHtml+gridHtml;
-    }
+  const [catKey,catName,catIco]=CATS.find(c=>c[0]===_bestNineCatFilter)||CATS[0];
+  const bestId=bestShots[catKey];
+  let html=`<div style="margin-bottom:1rem;padding:.8rem;background:#f0f9f0;border-radius:8px;border:1px solid #b2ddb2;"><b style="color:#276527;">🏆 ベスト9選定状況：${selectedCount} / 9 賞 選定済み</b><span style="font-size:12px;color:#555;display:block;margin-top:2px;">承認済み写真から各賞1枚を選んでください。選定した写真は公開サイトで強調表示されます。</span></div>`;
+  html+=`<select id="bestNineCatSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;margin-bottom:.7rem;" onchange="_bestNineCatFilter=this.value;renderBestNineAdmin();">
+    ${CATS.map(([k,l,ic])=>{
+      const cnt=(approvedPhotosExtra||[]).filter(p=>p.cat===k).length;
+      const sel=bestShots[k]?'✅':'⬜';
+      return `<option value="${k}" ${k===catKey?'selected':''}>${sel} ${ic} ${l}（${cnt}件）</option>`;
+    }).join('')}
+  </select>`;
+  const section=document.createElement('div');
+  section.className='best9-section';
+  let headerHtml=`<div class="best9-header"><span class="best9-label">${catIco} ${catName}</span>${bestId?`<span class="best9-status selected">✅ 選定済み</span>`:`<span class="best9-status unselected">未選定</span>`}${bestId?`<button class="best9-clear-btn" onclick="clearBestShot('${catKey}')">解除</button>`:''}</div>`;
+  const allPhotos=(approvedPhotosExtra||[]).filter(p=>p.cat===catKey);
+  if(allPhotos.length===0){
+    section.innerHTML=headerHtml+'<div class="best9-empty">この賞の承認済み写真がまだありません</div>';
+    list.innerHTML=html;
     list.appendChild(section);
+    return;
+  }
+  // 選定済み写真を最上位に固定し、比較しやすくする（それ以外はいいね数の多い順）
+  const sortedPhotos=[...allPhotos].sort((a,b)=>{
+    const aBest=a._id===bestId, bBest=b._id===bestId;
+    if(aBest&&!bBest) return -1;
+    if(bBest&&!aBest) return 1;
+    return (b.l||0)-(a.l||0);
   });
+  const totalPages=Math.max(1,Math.ceil(sortedPhotos.length/BEST9_ADMIN_PAGE_SIZE));
+  if(_bestNinePage>totalPages-1) _bestNinePage=totalPages-1;
+  if(_bestNinePage<0) _bestNinePage=0;
+  const pageItems=sortedPhotos.slice(_bestNinePage*BEST9_ADMIN_PAGE_SIZE,_bestNinePage*BEST9_ADMIN_PAGE_SIZE+BEST9_ADMIN_PAGE_SIZE);
+  let gridHtml='<div class="best9-grid">';
+  pageItems.forEach(p=>{
+    const isBest=p._id===bestId;
+    const b9ThumbSrc=(p.thumbSmall&&(p.thumbSmall.startsWith('data:')||p.thumbSmall.startsWith('http')))?p.thumbSmall:p.thumb;
+    gridHtml+=`<div class="best9-photo-card${isBest?' is-best':''}" onclick="setBestShot('${catKey}','${p._id}')"><div class="best9-photo-wrap">${(b9ThumbSrc&&(b9ThumbSrc.startsWith('data:')||b9ThumbSrc.startsWith('http')))?`<img src="${b9ThumbSrc}" class="best9-thumb" onclick="event.stopPropagation();openLightbox('${p.thumb}')">`:'<div class="best9-thumb-placeholder">📷</div>'}</div><div class="best9-photo-info"><div class="best9-photo-name">${p.n||'無題'}</div><div class="best9-photo-meta">チーム：${p.team||'不明'} ／ 👍${p.l||0}</div></div>${isBest?'<div class="best9-crown">🏆 選定中</div>':'<div class="best9-select-hint">タップで選定</div>'}</div>`;
+  });
+  gridHtml+='</div>';
+  if(totalPages>1){
+    gridHtml+=`<div class="pager-bar">
+      <button class="pager-btn" ${_bestNinePage<=0?'disabled':''} onclick="changeBestNinePage(-1)">◀ 前へ</button>
+      <span class="pager-info">${_bestNinePage+1} / ${totalPages} ページ（全${sortedPhotos.length}件）</span>
+      <button class="pager-btn" ${_bestNinePage>=totalPages-1?'disabled':''} onclick="changeBestNinePage(1)">次へ ▶</button>
+    </div>`;
+  }
+  section.innerHTML=headerHtml+gridHtml;
+  list.innerHTML=html;
+  list.appendChild(section);
 }
 async function setBestShot(catKey,photoId){
   try{
@@ -4265,9 +4320,17 @@ function initPhotoPublicUI(){
 }
 
 let _approvedCheerTeamFilter='';
+let _approvedCheerSearchQuery='';
 let _approvedCheerPage=0;
+function matchesApprovedCheerSearch(c,q){
+  if(!q) return true;
+  const hay=[c.name,c.msg,c.from,c.team,msgLabel(c.seqNo)].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
 function changeApprovedCheerPage(delta){
-  const filtered=_approvedCheerTeamFilter?approvedCheersExtra.filter(c=>c.team===_approvedCheerTeamFilter):approvedCheersExtra;
+  const filtered=approvedCheersExtra
+    .filter(c=>!_approvedCheerTeamFilter||c.team===_approvedCheerTeamFilter)
+    .filter(c=>matchesApprovedCheerSearch(c,_approvedCheerSearchQuery));
   const totalPages=Math.max(1,Math.ceil(filtered.length/ADMIN_CHEER_PAGE_SIZE));
   _approvedCheerPage=Math.min(Math.max(0,_approvedCheerPage+delta),totalPages-1);
   renderApprovedCheerList();
@@ -4277,21 +4340,32 @@ function onApprovedCheerTeamFilterChange(sel){
   _approvedCheerPage=0;
   renderApprovedCheerList();
 }
+function onApprovedCheerSearchInput(inputEl){
+  _approvedCheerSearchQuery=inputEl.value;
+  _approvedCheerPage=0;
+  const cursorPos=inputEl.selectionStart;
+  renderApprovedCheerList();
+  const newInput=document.getElementById('approvedCheerSearchInput');
+  if(newInput){ newInput.focus(); try{ newInput.setSelectionRange(cursorPos,cursorPos); }catch(e){} }
+}
 function renderApprovedCheerList(){
   const list=document.getElementById('approvedCheerList');
   if(!list) return;
   if(approvedCheersExtra.length===0){ _approvedCheerPage=0; list.innerHTML='<div class="admin-empty">承認済みのメッセージはまだありません</div>'; return; }
   const teams=[...new Set(approvedCheersExtra.map(c=>c.team).filter(Boolean))].sort();
-  const filtered=_approvedCheerTeamFilter?approvedCheersExtra.filter(c=>c.team===_approvedCheerTeamFilter):approvedCheersExtra;
-  let html=`<div style="margin-bottom:.6rem;">
+  const filtered=approvedCheersExtra
+    .filter(c=>!_approvedCheerTeamFilter||c.team===_approvedCheerTeamFilter)
+    .filter(c=>matchesApprovedCheerSearch(c,_approvedCheerSearchQuery));
+  let html=`<div style="margin-bottom:.6rem;display:flex;gap:6px;flex-wrap:wrap;">
     <select id="approvedCheerTeamFilter" style="font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" onchange="onApprovedCheerTeamFilterChange(this)">
       <option value="">チーム：すべて（${approvedCheersExtra.length}件）</option>
       ${teams.map(t=>`<option value="${esc(t)}" ${t===_approvedCheerTeamFilter?'selected':''}>${esc(t)}（${approvedCheersExtra.filter(c=>c.team===t).length}件）</option>`).join('')}
     </select>
+    <input id="approvedCheerSearchInput" type="text" placeholder="🔍 管理No・名前・本文・チームで検索" value="${esc(_approvedCheerSearchQuery)}" style="flex:1;min-width:160px;font-size:12px;padding:6px 8px;border:1px solid #d8dce8;border-radius:8px;color:#1a3260;" oninput="onApprovedCheerSearchInput(this)">
   </div>`;
   if(filtered.length===0){
     _approvedCheerPage=0;
-    html+='<div class="admin-empty">該当するチームの承認済みメッセージはありません</div>';
+    html+='<div class="admin-empty">該当する承認済みメッセージはありません</div>';
     list.innerHTML=html;
     return;
   }
@@ -4314,7 +4388,7 @@ function renderApprovedCheerList(){
   html+='</tbody></table>';
   html+=`<div class="pager-bar">
     <button class="pager-btn" ${_approvedCheerPage<=0?'disabled':''} onclick="changeApprovedCheerPage(-1)">◀ 前へ</button>
-    <span class="pager-info">${_approvedCheerPage+1} / ${totalPages} ページ（${_approvedCheerTeamFilter?filtered.length+'件中':'全'+approvedCheersExtra.length+'件'}）</span>
+    <span class="pager-info">${_approvedCheerPage+1} / ${totalPages} ページ（${(_approvedCheerTeamFilter||_approvedCheerSearchQuery)?filtered.length+'件中':'全'+approvedCheersExtra.length+'件'}）</span>
     <button class="pager-btn" ${_approvedCheerPage>=totalPages-1?'disabled':''} onclick="changeApprovedCheerPage(1)">次へ ▶</button>
   </div>`;
   list.innerHTML=html;
