@@ -330,6 +330,19 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 .wl{animation:pl 1.4s ease-in-out infinite;}
 /* ===== トーナメント表 ===== */
 .bt-wrap{width:100%;overflow-x:auto;}
+/* ===== リーグ戦：順位表・対戦結果一覧 ===== */
+.league-table-wrap{width:100%;overflow-x:auto;margin-bottom:.8rem;}
+.league-table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px;}
+.league-table th{background:#1a3260;color:#fff;padding:6px 8px;font-weight:600;white-space:nowrap;text-align:center;}
+.league-table td{padding:6px 8px;text-align:center;border-bottom:1px solid #eee;white-space:nowrap;}
+.league-table tbody tr:nth-child(1){background:#fff8e6;}
+.league-team-name{text-align:left!important;font-weight:600;color:#1a3260;}
+.league-rank-input{width:44px;font-size:12px;padding:3px;border:1px solid #ddd;border-radius:6px;text-align:center;}
+.league-match-list{display:flex;flex-direction:column;gap:6px;}
+.league-match-row{display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;background:#f7f8fb;border-radius:8px;padding:6px 10px;}
+.league-match-team{flex:1;text-align:center;color:#333;}
+.league-match-score{font-weight:700;color:#1a3260;min-width:52px;text-align:center;}
+.league-match-pending{color:#aaa;font-size:11px;min-width:52px;text-align:center;}
 .bt-pc{display:flex;flex-direction:row;align-items:flex-start;padding:.8rem 0;gap:0;min-width:max-content;}
 .bt-col{display:flex;flex-direction:column;align-items:stretch;width:110px;flex-shrink:0;}
 .bt-col-label{font-size:10px;color:#888;margin-bottom:8px;text-align:center;font-weight:600;letter-spacing:.05em;}
@@ -1539,11 +1552,21 @@ img{
         <div class="admin-form-title">➕ ブロック作成</div>
         <div class="admin-form-row">
           <input type="text" id="blockName" placeholder="ブロック名（例：Aブロック）" style="flex:1;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
-          <select id="blockTeamCount" style="font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;">
+          <select id="blockFormat" style="font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;" onchange="toggleBlockFormatUI()">
+            <option value="knockout">トーナメント方式</option>
+            <option value="league">リーグ戦（総当たり）</option>
+          </select>
+        </div>
+        <div class="admin-form-row" id="blockKnockoutRow">
+          <select id="blockTeamCount" style="font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;width:100%;">
             <option value="4">4チーム</option>
             <option value="8">8チーム</option>
             <option value="16">16チーム</option>
           </select>
+        </div>
+        <div id="blockLeagueRow" style="display:none;">
+          <textarea id="blockLeagueTeams" placeholder="チーム名を1行に1つずつ入力（例：&#10;東岐波A&#10;東岐波B&#10;〇〇クラブ）" style="width:100%;box-sizing:border-box;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:8px;min-height:90px;resize:vertical;"></textarea>
+          <div style="font-size:11px;color:#888;margin-top:4px;">3チーム以上を入力してください。総当たりの対戦カードを自動で作成します。</div>
         </div>
         <button class="ubtn" onclick="createBlock()">ブロックを作成</button>
         <div id="blockCreateStatus" style="font-size:12px;color:#666;margin-top:.5rem;"></div>
@@ -5905,21 +5928,61 @@ async function addGame(){
 }
 
 /* -- トーナメントブロック管理 -- */
+function toggleBlockFormatUI(){
+  const format=document.getElementById('blockFormat').value;
+  document.getElementById('blockKnockoutRow').style.display=(format==='league')?'none':'flex';
+  document.getElementById('blockLeagueRow').style.display=(format==='league')?'block':'none';
+}
+
 async function createBlock(){
   const name=document.getElementById('blockName').value.trim();
-  const teamCount=parseInt(document.getElementById('blockTeamCount').value);
+  const format=document.getElementById('blockFormat').value;
   const status=document.getElementById('blockCreateStatus');
   if(!name){status.textContent='ブロック名を入力してください';return;}
+
+  let bracket;
+  if(format==='league'){
+    const teams=document.getElementById('blockLeagueTeams').value
+      .split('\n').map(t=>t.trim()).filter(Boolean);
+    if(teams.length<3){status.textContent='チーム名を3つ以上、1行に1つずつ入力してください';return;}
+    if(new Set(teams).size!==teams.length){status.textContent='チーム名が重複しています';return;}
+    bracket=generateLeagueMatches(teams);
+  } else {
+    const teamCount=parseInt(document.getElementById('blockTeamCount').value);
+    bracket=generateBracket(teamCount);
+  }
+
   try{
-    const bracket=generateBracket(teamCount);
     const id='block_'+Date.now();
-    const {error}=await sb.from('tournament_blocks').insert({id,name,sort_order:BLOCKS.length,bracket:JSON.stringify(bracket)});
-    if(error){status.textContent='エラー:'+error.message;return;}
+    const {error}=await sb.from('tournament_blocks').insert({id,name,sort_order:BLOCKS.length,format,bracket:JSON.stringify(bracket)});
+    if(error){
+      status.textContent=/format/i.test(error.message||'')
+        ? 'エラー：Supabase側にformat列がまだ追加されていません（SQLの実行が必要です）'
+        : 'エラー:'+error.message;
+      return;
+    }
     status.textContent='✅ 作成しました';
     document.getElementById('blockName').value='';
+    document.getElementById('blockLeagueTeams').value='';
     await loadBlocksFromSupabase();
     setTimeout(()=>{status.textContent='';},2000);
   } catch(e){ status.textContent='❌ エラーが発生しました'; console.error(e); }
+}
+
+// リーグ戦（総当たり）の対戦カードを自動生成する。
+// 表示・スコア入力の仕組みをトーナメント方式と共通化するため、
+// 既存のbracket構造（[{round, matches:[{id,top,bottom,topFirst}]}]）をそのまま使い、
+// 「総当たり」という1つのroundに全対戦カードをまとめる形にする。
+function generateLeagueMatches(teams){
+  const matches=[];
+  let idx=0;
+  for(let i=0;i<teams.length;i++){
+    for(let j=i+1;j<teams.length;j++){
+      matches.push({id:`lg_${idx}`,top:teams[i],bottom:teams[j],topFirst:true});
+      idx++;
+    }
+  }
+  return [{round:'総当たり',matches}];
 }
 
 function generateBracket(n){
@@ -5953,18 +6016,103 @@ function renderBlockAdminList(){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem;">ブロックがまだありません</div>';
     return;
   }
-  el.innerHTML=BLOCKS.map(b=>`
+  el.innerHTML=BLOCKS.map(b=>{
+    const isLeague=b.format==='league';
+    return `
     <div style="border:1px solid #e0e2ea;border-radius:10px;margin-bottom:14px;overflow:hidden;">
       <div style="background:#1a3260;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
-        <span>🏟 ${b.name}</span>
-        <button onclick="deleteBlock('${b.id}')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button>
+        <span>${isLeague?'📊':'🏟'} ${esc(b.name)}${isLeague?'<span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.2);border-radius:999px;padding:2px 8px;margin-left:6px;">リーグ戦</span>':''}</span>
+        <button onclick="deleteBlock('${esc(b.id)}')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button>
       </div>
       <div style="padding:10px 12px;">
-        <div style="font-size:11px;color:#888;margin-bottom:6px;">チーム名をタップして直接編集できます</div>
-        ${renderBlockTournament(b, true)}
+        ${isLeague
+          ? `<div style="font-size:11px;color:#888;margin-bottom:6px;">同勝ち点の場合は「手動順位」に数字を入力すると順位を固定できます（未入力は自動順）</div>${renderLeagueStandings(b, true)}`
+          : `<div style="font-size:11px;color:#888;margin-bottom:6px;">チーム名をタップして直接編集できます</div>${renderBlockTournament(b, true)}`}
       </div>
     </div>
-  `).join('');
+  `;}).join('');
+}
+
+// ---- リーグ戦（総当たり）：順位表・対戦結果一覧 ----
+function computeLeagueStandings(block){
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const roundObj=bracket[0]||{matches:[]};
+  const matches=roundObj.matches||[];
+  const manualRanks=roundObj.manualRanks||{};
+  const blockGames=GAMES.filter(g=>g.block_id===block.id);
+  const order=[]; // 初出順（表示の基本順）
+  matches.forEach(m=>{
+    if(!order.includes(m.top)) order.push(m.top);
+    if(!order.includes(m.bottom)) order.push(m.bottom);
+  });
+  const stats={};
+  order.forEach(t=>{ stats[t]={team:t,played:0,win:0,lose:0,draw:0,rs:0,ra:0}; });
+  matches.forEach(m=>{
+    const game=blockGames.find(g=>g.match_id===m.id);
+    if(!game||!game.scoreA||!game.scoreA.length||!game.scoreB||!game.scoreB.length) return; // 未実施の対戦は集計対象外
+    const totalA=sumInnings(game.scoreA), totalB=sumInnings(game.scoreB);
+    stats[m.top].played++; stats[m.bottom].played++;
+    stats[m.top].rs+=totalA; stats[m.top].ra+=totalB;
+    stats[m.bottom].rs+=totalB; stats[m.bottom].ra+=totalA;
+    if(totalA>totalB){ stats[m.top].win++; stats[m.bottom].lose++; }
+    else if(totalB>totalA){ stats[m.bottom].win++; stats[m.top].lose++; }
+    else { stats[m.top].draw++; stats[m.bottom].draw++; }
+  });
+  const list=order.map(t=>stats[t]);
+  // 自動順：勝数の多い順→得失点差の多い順
+  list.sort((a,b)=>(b.win-a.win)||((b.rs-b.ra)-(a.rs-a.ra)));
+  // 手動順位が設定されているチームはそれを優先。未設定チームは自動順のまま後ろに続く。
+  list.forEach((row,autoIdx)=>{ row._sortKey=(manualRanks[row.team]!=null&&manualRanks[row.team]!=='')?Number(manualRanks[row.team]):(9000+autoIdx); });
+  list.sort((a,b)=>a._sortKey-b._sortKey);
+  list.forEach((row,i)=>{ row.rank=i+1; row.manualRank=manualRanks[row.team]!=null?manualRanks[row.team]:''; });
+  return list;
+}
+
+async function saveLeagueManualRank(blockId, team, val){
+  try{
+    const block=BLOCKS.find(b=>b.id===blockId);
+    if(!block) return;
+    const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+    if(!bracket[0].manualRanks) bracket[0].manualRanks={};
+    if(val===''||val==null){ delete bracket[0].manualRanks[team]; }
+    else { bracket[0].manualRanks[team]=val; }
+    block.bracket=bracket;
+    const {error}=await sb.from('tournament_blocks').update({bracket:JSON.stringify(bracket)}).eq('id',blockId);
+    if(error){ console.error('手動順位の保存に失敗:',error.message); return; }
+    renderBlockAdminList();
+  } catch(e){ console.error('saveLeagueManualRank例外:',e); }
+}
+
+function renderLeagueStandings(block, editable){
+  const standings=computeLeagueStandings(block);
+  const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+  const matches=(bracket[0]&&bracket[0].matches)||[];
+  const blockGames=GAMES.filter(g=>g.block_id===block.id);
+
+  let html='<div class="league-table-wrap"><table class="league-table"><thead><tr>';
+  html+='<th>順位</th><th>チーム</th><th>試合</th><th>勝</th><th>敗</th><th>分</th><th>得点</th><th>失点</th><th>得失点差</th>';
+  if(editable) html+='<th>手動順位</th>';
+  html+='</tr></thead><tbody>';
+  standings.forEach(row=>{
+    html+=`<tr><td>${row.rank}</td><td class="league-team-name">${esc(row.team)}</td><td>${row.played}</td><td>${row.win}</td><td>${row.lose}</td><td>${row.draw}</td><td>${row.rs}</td><td>${row.ra}</td><td>${row.rs-row.ra>0?'+':''}${row.rs-row.ra}</td>`;
+    if(editable){
+      html+=`<td><input type="number" class="league-rank-input" value="${esc(row.manualRank)}" placeholder="自動" onchange="saveLeagueManualRank('${esc(block.id)}','${esc(row.team)}',this.value)"></td>`;
+    }
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  html+='<div class="league-match-list">';
+  matches.forEach(m=>{
+    const game=blockGames.find(g=>g.match_id===m.id);
+    const done=game&&game.scoreA&&game.scoreA.length&&game.scoreB&&game.scoreB.length;
+    const totalA=done?sumInnings(game.scoreA):null;
+    const totalB=done?sumInnings(game.scoreB):null;
+    const scoreStr=done?`<span class="league-match-score">${totalA} - ${totalB}</span>`:'<span class="league-match-pending">未実施</span>';
+    html+=`<div class="league-match-row"><span class="league-match-team">${esc(m.top)}</span>${scoreStr}<span class="league-match-team">${esc(m.bottom)}</span></div>`;
+  });
+  html+='</div>';
+  return html;
 }
 
 function renderBlockTournament(block, editable=false){
@@ -6308,12 +6456,14 @@ function renderAllTournamentBlocks(){
     el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:1rem 0;">トーナメント表はまだ作成されていません</div>';
     return;
   }
-  el.innerHTML=BLOCKS.map(b=>`
+  el.innerHTML=BLOCKS.map(b=>{
+    const isLeague=b.format==='league';
+    return `
     <div style="margin-bottom:1.5rem;">
-      <div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.6rem;padding-left:4px;">🏟 ${b.name}</div>
-      ${renderBlockTournament(b,false)}
+      <div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.6rem;padding-left:4px;">${isLeague?'📊':'🏟'} ${esc(b.name)}</div>
+      ${isLeague?renderLeagueStandings(b,false):renderBlockTournament(b,false)}
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 async function autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB){
