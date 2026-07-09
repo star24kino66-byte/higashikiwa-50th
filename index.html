@@ -1450,7 +1450,7 @@ img{
     <div class="admin-tabs">
       <div class="admin-tab-group"><span class="admin-tab-group-label">📷 フォトベスト9</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingPhotos')">未承認写真 <span class="pending-count" id="photoCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedPhotos')">承認済写真</button><button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">💬 応援メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button></div></div>
-      <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合・トーナメント</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合管理</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント管理</button></div></div>
+      <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合管理</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合結果入力</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント・リーグ戦設定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手登録</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">⚙️ 大会設定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚙️ サイト設定</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button></div></div>
@@ -1545,8 +1545,7 @@ img{
       <div id="donorAdminList"></div>
     </div>
 
-    <!-- 試合管理 -->
-    <!-- トーナメント管理 -->
+    <!-- トーナメント・リーグ戦設定 -->
     <div class="admin-section" id="tournamentAdmin">
       <div class="admin-form-card">
         <div class="admin-form-title">➕ ブロック作成</div>
@@ -1575,7 +1574,7 @@ img{
       <div id="blockAdminList"></div>
     </div>
 
-    <!-- 試合管理 -->
+    <!-- 試合結果入力 -->
     <div class="admin-section" id="gameAdmin">
 
       <!-- 試合追加フォーム -->
