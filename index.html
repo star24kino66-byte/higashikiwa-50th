@@ -3343,11 +3343,13 @@ function renderGamesModalBlock(blockId){
   if(tWrap){
     if(blockId){
       const block=BLOCKS.find(b=>b.id===blockId);
-      tWrap.innerHTML=`<div style="font-size:12px;font-weight:700;color:#c9a227;margin-bottom:8px;">🏆 トーナメント表</div>
+      const isLeague=block&&block.format==='league';
+      tWrap.innerHTML=`<div style="font-size:12px;font-weight:700;color:#c9a227;margin-bottom:8px;">${isLeague?'📊 順位表':'🏆 トーナメント表'}</div>
         <div id="modalTournamentView"></div>`;
       if(block){
         const tv=document.getElementById('modalTournamentView');
-        if(tv) tv.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.4rem;">🏟 ${esc(block.name)}</div>`+renderBlockTournament(block,false);
+        const icon=isLeague?'📊':'🏟';
+        if(tv) tv.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1a3260;margin-bottom:.4rem;">${icon} ${esc(block.name)}</div>`+(isLeague?renderLeagueStandings(block,false):renderBlockTournament(block,false));
       }
     } else {
       tWrap.innerHTML='';
@@ -5836,7 +5838,6 @@ function setGameFormMode(mode, g=null){
     if(btn) btn.textContent='上書き保存';
     if(cancelBtn) cancelBtn.style.display='block';
     // フォームに値を展開
-    document.getElementById('gRound').value=g.round||'1回戦';
     // 日付を YYYY-MM-DD 形式に変換してセット
     if(g.date){
       const m=g.date.match(/(\d+)年(\d+)月(\d+)日/);
@@ -5850,7 +5851,7 @@ function setGameFormMode(mode, g=null){
     if(document.getElementById('gStatus')) document.getElementById('gStatus').value=g.status||'live';
     if(document.getElementById('gBlock')&&g.block_id){
       document.getElementById('gBlock').value=g.block_id;
-      onBlockChange();
+      onBlockChange(); // ブロックの形式（トーナメント/リーグ戦）に応じてラウンド選択肢を再構築する
       if(g.match_id&&document.getElementById('gMatch')){
         const matchSel=document.getElementById('gMatch');
         for(let opt of matchSel.options){
@@ -5858,6 +5859,9 @@ function setGameFormMode(mode, g=null){
         }
       }
     }
+    // ラウンド選択肢の再構築（onBlockChange）が終わった後に値を設定する
+    // （先に設定すると再構築で上書きされてしまうため）
+    document.getElementById('gRound').value=g.round||'1回戦';
     _editingGameId=g.id;
     // フォームまでスクロール
     document.getElementById('gameFormTitle').scrollIntoView({behavior:'smooth',block:'start'});
@@ -6404,24 +6408,39 @@ function populateBlockSelect(){
   if(cur) sel.value=cur;
 }
 
+// トーナメント方式の「ラウンド」選択肢（固定）
+const KNOCKOUT_ROUND_OPTIONS='<option value="1回戦">1回戦</option><option value="2回戦">2回戦</option><option value="準々決勝">準々決勝</option><option value="準決勝">準決勝</option><option value="決勝">決勝</option>';
+
 function onBlockChange(){
   const blockId=document.getElementById('gBlock').value;
   const matchSel=document.getElementById('gMatch');
   const firstBatRow=document.getElementById('firstBatRow');
+  const roundSel=document.getElementById('gRound');
   matchSel.innerHTML='<option value="">対戦カードを選択</option>';
   firstBatRow.style.display='none';
-  if(!blockId) return;
+  if(!blockId){ roundSel.innerHTML=KNOCKOUT_ROUND_OPTIONS; return; }
   const block=BLOCKS.find(b=>b.id===blockId);
   if(!block) return;
+  const isLeague=block.format==='league';
   const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
   const blockGames=GAMES.filter(g=>g.block_id===blockId);
+
+  // リーグ戦は「N回戦」ではなく「N試合目」の通し番号にする
+  if(isLeague){
+    const total=(bracket[0]&&bracket[0].matches?bracket[0].matches.length:0);
+    roundSel.innerHTML=Array.from({length:total},(_,i)=>`<option value="${i+1}試合目">${i+1}試合目</option>`).join('');
+  } else {
+    roundSel.innerHTML=KNOCKOUT_ROUND_OPTIONS;
+  }
+
   bracket.forEach(r=>{
     r.matches.forEach((m,mi)=>{
       const top=m.top||'（未定）';
       const bottom=m.bottom||'（未定）';
       const existingGame=blockGames.find(g=>g.match_id===m.id);
       const statusMark=existingGame?(existingGame.status==='done'?'✅ ':'📡 '):'';
-      matchSel.innerHTML+=`<option value="${esc(r.round)}__${mi}__${esc(m.id)}">${statusMark}${esc(r.round)}：${esc(top)} vs ${esc(bottom)}</option>`;
+      const label=isLeague?`${mi+1}試合目`:r.round;
+      matchSel.innerHTML+=`<option value="${esc(r.round)}__${mi}__${esc(m.id)}">${statusMark}${esc(label)}：${esc(top)} vs ${esc(bottom)}</option>`;
     });
   });
 }
@@ -6434,13 +6453,14 @@ function onMatchChange(){
   const [round,matchIdx]=matchVal.split('__');
   const block=BLOCKS.find(b=>b.id===blockId);
   if(!block) return;
+  const isLeague=block.format==='league';
   const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
   const r=bracket.find(r=>r.round===round);
   if(!r) return;
   const m=r.matches[parseInt(matchIdx)];
   document.getElementById('gTeamA').value=m.top||'';
   document.getElementById('gTeamB').value=m.bottom||'';
-  document.getElementById('gRound').value=round;
+  document.getElementById('gRound').value=isLeague?`${parseInt(matchIdx)+1}試合目`:round;
   const firstBatSel=document.getElementById('gFirstBat');
   firstBatSel.innerHTML=
     `<option value="A">${m.top||'チームA（上）'}（先攻）</option>`+
