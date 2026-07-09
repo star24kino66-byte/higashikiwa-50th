@@ -429,6 +429,8 @@ img.clickable-photo{cursor:zoom-in;}
 
 /* SUBMIT SUCCESS */
 .submit-success{visibility:hidden;opacity:0;background:#eef9f0;border:1px solid #5cb87a;border-radius:10px;padding:.9rem 1rem;font-size:13px;color:#1a5c2e;font-weight:600;text-align:center;margin-top:.5rem;transition:opacity .3s;}
+/* SUBMIT ERROR：alert()が機能しないアプリ内ブラウザ（LINE/Yahoo!等）でも確実に見えるよう画面内に表示 */
+.submit-error{visibility:hidden;opacity:0;background:#fdecec;border:1px solid #d9534f;border-radius:10px;padding:.9rem 1rem;font-size:13px;color:#a12622;font-weight:600;text-align:center;margin-top:.5rem;transition:opacity .3s;}
 
 /* ADMIN PANEL */
 .admin-entry{background:#f0f1f5;border-radius:10px;padding:.7rem 1rem;margin-bottom:.6rem;cursor:pointer;text-align:center;font-size:13px;color:#666;}
@@ -1053,6 +1055,7 @@ img{
         </div>
         <button class="ubtn" onclick="submitCheer()">送信する</button>
         <div class="submit-success" id="cheerSuccess">✅ メッセージを受け付けました！確認後、掲載いたします。</div>
+        <div class="submit-error" id="cheerError"></div>
       </div>
     </div>
   </div>
@@ -1121,6 +1124,7 @@ img{
       </div>
       <button class="ubtn" onclick="submitEntry()">投稿する</button>
       <div class="submit-success" id="submitSuccess">✅ 投稿を受け付けました！確認後、掲載いたします。</div>
+      <div class="submit-error" id="submitError"></div>
     </div>
   </div>
   </div><!-- /photoInPeriod -->
@@ -3599,8 +3603,22 @@ function fileToDataURL(file){
   });
 }
 
+// alert()を抑制するアプリ内ブラウザ（LINE/Yahoo!等のWebView）でも確実に伝わるよう、
+// 画面内に一定時間メッセージを表示する（成功表示と同じ仕組みのエラー版）
+function showInlineMsg(elId, msg){
+  const el=document.getElementById(elId);
+  if(!el){ alert(msg); return; } // 該当要素が無い画面ではフォールバックとしてalertを使う
+  el.textContent=msg;
+  el.style.visibility='visible'; el.style.opacity='1';
+  if(el._hideTimer) clearTimeout(el._hideTimer);
+  el._hideTimer=setTimeout(()=>{
+    el.style.opacity='0';
+    setTimeout(()=>{ el.style.visibility='hidden'; },300);
+  },5000);
+}
+
 async function submitEntry(){
-  if(!isInPeriod('photo')){ alert('現在は投稿受付期間外です。'); checkPeriods(); return; }
+  if(!isInPeriod('photo')){ showInlineMsg('submitError','現在は投稿受付期間外です。'); checkPeriods(); return; }
   const cat=document.getElementById('submitCat').value;
   const title=document.getElementById('submitTitle').value.trim();
   const author=document.getElementById('submitName').value.trim();
@@ -3611,17 +3629,17 @@ async function submitEntry(){
   const playerName=(!rawPlayer||rawPlayer==='_team_')?'（チーム全体）':rawPlayer;
   const fileInput=document.getElementById('submitFile');
 
-  if(!team){ alert('対象チームを選択してください'); return; }
-  if(!title){ alert('写真のタイトルを入力してください'); return; }
-  if(title.length>15){ alert('写真のタイトルは15文字以内で入力してください'); return; }
-  if(!author){ alert('投稿者のお名前を入力してください'); return; }
-  if(!_pendingSubmitPhotoBlob){ alert('写真を選択してください'); return; }
+  if(!team){ showInlineMsg('submitError','対象チームを選択してください'); return; }
+  if(!title){ showInlineMsg('submitError','写真のタイトルを入力してください'); return; }
+  if(title.length>15){ showInlineMsg('submitError','写真のタイトルは15文字以内で入力してください'); return; }
+  if(!author){ showInlineMsg('submitError','投稿者のお名前を入力してください'); return; }
+  if(!_pendingSubmitPhotoBlob){ showInlineMsg('submitError','写真を選択してください'); return; }
 
   // スパム・連打対策：直近の投稿から一定時間は再投稿不可
   const photoCdKey='photoLastSubmitAt';
   const photoCdRemain=getSubmitCooldownRemain(photoCdKey);
   if(photoCdRemain>0){
-    alert(`連続投稿はできません。あと${Math.ceil(photoCdRemain/1000)}秒お待ちください。`);
+    showInlineMsg('submitError',`連続投稿はできません。あと${Math.ceil(photoCdRemain/1000)}秒お待ちください。`);
     return;
   }
 
@@ -3635,12 +3653,12 @@ async function submitEntry(){
 
     // 画像ファイルがある場合はStorageにアップロード（切り取り済みBlobを使用）
     if(_pendingSubmitPhotoBlob){
-      if(_pendingSubmitPhotoBlob.size>10*1024*1024){ alert('画像サイズは10MB以下にしてください'); return; }
+      if(_pendingSubmitPhotoBlob.size>10*1024*1024){ showInlineMsg('submitError','画像サイズは10MB以下にしてください'); return; }
       const filePath=newId+'.jpg';
       const {error:upErr}=await withTimeout(sb.storage.from('photos').upload(filePath, _pendingSubmitPhotoBlob, {
         contentType: 'image/jpeg', upsert: false
       }), 15000);
-      if(upErr){ alert('画像のアップロードに失敗しました：'+upErr.message); return; }
+      if(upErr){ showInlineMsg('submitError','画像のアップロードに失敗しました：'+upErr.message); return; }
       const {data:urlData}=sb.storage.from('photos').getPublicUrl(filePath);
       imageUrl=urlData.publicUrl;
 
@@ -3676,7 +3694,7 @@ async function submitEntry(){
         image_url:imageUrl
       }), 8000));
     }
-    if(dbErr){ alert('投稿の保存に失敗しました：'+friendlyErrorMessage(dbErr)); return; }
+    if(dbErr){ showInlineMsg('submitError','投稿の保存に失敗しました：'+friendlyErrorMessage(dbErr)); return; }
     markSubmitCooldown(photoCdKey);
 
     // フォームリセット
@@ -3697,7 +3715,7 @@ async function submitEntry(){
     await loadPhotosFromSupabase();
     renderAdminCounts();
   } catch(e){
-    alert(friendlyErrorMessage(e));
+    showInlineMsg('submitError',friendlyErrorMessage(e));
   } finally{
     if(btn){ btn.disabled=false; btn.textContent='投稿する'; }
   }
@@ -3861,7 +3879,7 @@ async function uploadRosterPhoto(){
 }
 
 async function submitCheer(){
-  if(!isInPeriod('cheer')){ alert('現在は投稿受付期間外です。'); checkPeriods(); return; }
+  if(!isInPeriod('cheer')){ showInlineMsg('cheerError','現在は投稿受付期間外です。'); checkPeriods(); return; }
   const teamSel=document.getElementById('cheerTeam');
   const playerSel=document.getElementById('cheerPlayer');
   const fromName=document.getElementById('cheerFrom').value.trim();
@@ -3872,15 +3890,15 @@ async function submitCheer(){
   const playerId=(playerVal&&playerVal!=='_team_')?playerVal:null;
   const playerDisplayName=selectedOpt&&selectedOpt.dataset.name?selectedOpt.dataset.name:playerVal;
 
-  if(!teamName||!fromName||!msg){ alert('チーム・お名前・メッセージを入力してください'); return; }
-  if(msg.length>50){ alert('応援メッセージは50文字以内で入力してください'); return; }
+  if(!teamName||!fromName||!msg){ showInlineMsg('cheerError','チーム・お名前・メッセージを入力してください'); return; }
+  if(msg.length>50){ showInlineMsg('cheerError','応援メッセージは50文字以内で入力してください'); return; }
   const targetName=(!playerVal||playerVal==='_team_')?'（チーム全体）':playerDisplayName;
 
   // スパム・連打対策：直近の投稿から一定時間は再投稿不可
   const cheerCdKey='cheerLastSubmitAt';
   const cheerCdRemain=getSubmitCooldownRemain(cheerCdKey);
   if(cheerCdRemain>0){
-    alert(`連続投稿はできません。あと${Math.ceil(cheerCdRemain/1000)}秒お待ちください。`);
+    showInlineMsg('cheerError',`連続投稿はできません。あと${Math.ceil(cheerCdRemain/1000)}秒お待ちください。`);
     return;
   }
 
@@ -3903,7 +3921,7 @@ async function submitCheer(){
       delete payload.player_id;
       ({error}=await withTimeout(sb.from('messages').insert(payload), 8000));
     }
-    if(error){ alert('送信に失敗しました：'+friendlyErrorMessage(error)); return; }
+    if(error){ showInlineMsg('cheerError','送信に失敗しました：'+friendlyErrorMessage(error)); return; }
     markSubmitCooldown(cheerCdKey);
 
     if(teamSel){ teamSel.value=''; }
@@ -3916,7 +3934,7 @@ async function submitCheer(){
     await loadCheersFromSupabase();
     renderAdminCounts();
   } catch(e){
-    alert(friendlyErrorMessage(e));
+    showInlineMsg('cheerError',friendlyErrorMessage(e));
   } finally{
     if(btn){ btn.disabled=false; btn.textContent='送信する'; }
   }
@@ -4827,6 +4845,9 @@ function renderAlbumAdmin(){
     mergeApproved(); rp(ct); rebuildCheerRows(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); updateDashboard();
     // 選手カードに表示中の応援メッセージも最新化（開いたまま新着承認があっても反映されるように）
     if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
+    // 全件一覧モーダルを開いたままでも、裏側のデータ変化（取下など）に追随させる
+    if(currentModalType==='cheer') renderCheerModalList(true);
+    if(currentModalType==='photo') renderPhotoModalList(true);
   }
   function _refreshAdmin(){
     renderAdminCounts(); renderAdminAll(); renderDonationAdmin(); startSpBanner();
@@ -4853,6 +4874,7 @@ function renderAlbumAdmin(){
   const _scheduleMessagesSync=_makeBurstSync(async()=>{
     await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
     if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
+    if(currentModalType==='cheer') renderCheerModalList(true);
   });
   const _schedulePhotosSync=_makeBurstSync(async()=>{
     await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
