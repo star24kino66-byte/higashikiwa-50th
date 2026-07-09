@@ -2658,7 +2658,7 @@ function renderInfoImages(){
     }else{
       if(pubWrap) pubWrap.style.display='';
       pubGrid.innerHTML=INFO_IMAGES.map(img=>`<div style="width:140px;">
-        <img src="${img.url}" class="clickable-photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e5e5e5;display:block;" onclick="openLightbox('${img.url}')">
+        <img src="${esc(img.url)}" class="clickable-photo" style="width:140px;height:140px;object-fit:cover;border-radius:8px;border:1px solid #e5e5e5;display:block;" onclick="openLightbox(this.src)">
         ${img.title?`<div style="font-size:11px;color:#555;text-align:center;margin-top:4px;line-height:1.3;">${esc(img.title)}</div>`:''}
       </div>`).join('');
     }
@@ -2668,9 +2668,9 @@ function renderInfoImages(){
   if(adminCount) adminCount.textContent=`${INFO_IMAGES.length}/${INFO_IMAGES_MAX}`;
   if(adminList){
     adminList.innerHTML=INFO_IMAGES.map(img=>`<div style="position:relative;display:inline-block;margin:0 6px 10px 0;width:80px;vertical-align:top;">
-      <img src="${img.url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;display:block;">
-      <span onclick="deleteInfoImage('${img.id}')" style="position:absolute;top:-6px;right:-6px;background:#c8273c;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</span>
-      <span onclick="editInfoImageTitle('${img.id}')" style="position:absolute;top:-6px;left:-6px;background:#1a3260;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✎</span>
+      <img src="${esc(img.url)}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;display:block;">
+      <span onclick="deleteInfoImage('${esc(img.id)}')" style="position:absolute;top:-6px;right:-6px;background:#c8273c;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✕</span>
+      <span onclick="editInfoImageTitle('${esc(img.id)}')" style="position:absolute;top:-6px;left:-6px;background:#1a3260;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;">✎</span>
       <div style="font-size:10px;color:#666;text-align:center;margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${img.title?esc(img.title):'（タイトル未設定）'}</div>
     </div>`).join('');
   }
@@ -2881,14 +2881,6 @@ const PH={
     {e:'🦋',n:'花道を駆け抜ける',l:5},{e:'🎠',n:'みんなで集合写真',l:23},{e:'🌻',n:'笑顔の交流戦',l:19},
     {e:'😍',n:'表彰式の笑顔',l:13},{e:'🍙',n:'試合後のおにぎり',l:8},{e:'🌸',n:'春の開幕戦',l:17},
     {e:'😊',n:'感謝の一礼',l:22},{e:'🎵',n:'仲間と歌う',l:12},
-  ],
-  cool:[
-    {e:'😎',n:'打席の表情',l:14},{e:'🔥',n:'気迫の投球',l:11},{e:'🏃',n:'ホームイン！',l:7},
-    {e:'⚡',n:'決死のスライディング',l:20},{e:'🦅',n:'鋭い眼差し',l:16},{e:'💣',n:'快速球を投げる',l:3},
-    {e:'🗡️',n:'バット一閃',l:25},{e:'🌪',n:'旋風のような走塁',l:10},{e:'🎖️',n:'勝利をつかみ取る',l:18},
-    {e:'😤',n:'負けられない一球',l:13},{e:'🔱',n:'守護者の守備',l:8},{e:'🌊',n:'逆転の大波',l:21},
-    {e:'⚔️',n:'エースの魂',l:15},{e:'🏹',n:'精度の送球',l:6},{e:'🗡️',n:'切れ込む変化球',l:24},
-    {e:'😎',n:'マウンドの孤高',l:19},{e:'🔥',n:'炎の打線',l:11},
   ]
 };
 let liked={},ct=CATS[0][0];
@@ -3188,11 +3180,18 @@ function renderSpThresholdAdmin(){
 
 // 選手個人あての応援メッセージを全件ポップアップ表示（選手カードには1件のみ表示のため）
 let _modalCheerTeamFilter='';
-function renderCheerModalList(){
+const MODAL_CHEER_PAGE_SIZE=10;
+let _modalCheerPage=0;
+function changeModalCheerPage(delta){
+  _modalCheerPage+=delta;
+  renderCheerModalList(true);
+}
+function renderCheerModalList(keepPage){
+  if(!keepPage) _modalCheerPage=0;
   const list=document.getElementById('modalList');
   const title=document.getElementById('modalTitle');
   const teams=[...new Set(CHEERS.map(c=>c.team).filter(Boolean))].sort();
-  const filtered=_modalCheerTeamFilter?CHEERS.filter(c=>c.team===_modalCheerTeamFilter):CHEERS;
+  const filtered=(_modalCheerTeamFilter?CHEERS.filter(c=>c.team===_modalCheerTeamFilter):CHEERS).slice().reverse();
   title.textContent='応援メッセージ 一覧（全'+CHEERS.length+'件）';
   let html=`<div style="margin-bottom:10px;">
     <select id="modalCheerTeamSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;" onchange="_modalCheerTeamFilter=this.value;renderCheerModalList();">
@@ -3202,10 +3201,22 @@ function renderCheerModalList(){
   </div>`;
   if(filtered.length===0){
     html+='<div style="text-align:center;color:#999;font-size:13px;padding:1rem 0;">該当するメッセージはありません</div>';
-  } else {
-    filtered.slice().reverse().forEach(c=>{
-      html+=`<div class="modal-row"><div class="cheer-to">${msgLabel(c.seqNo)?`<span class="row-no">${msgLabel(c.seqNo)}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${esc(c.msg)}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div></div>`;
-    });
+    list.innerHTML=html;
+    return;
+  }
+  const totalPages=Math.max(1,Math.ceil(filtered.length/MODAL_CHEER_PAGE_SIZE));
+  if(_modalCheerPage>totalPages-1) _modalCheerPage=totalPages-1;
+  if(_modalCheerPage<0) _modalCheerPage=0;
+  const pageItems=filtered.slice(_modalCheerPage*MODAL_CHEER_PAGE_SIZE,_modalCheerPage*MODAL_CHEER_PAGE_SIZE+MODAL_CHEER_PAGE_SIZE);
+  pageItems.forEach(c=>{
+    html+=`<div class="modal-row"><div class="cheer-to">${msgLabel(c.seqNo)?`<span class="row-no">${msgLabel(c.seqNo)}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg" style="margin-top:3px;">${esc(c.msg)}</div><div class="cheer-from" style="text-align:left;margin-top:3px;">${esc(c.from)}より</div></div>`;
+  });
+  if(totalPages>1){
+    html+=`<div class="pager-bar">
+      <button class="pager-btn" ${_modalCheerPage<=0?'disabled':''} onclick="changeModalCheerPage(-1)">◀ 前へ</button>
+      <span class="pager-info">${_modalCheerPage+1} / ${totalPages} ページ（全${filtered.length}件）</span>
+      <button class="pager-btn" ${_modalCheerPage>=totalPages-1?'disabled':''} onclick="changeModalCheerPage(1)">次へ ▶</button>
+    </div>`;
   }
   list.innerHTML=html;
 }
@@ -3523,10 +3534,12 @@ function mergeApproved(){
   Object.entries(PH).forEach(([tab,photos])=>{
     photos.forEach((ph,i)=>{ if(ph._id&&likedIds.includes(ph._id)) liked[tab+'_'+i]=true; });
   });
+  // CHEERSもPHと同様、approvedCheersExtra（DBの現在の承認済み状態）から毎回まるごと再構築する。
+  // こうすることで、他端末での取り下げ（unpublishCheer）が承認済み一覧から消えたことも
+  // 自動的に反映される（追記のみだと取り下げ後も表示され続けてしまう不具合の対策）。
+  CHEERS.length=0;
   approvedCheersExtra.forEach(c=>{
-    if(!CHEERS.some(x=>x._id===c._id)){
-      CHEERS.push({team:c.team||'応援',name:c.name,msg:c.msg,from:c.from,_id:c._id,seqNo:c.seqNo,playerId:c.playerId||null});
-    }
+    CHEERS.push({team:c.team||'応援',name:c.name,msg:c.msg,from:c.from,_id:c._id,seqNo:c.seqNo,playerId:c.playerId||null});
   });
 }
 
@@ -3587,6 +3600,7 @@ function fileToDataURL(file){
 }
 
 async function submitEntry(){
+  if(!isInPeriod('photo')){ alert('現在は投稿受付期間外です。'); checkPeriods(); return; }
   const cat=document.getElementById('submitCat').value;
   const title=document.getElementById('submitTitle').value.trim();
   const author=document.getElementById('submitName').value.trim();
@@ -3601,6 +3615,7 @@ async function submitEntry(){
   if(!title){ alert('写真のタイトルを入力してください'); return; }
   if(title.length>15){ alert('写真のタイトルは15文字以内で入力してください'); return; }
   if(!author){ alert('投稿者のお名前を入力してください'); return; }
+  if(!_pendingSubmitPhotoBlob){ alert('写真を選択してください'); return; }
 
   // スパム・連打対策：直近の投稿から一定時間は再投稿不可
   const photoCdKey='photoLastSubmitAt';
@@ -3846,6 +3861,7 @@ async function uploadRosterPhoto(){
 }
 
 async function submitCheer(){
+  if(!isInPeriod('cheer')){ alert('現在は投稿受付期間外です。'); checkPeriods(); return; }
   const teamSel=document.getElementById('cheerTeam');
   const playerSel=document.getElementById('cheerPlayer');
   const fromName=document.getElementById('cheerFrom').value.trim();
@@ -3881,8 +3897,9 @@ async function submitCheer(){
     };
     if(playerId) payload.player_id=playerId;
     let {error}=await withTimeout(sb.from('messages').insert(payload), 8000);
-    if(error && playerId){
+    if(error && playerId && /player_id/i.test(error.message||'')){
       // messagesテーブルにplayer_id列が未追加の環境向けフォールバック（SQL未実行でも投稿自体は継続できるように）
+      // ※player_id列に起因するエラーのみを対象とする（submitEntryのthumb_url判定と同じ考え方）
       delete payload.player_id;
       ({error}=await withTimeout(sb.from('messages').insert(payload), 8000));
     }
@@ -4006,18 +4023,18 @@ function renderPendingPhotoList(){
   pageItems.forEach((p,idx)=>{
     const no=photoLabel(p.seqNo);
     const thumbSrc=(p.thumbSmall&&(p.thumbSmall.startsWith('data:')||p.thumbSmall.startsWith('http')))?p.thumbSmall:p.thumb;
-    const thumb=(thumbSrc&&(thumbSrc.startsWith('data:')||thumbSrc.startsWith('http')))?`<img src="${thumbSrc}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
+    const thumb=(thumbSrc&&(thumbSrc.startsWith('data:')||thumbSrc.startsWith('http')))?`<img src="${esc(thumbSrc)}" data-full="${esc(p.thumb||'')}" onclick="openLightbox(this.dataset.full||this.src)">`:'<span class="p-noimg">📷</span>';
     const dt=p.submittedAt?new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
-      <td class="p-check"><input type="checkbox" class="photo-check" data-id="${p._id}"></td>
-      <td class="p-to">${no?`<span class="row-no">${no}</span>`:''}${p.team||''}</td>
-      <td class="p-from">${p.author||'-'}</td>
+      <td class="p-check"><input type="checkbox" class="photo-check" data-id="${esc(p._id)}"></td>
+      <td class="p-to">${no?`<span class="row-no">${no}</span>`:''}${esc(p.team||'')}</td>
+      <td class="p-from">${esc(p.author||'-')}</td>
       <td class="p-thumb">${thumb}</td>
-      <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catLabel[p.cat]||p.cat}</span></td>
+      <td class="p-title"><b>${esc(p.n||'無題')}</b><br><span class="pending-tag">${esc(catLabel[p.cat]||p.cat)}</span></td>
       <td class="p-date">${dt}</td>
       <td class="p-act">
-        <button class="btn-approve" onclick="approvePhoto('${p._id}')">承認</button>
-        <button class="btn-reject" onclick="rejectPhoto('${p._id}')">却下</button>
+        <button class="btn-approve" onclick="approvePhoto('${esc(p._id)}')">承認</button>
+        <button class="btn-reject" onclick="rejectPhoto('${esc(p._id)}')">却下</button>
       </td></tr>`;
   });
   html+='</tbody></table>';
@@ -4047,6 +4064,7 @@ async function bulkPhotoAction(ids, action, btnEl){
     if(doneCount<ids.length){
       alert(`${ids.length-doneCount}件は既に他の担当者が処理済みでした。画面を更新します。`);
     }
+    if(action==='reject' && data&&data.length){ deletePhotoStorageFiles(data.map(r=>r.id)); }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
   } catch(e){ alert('操作に失敗しました：'+friendlyErrorMessage(e)); console.error(e); }
   finally{ if(btnEl) btnEl.disabled=false; }
@@ -4093,14 +4111,14 @@ function renderPendingCheerList(){
     const no=msgLabel(c.seqNo);
     const dt=c.submittedAt?new Date(c.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     html+=`<tr>
-      <td class="c-check"><input type="checkbox" class="cheer-check" data-id="${c._id}"></td>
-      <td class="c-to">${no?`<span class="row-no">${no}</span>`:''}<span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
-      <td class="c-msg">${c.msg}</td>
-      <td class="c-from">${c.from||''}より</td>
+      <td class="c-check"><input type="checkbox" class="cheer-check" data-id="${esc(c._id)}"></td>
+      <td class="c-to">${no?`<span class="row-no">${no}</span>`:''}<span style="font-size:10px;color:#888;">${esc(c.team||'')}</span><br><b>${esc(c.name)}</b>さんへ</td>
+      <td class="c-msg">${esc(c.msg)}</td>
+      <td class="c-from">${esc(c.from||'')}より</td>
       <td class="c-date">${dt}</td>
       <td class="c-act">
-        <button class="btn-approve" onclick="approveCheer('${c._id}')">承認</button>
-        <button class="btn-reject" onclick="rejectCheer('${c._id}')">却下</button>
+        <button class="btn-approve" onclick="approveCheer('${esc(c._id)}')">承認</button>
+        <button class="btn-reject" onclick="rejectCheer('${esc(c._id)}')">却下</button>
       </td></tr>`;
   });
   html+='</tbody></table>';
@@ -4209,16 +4227,16 @@ function renderApprovedPhotoList(){
     const no=photoLabel(p.seqNo);
     const isBest=bestShots[p.cat]===p._id;
     const thumbSrc=(p.thumbSmall&&(p.thumbSmall.startsWith('data:')||p.thumbSmall.startsWith('http')))?p.thumbSmall:p.thumb;
-    const thumb=(thumbSrc&&(thumbSrc.startsWith('data:')||thumbSrc.startsWith('http')))?`<img src="${thumbSrc}" onclick="openLightbox('${p.thumb}')">`:'<span class="p-noimg">📷</span>';
+    const thumb=(thumbSrc&&(thumbSrc.startsWith('data:')||thumbSrc.startsWith('http')))?`<img src="${esc(thumbSrc)}" data-full="${esc(p.thumb||'')}" onclick="openLightbox(this.dataset.full||this.src)">`:'<span class="p-noimg">📷</span>';
     html+=`<tr class="${isBest?'is-best':''}">
-      <td class="p-to">${no?`<span class="row-no">${no}</span>`:''}${p.team||''}</td>
-      <td class="p-from">${p.author||'-'}</td>
+      <td class="p-to">${no?`<span class="row-no">${no}</span>`:''}${esc(p.team||'')}</td>
+      <td class="p-from">${esc(p.author||'-')}</td>
       <td class="p-thumb">${thumb}</td>
-      <td class="p-title"><b>${p.n||'無題'}</b><br><span class="pending-tag">${catIcon[p.cat]||''} ${catLabel[p.cat]||p.cat}</span></td>
+      <td class="p-title"><b>${esc(p.n||'無題')}</b><br><span class="pending-tag">${esc(catIcon[p.cat]||'')} ${esc(catLabel[p.cat]||p.cat)}</span></td>
       <td class="p-act">
         <span class="p-likes">👍 ${p.l||0}</span>
         <span class="p-status" style="color:${isBest?'#c9a227':'#5cb87a'};">${isBest?'🏆選定中':'掲載中'}</span>
-        <button class="btn-reject" onclick="unpublishPhoto('${p._id}')">取下</button>
+        <button class="btn-reject" onclick="unpublishPhoto('${esc(p._id)}')">取下</button>
       </td>
     </tr>`;
   });
@@ -4279,7 +4297,7 @@ function renderBestNineAdmin(keepPage){
   pageItems.forEach(p=>{
     const isBest=p._id===bestId;
     const b9ThumbSrc=(p.thumbSmall&&(p.thumbSmall.startsWith('data:')||p.thumbSmall.startsWith('http')))?p.thumbSmall:p.thumb;
-    gridHtml+=`<div class="best9-photo-card${isBest?' is-best':''}" onclick="setBestShot('${catKey}','${p._id}')"><div class="best9-photo-wrap">${(b9ThumbSrc&&(b9ThumbSrc.startsWith('data:')||b9ThumbSrc.startsWith('http')))?`<img src="${b9ThumbSrc}" class="best9-thumb" onclick="event.stopPropagation();openLightbox('${p.thumb}')">`:'<div class="best9-thumb-placeholder">📷</div>'}</div><div class="best9-photo-info"><div class="best9-photo-name">${p.n||'無題'}</div><div class="best9-photo-meta">チーム：${p.team||'不明'} ／ 👍${p.l||0}</div></div>${isBest?'<div class="best9-crown">🏆 選定中</div>':'<div class="best9-select-hint">タップで選定</div>'}</div>`;
+    gridHtml+=`<div class="best9-photo-card${isBest?' is-best':''}" data-cat="${esc(catKey)}" data-pid="${esc(p._id)}" onclick="setBestShot(this.dataset.cat,this.dataset.pid)"><div class="best9-photo-wrap">${(b9ThumbSrc&&(b9ThumbSrc.startsWith('data:')||b9ThumbSrc.startsWith('http')))?`<img src="${esc(b9ThumbSrc)}" data-full="${esc(p.thumb||'')}" class="best9-thumb" onclick="event.stopPropagation();openLightbox(this.dataset.full||this.src)">`:'<div class="best9-thumb-placeholder">📷</div>'}</div><div class="best9-photo-info"><div class="best9-photo-name">${esc(p.n||'無題')}</div><div class="best9-photo-meta">チーム：${esc(p.team||'不明')} ／ 👍${p.l||0}</div></div>${isBest?'<div class="best9-crown">🏆 選定中</div>':'<div class="best9-select-hint">タップで選定</div>'}</div>`;
   });
   gridHtml+='</div>';
   if(totalPages>1){
@@ -4380,10 +4398,10 @@ function renderApprovedCheerList(){
   pageItems.forEach((c,idx)=>{
     const no=msgLabel(c.seqNo);
     html+=`<tr>
-      <td class="c-to">${no?`<span class="row-no">${no}</span>`:''}<span style="font-size:10px;color:#888;">${c.team||''}</span><br><b>${c.name}</b>さんへ</td>
-      <td class="c-msg">${c.msg}</td>
-      <td class="c-from">${c.from||''}より</td>
-      <td class="c-act"><button class="btn-reject" onclick="unpublishCheer('${c._id}')">取下</button></td>
+      <td class="c-to">${no?`<span class="row-no">${no}</span>`:''}<span style="font-size:10px;color:#888;">${esc(c.team||'')}</span><br><b>${esc(c.name)}</b>さんへ</td>
+      <td class="c-msg">${esc(c.msg)}</td>
+      <td class="c-from">${esc(c.from||'')}より</td>
+      <td class="c-act"><button class="btn-reject" onclick="unpublishCheer('${esc(c._id)}')">取下</button></td>
     </tr>`;
   });
   html+='</tbody></table>';
@@ -4395,66 +4413,80 @@ function renderApprovedCheerList(){
   list.innerHTML=html;
 }
 
+// 写真の却下・取下・リセット時にSupabase Storage側の孤児ファイルを削除する。
+// 命名規則（submitEntryでのアップロード時）：本体=<id>.jpg、サムネイル=thumb_<id>.jpg
+// ファイルが存在しない場合もエラーにはならないため、失敗しても投稿削除自体には影響させない。
+async function deletePhotoStorageFiles(ids){
+  if(!ids||!ids.length) return;
+  const paths=ids.flatMap(id=>[id+'.jpg','thumb_'+id+'.jpg']);
+  try{
+    const {error}=await sb.storage.from('photos').remove(paths);
+    if(error) console.warn('Storage孤児ファイル削除エラー（投稿自体は削除済み）:',error.message);
+  } catch(e){ console.warn('Storage孤児ファイル削除で例外（投稿自体は削除済み）:',e); }
+}
+
 async function approvePhoto(id){
   try{
-    const {data:cur,error:ce}=await sb.from('photos').select('status').eq('id',id).single();
+    const {data:cur,error:ce}=await withTimeout(sb.from('photos').select('status').eq('id',id).single(), 8000);
     if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
     if(cur.status!=='pending'){ alert('この投稿は既に他の担当者が処理済みです。画面を更新します。'); await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll(); return; }
-    const {error}=await sb.from('photos').update({status:'approved'}).eq('id',id);
-    if(error){ alert('承認に失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('photos').update({status:'approved'}).eq('id',id), 8000);
+    if(error){ alert('承認に失敗しました：'+friendlyErrorMessage(error)); return; }
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 async function rejectPhoto(id){
   if(!confirm('この投稿を却下します。よろしいですか？')) return;
   try{
-    const {data:cur,error:ce}=await sb.from('photos').select('status').eq('id',id).single();
+    const {data:cur,error:ce}=await withTimeout(sb.from('photos').select('status').eq('id',id).single(), 8000);
     if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
     if(cur.status!=='pending'){ alert('この投稿は既に他の担当者が処理済みです。画面を更新します。'); await loadPhotosFromSupabase(); renderAdminAll(); return; }
-    const {error}=await sb.from('photos').delete().eq('id',id);
-    if(error){ alert('却下に失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('photos').delete().eq('id',id), 8000);
+    if(error){ alert('却下に失敗しました：'+friendlyErrorMessage(error)); return; }
+    deletePhotoStorageFiles([id]);
     await loadPhotosFromSupabase(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 async function unpublishPhoto(id){
   if(!confirm('この投稿の掲載を取り下げます。よろしいですか？')) return;
   try{
-    const {error}=await sb.from('photos').delete().eq('id',id);
-    if(error){ alert('取り下げに失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('photos').delete().eq('id',id), 8000);
+    if(error){ alert('取り下げに失敗しました：'+friendlyErrorMessage(error)); return; }
+    deletePhotoStorageFiles([id]);
     await loadPhotosFromSupabase(); mergeApproved(); rp(ct); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 async function approveCheer(id){
   try{
-    const {data:cur,error:ce}=await sb.from('messages').select('status').eq('id',id).single();
+    const {data:cur,error:ce}=await withTimeout(sb.from('messages').select('status').eq('id',id).single(), 8000);
     if(ce||!cur){ alert('該当のメッセージが見つかりません。既に削除された可能性があります。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
     if(cur.status!=='pending'){ alert('このメッセージは既に他の担当者が処理済みです。画面を更新します。'); await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll(); return; }
-    const {error}=await sb.from('messages').update({'status':'approved'}).eq('id',id);
-    if(error){ alert('承認に失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('messages').update({'status':'approved'}).eq('id',id), 8000);
+    if(error){ alert('承認に失敗しました：'+friendlyErrorMessage(error)); return; }
     await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 async function rejectCheer(id){
   if(!confirm('このメッセージを却下します。よろしいですか？')) return;
   try{
-    const {data:cur,error:ce}=await sb.from('messages').select('status').eq('id',id).single();
+    const {data:cur,error:ce}=await withTimeout(sb.from('messages').select('status').eq('id',id).single(), 8000);
     if(ce||!cur){ alert('該当のメッセージが見つかりません。既に他の担当者が削除した可能性があります。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
     if(cur.status!=='pending'){ alert('このメッセージは既に他の担当者が処理済みです。画面を更新します。'); await loadCheersFromSupabase(); renderAdminAll(); return; }
-    const {error}=await sb.from('messages').delete().eq('id',id);
-    if(error){ alert('却下に失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('messages').delete().eq('id',id), 8000);
+    if(error){ alert('却下に失敗しました：'+friendlyErrorMessage(error)); return; }
     await loadCheersFromSupabase(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 async function unpublishCheer(id){
   if(!confirm('このメッセージの掲載を取り下げます。よろしいですか？')) return;
   try{
-    const {error}=await sb.from('messages').delete().eq('id',id);
-    if(error){ alert('取り下げに失敗しました：'+error.message); return; }
+    const {error}=await withTimeout(sb.from('messages').delete().eq('id',id), 8000);
+    if(error){ alert('取り下げに失敗しました：'+friendlyErrorMessage(error)); return; }
     await loadCheersFromSupabase();
-    const i=CHEERS.findIndex(c=>c._id===id);
-    if(i>-1) CHEERS.splice(i,1);
-    rebuildCheerRows(); renderAdminAll();
-  } catch(e){ alert('操作に失敗しました。もう一度お試しください。'); console.error(e); }
+    mergeApproved(); // CHEERSをapprovedCheersExtraから再構築（取下分を確実に除去）
+    rebuildCheerRows(true); renderAdminAll();
+    if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
+  } catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
 }
 
 // 応援メッセージの3行を再構築（承認後の反映用）
@@ -4828,12 +4860,35 @@ function renderAlbumAdmin(){
   const _scheduleDonorsSync=_makeBurstSync(async()=>{
     await loadDonorsFromSupabase(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); renderDonationAdmin(); updateDashboard();
   });
+  // 試合結果（games）：他端末のスコア入力・確定を観客画面のスコアボードに反映
+  const _scheduleGamesSync=_makeBurstSync(async()=>{
+    await loadGamesFromSupabase();
+    const adminMain=document.getElementById('adminMainView');
+    if(adminMain && adminMain.style.display!=='none'){ renderGameAdmin(); }
+  });
+  // トーナメント表（tournament_blocks）：他端末の対戦表更新・勝者繰り上げを反映
+  const _scheduleBlocksSync=_makeBurstSync(async()=>{
+    await loadBlocksFromSupabase();
+  });
+  // settings（テーマ・大会要綱・選手名簿・期間設定など多岐にわたる共有設定）
+  const _scheduleSettingsSync=_makeBurstSync(async()=>{
+    await loadSettingsFromSupabase();
+    checkPeriods();
+    renderTournamentInfo(getDisplayTournamentInfo());
+    renderInfoImages();
+    renderAllTeamViews();
+    const adminMain=document.getElementById('adminMainView');
+    if(adminMain && adminMain.style.display!=='none'){ renderPeriodAdmin(); }
+  });
 
   try{
     sb.channel('realtime-all')
       .on('postgres_changes',{event:'*',schema:'public',table:'messages'}, _scheduleMessagesSync)
       .on('postgres_changes',{event:'*',schema:'public',table:'photos'}, _schedulePhotosSync)
       .on('postgres_changes',{event:'*',schema:'public',table:'donors'}, _scheduleDonorsSync)
+      .on('postgres_changes',{event:'*',schema:'public',table:'games'}, _scheduleGamesSync)
+      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_blocks'}, _scheduleBlocksSync)
+      .on('postgres_changes',{event:'*',schema:'public',table:'settings'}, _scheduleSettingsSync)
       .subscribe(status=>{
         _realtimeOk=(status==='SUBSCRIBED');
         console.log('Realtime:',status);
@@ -4844,7 +4899,8 @@ function renderAlbumAdmin(){
   // フォールバック：Realtimeが繋がっていない場合は10秒ポーリング
   setInterval(async()=>{
     if(_realtimeOk) return;
-    await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase()]);
+    await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase()]);
+    checkPeriods();
     _refreshPublic(); _refreshAdmin();
   }, 10000);
 
@@ -4853,7 +4909,8 @@ function renderAlbumAdmin(){
   document.addEventListener('visibilitychange', async()=>{
     if(document.visibilityState!=='visible') return;
     try{
-      await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase()]);
+      await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase()]);
+      checkPeriods();
       _refreshPublic();
       const adminMain=document.getElementById('adminMainView');
       if(adminMain && adminMain.style.display!=='none'){ _refreshAdmin(); }
@@ -4862,8 +4919,8 @@ function renderAlbumAdmin(){
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
-const RESET_PW1_HASH='4b9a7f50c0bb198c6f5414c5a8459f5d216d34ab521ea94c060ea35cac66f900'; // 2012
-const RESET_PW2_HASH='8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623'; // 1003
+const RESET_PW1_HASH='4b9a7f50c0bb198c6f5414c5a8459f5d216d34ab521ea94c060ea35cac66f900';
+const RESET_PW2_HASH='8c9a013ab70c0434313e3e881c310b9ff24aff1075255ceede3f2c239c231623';
 let _resetTarget=null;
 const RESET_LABELS={
   games:'試合結果',players:'選手データ（自チーム・対戦チーム）',
@@ -4909,66 +4966,61 @@ async function checkResetPw2(){
     document.getElementById('resetPw2Error').style.display='block';
   }
 }
-function execReset(target){
-  switch(target){
-    case 'games':
-      (async()=>{
+async function execReset(target){
+  try{
+    switch(target){
+      case 'games':
         await sb.from('games').delete().neq('id','__dummy__');
         await loadGamesFromSupabase();
         renderGameAdmin();
-      })();
-      break;
-    case 'players':
-      (async()=>{
+        break;
+      case 'players':
         await sb.from('settings').upsert({key:'teams_roster',value:'[]'},{onConflict:'key'});
         TEAMS_ROSTER=[];
         renderAllTeamViews();
-      })();
-      break;
-    case 'info':
-      (async()=>{
-        const def=getDefaultTournamentInfo();
-        await saveTournamentInfo(def);
-        renderTournamentInfo(def);
-        await saveInfoImages([]);
-        renderInfoImages();
-      })();
-      break;
-    case 'cheers':
-      // Supabaseの全メッセージをrejectedに更新（リセット）
-      (async()=>{
-        await sb.from('messages').update({'status':'rejected'}).neq('id','00000000-0000-0000-0000-000000000000');
+        break;
+      case 'info':
+        {
+          const def=getDefaultTournamentInfo();
+          await saveTournamentInfo(def);
+          renderTournamentInfo(def);
+          await saveInfoImages([]);
+          renderInfoImages();
+        }
+        break;
+      case 'cheers':
+        // 却下・削除方式に統一（photos側と同じ考え方：DELETEで確実にリセット）
+        await sb.from('messages').delete().neq('id','00000000-0000-0000-0000-000000000000');
         await loadCheersFromSupabase();
         CHEERS.length=0;
-        rebuildCheerRows();
+        rebuildCheerRows(true);
         renderAdminCounts();
         if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
-      })();
-      break;
-    case 'photos':
-      (async()=>{
-        await sb.from('photos').delete().neq('id','__dummy__');
+        break;
+      case 'photos':
+        {
+          const {data:allPhotoIds}=await sb.from('photos').select('id');
+          await sb.from('photos').delete().neq('id','__dummy__');
+          if(allPhotoIds&&allPhotoIds.length) deletePhotoStorageFiles(allPhotoIds.map(r=>r.id));
+        }
         await loadPhotosFromSupabase();
         mergeApproved();
         rp(ct);
         renderAdminCounts();
-        renderAdminAll();
-        alert('「写真（承認済み・未承認）」をリセットしました。');
-      })();
-      return;
-    case 'donation':
-      (async()=>{
+        break;
+      case 'donation':
         await sb.from('donors').delete().neq('id','__dummy__');
         await sb.from('donation_settings').upsert({key:'goal',value:'1000000'});
         await loadDonorsFromSupabase();
         animateMeter();rebuildDonorRows();rebuildSponsorRow();renderDonationAdmin();
-        renderAdminAll();
-        alert('「寄付金データ」をリセットしました。');
-      })();
-      return; // 下のrenderAdminAll/alertは非同期内で実行するのでここで抜ける
+        break;
+    }
+    renderAdminAll();
+    alert(`「${RESET_LABELS[target]}」をリセットしました。`);
+  } catch(e){
+    console.error('execReset例外:',e);
+    alert('リセット処理でエラーが発生しました。もう一度お試しください。');
   }
-  renderAdminAll();
-  alert(`「${RESET_LABELS[target]}」をリセットしました。`);
 }
 
 /* ---------- パスワード変更 ---------- */
@@ -5190,6 +5242,8 @@ function checkPeriods(){
   if(afterEl) afterEl.style.display=afterEnd?'block':'none';
 }
 checkPeriods();
+// 画面を開きっぱなしのまま投稿期間の開始/終了時刻をまたいでも表示が追随するよう、1分間隔で再チェックする
+setInterval(checkPeriods, 60000);
 
 /* ---------- 期間設定保存 ---------- */
 async function savePeriod(type){
@@ -6246,9 +6300,11 @@ async function autoAdvanceWinner(blockId,matchId,teamA,teamB,scoreA,scoreB){
     const totalB=sumInnings(scoreB);
     if(totalA===totalB) return;
     const winner=totalA>totalB?teamA:teamB;
-    const block=BLOCKS.find(b=>b.id===blockId);
-    if(!block) return;
-    const bracket=typeof block.bracket==='string'?JSON.parse(block.bracket):block.bracket;
+    // キャッシュ済みBLOCKSではなく、更新直前にSupabaseから最新のbracketを取得する
+    // （他端末が直前にブラケットを編集していた場合の上書き事故を減らすため）
+    const {data:blockRow,error:fetchErr}=await sb.from('tournament_blocks').select('bracket').eq('id',blockId).single();
+    if(fetchErr||!blockRow){ console.error('自動繰り上げ：ブロック取得エラー:',fetchErr&&fetchErr.message); return; }
+    const bracket=typeof blockRow.bracket==='string'?JSON.parse(blockRow.bracket):blockRow.bracket;
     let foundRoundIdx=-1,foundMatchIdx=-1;
     bracket.forEach((r,ri)=>{ r.matches.forEach((m,mi)=>{ if(m.id===matchId){foundRoundIdx=ri;foundMatchIdx=mi;} }); });
     if(foundRoundIdx===-1) return;
