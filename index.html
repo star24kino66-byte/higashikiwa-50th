@@ -1049,7 +1049,8 @@ img{
       <div class="ut">💬 応援メッセージを送る</div>
       <div id="cheerFormFields">
         <div class="notice-box" style="margin-bottom:.6rem;">
-          ✅ 投稿いただいたメッセージは<b>承認後</b>に掲載します。内容によっては掲載を見送る場合があります。
+          ✅ 投稿いただいたメッセージは<b>承認後</b>に掲載します。内容によっては掲載を見送る場合があります。<br>
+          <span style="color:#666;">📱 投稿はこの端末からいつでも確認・削除できます（<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿を見る</a>）。</span>
         </div>
         <div class="fr" style="flex-direction:column;gap:6px;">
           <select id="cheerTeam" style="width:100%;font-size:14px;padding:8px;border:1px solid #ddd;border-radius:8px;" onchange="updateCheerPlayerList()">
@@ -1108,7 +1109,8 @@ img{
     <div id="photoFormFields">
       <div class="notice-box" style="margin-bottom:.6rem;">
         ✅ 投稿写真は<b>承認後</b>に掲載します。個人情報が写り込んでいるもの・不適切なものは掲載を見送る場合があります。<br>
-        <span style="color:#666;">📝 掲載時は選手の個人名は表示されません（チーム名のみ表示）。</span>
+        <span style="color:#666;">📝 掲載時は選手の個人名は表示されません（チーム名のみ表示）。</span><br>
+        <span style="color:#666;">📱 投稿はこの端末からいつでも確認・削除できます（<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿を見る</a>）。</span>
       </div>
       <div class="fr">
         <select id="submitCat"></select>
@@ -3296,8 +3298,58 @@ function openModal(type){
   } else if(type==='games'){
     title.textContent='試合結果';
     renderGamesModalList();
+  } else if(type==='myposts'){
+    renderMyPostsModal();
   }
   overlay.classList.add('open');
+}
+// マイ投稿一覧（この端末で投稿した応援メッセージ・写真を審査状況問わず表示し、本人削除を可能にする）
+function renderMyPostsModal(){
+  const list=document.getElementById('modalList');
+  const title=document.getElementById('modalTitle');
+  const myPosts=getMyPosts().slice().reverse(); // 新しい投稿を上に
+  if(title) title.textContent='マイ投稿（この端末からの投稿：全'+myPosts.length+'件）';
+  if(myPosts.length===0){
+    list.innerHTML='<div style="text-align:center;color:#999;font-size:13px;padding:1.5rem 0;">この端末からの投稿はまだありません</div>';
+    return;
+  }
+  let html='<div style="font-size:11px;color:#888;margin-bottom:10px;">※投稿時と同じ端末・ブラウザでのみ表示・削除できます。</div>';
+  myPosts.forEach(entry=>{
+    let statusLabel='❓ 見つかりません（削除済みの可能性）', statusColor='#999';
+    if(entry.type==='cheer'){
+      if(approvedCheersExtra.some(c=>c._id===entry.id)){ statusLabel='✅ 承認済み'; statusColor='#28a745'; }
+      else if(pendingCheers.some(c=>c._id===entry.id)){ statusLabel='⏳ 審査待ち'; statusColor='#c9a227'; }
+    } else {
+      if(approvedPhotosExtra.some(p=>p._id===entry.id)){ statusLabel='✅ 承認済み'; statusColor='#28a745'; }
+      else if(pendingPhotos.some(p=>p._id===entry.id)){ statusLabel='⏳ 審査待ち'; statusColor='#c9a227'; }
+    }
+    const typeIcon=entry.type==='cheer'?'💬':'📸';
+    html+=`<div class="modal-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:11px;font-weight:700;color:${statusColor};margin-bottom:2px;">${statusLabel}</div>
+        <div style="font-size:13px;color:#1a3260;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${typeIcon} ${esc(entry.label||'（無題）')}</div>
+      </div>
+      <button class="pager-btn" style="flex-shrink:0;color:#c00;border-color:#f0c0c0;" onclick="deleteMyPost('${esc(entry.id)}')">🗑 削除</button>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+async function deleteMyPost(id){
+  const entry=getMyPosts().find(p=>p.id===id);
+  if(!entry) return;
+  if(!confirm('この投稿を削除します。元に戻せません。よろしいですか？')) return;
+  try{
+    const table=entry.type==='cheer'?'messages':'photos';
+    const {error}=await withTimeout(sb.from(table).delete().eq('id',id).eq('delete_token',entry.token), 8000);
+    if(error){ alert('削除に失敗しました：'+friendlyErrorMessage(error)); return; }
+    removeMyPost(id);
+    if(entry.type==='cheer'){
+      await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows();
+    } else {
+      await loadPhotosFromSupabase(); mergeApproved(); rp();
+    }
+    renderMyPostsModal();
+  }catch(e){ alert('削除に失敗しました：'+e.message); }
 }
 function renderGamesModalList(){
   const list=document.getElementById('modalList');
@@ -3492,6 +3544,23 @@ function loadLS(key,fallback){
 }
 function saveLS(key,val){
   try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){ console.warn('保存に失敗しました',e); }
+}
+
+// ===== 投稿者本人限定削除機能（この端末からの投稿のみ、承認前後問わず削除可） =====
+const MYPOSTS_KEY='hk_myPosts';
+function genDeleteToken(){
+  try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return 'tok_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+}
+function getMyPosts(){ return loadLS(MYPOSTS_KEY,[]); }
+function addMyPost(entry){
+  const list=getMyPosts();
+  list.push(entry);
+  saveLS(MYPOSTS_KEY,list);
+}
+function removeMyPost(id){
+  const list=getMyPosts().filter(p=>p.id!==id);
+  saveLS(MYPOSTS_KEY,list);
 }
 
 let pendingPhotos=[]; // Supabaseから読み込む
@@ -3702,23 +3771,36 @@ async function submitEntry(){
       }catch(e){ console.warn('サムネイル生成に失敗（本体投稿は継続）:',e); }
     }
 
-    // photosテーブルにinsert（thumb_url列が未作成の環境でも失敗しないようgracefulフォールバック）
+    // photosテーブルにinsert（thumb_url列・delete_token列が未作成の環境でも失敗しないようgracefulフォールバック）
+    const deleteToken=genDeleteToken();
     let {error:dbErr}=await withTimeout(sb.from('photos').insert({
       id:newId, title, author, cat, team,
       player:playerName,
       status:'pending',
       image_url:imageUrl,
-      thumb_url:thumbUrl
+      thumb_url:thumbUrl,
+      delete_token:deleteToken
     }), 8000);
     if(dbErr&&/thumb_url/i.test(dbErr.message||'')){
       ({error:dbErr}=await withTimeout(sb.from('photos').insert({
         id:newId, title, author, cat, team,
         player:playerName,
         status:'pending',
-        image_url:imageUrl
+        image_url:imageUrl,
+        delete_token:deleteToken
+      }), 8000));
+    }
+    if(dbErr&&/delete_token/i.test(dbErr.message||'')){
+      ({error:dbErr}=await withTimeout(sb.from('photos').insert({
+        id:newId, title, author, cat, team,
+        player:playerName,
+        status:'pending',
+        image_url:imageUrl,
+        thumb_url:thumbUrl
       }), 8000));
     }
     if(dbErr){ showInlineMsg('submitError','投稿の保存に失敗しました：'+friendlyErrorMessage(dbErr)); return; }
+    addMyPost({id:newId, token:deleteToken, type:'photo', label:title, submittedAt:new Date().toISOString()});
     markSubmitCooldown(photoCdKey);
 
     // フォームリセット
@@ -3930,22 +4012,31 @@ async function submitCheer(){
   const btn=document.querySelector('button[onclick="submitCheer()"]');
   if(btn){ btn.disabled=true; btn.textContent='送信中…'; }
   try{
+    const deleteToken=genDeleteToken();
     const payload={
       'team': teamName,
       'name': targetName,
       'from_label': fromName,
       'msg': msg,
-      'status': 'pending'
+      'status': 'pending',
+      'delete_token': deleteToken
     };
     if(playerId) payload.player_id=playerId;
-    let {error}=await withTimeout(sb.from('messages').insert(payload), 8000);
+    let {data:insData,error}=await withTimeout(sb.from('messages').insert(payload).select('id'), 8000);
     if(error && playerId && /player_id/i.test(error.message||'')){
       // messagesテーブルにplayer_id列が未追加の環境向けフォールバック（SQL未実行でも投稿自体は継続できるように）
       // ※player_id列に起因するエラーのみを対象とする（submitEntryのthumb_url判定と同じ考え方）
       delete payload.player_id;
-      ({error}=await withTimeout(sb.from('messages').insert(payload), 8000));
+      ({data:insData,error}=await withTimeout(sb.from('messages').insert(payload).select('id'), 8000));
+    }
+    if(error && /delete_token/i.test(error.message||'')){
+      // messagesテーブルにdelete_token列が未追加の環境向けフォールバック
+      delete payload.delete_token;
+      ({data:insData,error}=await withTimeout(sb.from('messages').insert(payload).select('id'), 8000));
     }
     if(error){ showInlineMsg('cheerError','送信に失敗しました：'+friendlyErrorMessage(error)); return; }
+    const newMsgId=insData&&insData[0]&&insData[0].id;
+    if(newMsgId) addMyPost({id:newMsgId, token:deleteToken, type:'cheer', label:msg, submittedAt:new Date().toISOString()});
     markSubmitCooldown(cheerCdKey);
 
     if(teamSel){ teamSel.value=''; }
