@@ -5057,16 +5057,23 @@ function renderAlbumAdmin(){
 
   // 画面復帰時（アプリ切り替え・画面ロック解除など）は、ポーリングの最大10秒待ちを待たずに
   // その場で最新データを取り直す。管理画面を開いている場合は管理側の表示も更新する。
-  document.addEventListener('visibilitychange', async()=>{
-    if(document.visibilityState!=='visible') return;
+  async function forceRefreshAll(){
     try{
       await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase()]);
       checkPeriods();
       _refreshPublic();
       const adminMain=document.getElementById('adminMainView');
       if(adminMain && adminMain.style.display!=='none'){ _refreshAdmin(); }
-    }catch(e){ console.warn('復帰時の再取得に失敗:', e); }
+    }catch(e){ console.warn('再取得に失敗:', e); }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState!=='visible') return;
+    forceRefreshAll();
   });
+  // 一部のスマホ環境では、タブ表示直後は初回の通信（fetch/setInterval）が
+  // 後回しにされ、応援メッセージ等がしばらく流れないことがある。
+  // タブ切り替え時と同じ再取得処理を、初回表示から数秒後にも保険として一度だけ実行する。
+  setTimeout(forceRefreshAll, 3000);
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
