@@ -4676,7 +4676,9 @@ async function unpublishCheer(id){
 //   毎回作り直されて一瞬止まって見える不具合の対策）
 let _lastCheerSig='';
 function rebuildCheerRows(force){
-  const sig=CHEERS.map(c=>c._id).join(',');
+  // 並び順が取得タイミングで多少ゆらいでも「中身が同じなら再描画しない」ようにするため、
+  // idを一度ソートしてから signature を作る（表示順自体はCHEERSの並びをそのまま使う）
+  const sig=CHEERS.map(c=>c._id).slice().sort().join(',');
   if(!force && sig===_lastCheerSig) return; // 変化なし→スキップしてアニメーションを止めない
   _lastCheerSig=sig;
   document.getElementById('cheerRowA').innerHTML='';
@@ -5120,23 +5122,6 @@ function renderAlbumAdmin(){
     if(document.visibilityState!=='visible') return;
     forceRefreshAll('visibilitychange');
   });
-  // 一部のスマホ環境（特にアプリ内ブラウザ）では、タブ表示直後は初回の通信（fetch/setInterval）が
-  // 後回しにされ、応援メッセージ等がしばらく流れないことがある。
-  // タブ切り替え時と同じ再取得処理を、初回表示から複数回（保険として）自動実行する。
-  setTimeout(()=>forceRefreshAll('3秒タイマー'), 3000);
-  setTimeout(()=>forceRefreshAll('7秒タイマー'), 7000);
-  setTimeout(()=>forceRefreshAll('15秒タイマー'), 15000);
-  // visibilitychangeが正しく発火しないアプリ内ブラウザ環境向けに、
-  // 画面への最初のタップ・スクロールをきっかけにも強制再取得する（ユーザー操作は通信制限が解除されやすいため）
-  let _firstInteractionRefreshDone=false;
-  function _onFirstInteraction(ev){
-    if(_firstInteractionRefreshDone) return;
-    _firstInteractionRefreshDone=true;
-    _dbg('👆初回操作検知: '+(ev&&ev.type));
-    forceRefreshAll('初回操作:'+(ev&&ev.type));
-    ['touchstart','click','scroll'].forEach(ev=>document.removeEventListener(ev,_onFirstInteraction));
-  }
-  ['touchstart','click','scroll'].forEach(ev=>document.addEventListener(ev,_onFirstInteraction,{passive:true}));
   _dbg('⑧メイン初期化IIFE末尾まで到達（イベント登録完了）');
 })();
 
