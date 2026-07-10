@@ -369,12 +369,12 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 /* MESSAGES */
 .cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;-webkit-transform:translateZ(0);transform:translateZ(0);}
 .cheer-track{display:flex;gap:7px;width:max-content;padding:0 6px;}
-.cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;-webkit-backface-visibility:hidden;backface-visibility:hidden;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);}
+/* カード1セット分の正確な幅（--cheer-shift, px）だけ左へ動かす。padding/gapによるズレが出ないため継ぎ目が完全に消える。
+   まだ幅を測定できていない初期表示では 50% にフォールバック（従来と同じ2セット複製前提） */
+.cheer-track.scroll-left{animation:cheerScroll 30s linear infinite;}
 .cheer-track.scroll-left.s2{animation-duration:24s;}
 .cheer-track.scroll-left.s3{animation-duration:34s;}
-/* ▼▼▼ 診断用（原因切り分け・後で削除）：応援メッセージのスクロールを一時停止してカードを静止させる ▼▼▼ */
-.cheer-track.scroll-left{animation-play-state:paused !important;}
-/* ▲▲▲ 診断用ここまで ▲▲▲ */
+@keyframes cheerScroll{from{transform:translateX(0);}to{transform:translateX(calc(-1 * var(--cheer-shift, 50%)));}}
 .cheer-card{background:#fff;border:1px solid #eee;border-left:3px solid #d63384;border-radius:8px;padding:7px 9px;flex-shrink:0;min-width:190px;max-width:220px;}
 .cheer-to{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .cheer-team{font-size:9px;font-weight:700;color:#fff;background:#1a3260;padding:1px 6px;border-radius:999px;flex-shrink:0;}
@@ -2907,14 +2907,44 @@ function animateMeter(){
 }
 // MESSAGES（宛先＋30字以内、3列で流れる）
 const CHEERS=[];
+function _makeCheerCard(c){
+  const card=document.createElement('div');
+  card.className='cheer-card';
+  card.innerHTML=`<div class="cheer-to">${msgLabel(c.seqNo)?`<span class="row-no">${msgLabel(c.seqNo)}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg">${esc(c.msg)}</div><div class="cheer-from">${esc(c.from)}より</div>`;
+  return card;
+}
+// 1セット分（複製の1周期）の正確な移動距離をpxで測定し、CSS変数に反映する。
+// これにより padding/gap によるズレがゼロになり、ループの継ぎ目が完全に消える。
+function _measureCheerShift(track, setLen){
+  if(!track || setLen<=0) return false;
+  const cards=track.children;
+  if(cards.length>setLen){
+    const shift=cards[setLen].offsetLeft-cards[0].offsetLeft;
+    if(shift>0){ track.style.setProperty('--cheer-shift', shift+'px'); return true; }
+  }
+  return false;
+}
 function buildCheerCol(trackId,list){
   const track=document.getElementById(trackId);
-  [...list,...list].forEach(c=>{
-    const card=document.createElement('div');
-    card.className='cheer-card';
-    card.innerHTML=`<div class="cheer-to">${msgLabel(c.seqNo)?`<span class="row-no">${msgLabel(c.seqNo)}</span>`:''}<span class="cheer-team">${esc(c.team)}</span><span class="cheer-name">${esc(c.name)} さん</span></div><div class="cheer-msg">${esc(c.msg)}</div><div class="cheer-from">${esc(c.from)}より</div>`;
-    track.appendChild(card);
-  });
+  if(!track) return;
+  track.style.removeProperty('--cheer-shift');
+  if(!list || list.length===0) return;
+  // まず1セット分だけ入れて実幅を測る
+  list.forEach(c=>track.appendChild(_makeCheerCard(c)));
+  const oneSetWidth=track.scrollWidth||0;
+  // 画面幅の2倍以上になるまでセットを複製（最低2セット）。短い投稿数でも末尾に空白が出ないようにする
+  const wrap=track.closest('.cheer-row-wrap');
+  const viewport=(wrap&&wrap.clientWidth)?wrap.clientWidth:400;
+  const needed=Math.max(2, Math.ceil((viewport*2)/Math.max(oneSetWidth,1))+1);
+  let copies=1;
+  while(copies<needed){
+    list.forEach(c=>track.appendChild(_makeCheerCard(c)));
+    copies++;
+  }
+  // 1セット分の移動距離を測定（測れなければ次フレームで再試行。ダメなら50%フォールバックのまま）
+  if(!_measureCheerShift(track, list.length)){
+    requestAnimationFrame(()=>_measureCheerShift(track, list.length));
+  }
 }
 const cA=[],cB=[],cC=[];
 CHEERS.forEach((c,i)=>{(i%3===0?cA:i%3===1?cB:cC).push(c);});
