@@ -372,6 +372,9 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 .cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;-webkit-backface-visibility:hidden;backface-visibility:hidden;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);}
 .cheer-track.scroll-left.s2{animation-duration:24s;}
 .cheer-track.scroll-left.s3{animation-duration:34s;}
+/* ▼▼▼ 診断用（原因切り分け・後で削除）：応援メッセージのスクロールを一時停止してカードを静止させる ▼▼▼ */
+.cheer-track.scroll-left{animation-play-state:paused !important;}
+/* ▲▲▲ 診断用ここまで ▲▲▲ */
 .cheer-card{background:#fff;border:1px solid #eee;border-left:3px solid #d63384;border-radius:8px;padding:7px 9px;flex-shrink:0;min-width:190px;max-width:220px;}
 .cheer-to{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
 .cheer-team{font-size:9px;font-weight:700;color:#fff;background:#1a3260;padding:1px 6px;border-radius:999px;flex-shrink:0;}
