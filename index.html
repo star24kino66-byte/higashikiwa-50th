@@ -3609,7 +3609,7 @@ async function loadCheersFromSupabase(){
 }
 
 // 承認済み写真をPH（表示用データ）に反映する
-function mergeApproved(){
+function mergeApprovedPhotos(){
   // PHをいったんリセットして再構築
   Object.keys(PH).forEach(k=>{ PH[k]=[]; });
   approvedPhotosExtra.forEach(p=>{
@@ -3631,13 +3631,20 @@ function mergeApproved(){
   Object.entries(PH).forEach(([tab,photos])=>{
     photos.forEach((ph,i)=>{ if(ph._id&&likedIds.includes(ph._id)) liked[tab+'_'+i]=true; });
   });
-  // CHEERSもPHと同様、approvedCheersExtra（DBの現在の承認済み状態）から毎回まるごと再構築する。
+}
+// 承認済みメッセージをCHEERS（表示用データ）に反映する
+function mergeApprovedCheers(){
+  // CHEERSはapprovedCheersExtra（DBの現在の承認済み状態）から毎回まるごと再構築する。
   // こうすることで、他端末での取り下げ（unpublishCheer）が承認済み一覧から消えたことも
   // 自動的に反映される（追記のみだと取り下げ後も表示され続けてしまう不具合の対策）。
   CHEERS.length=0;
   approvedCheersExtra.forEach(c=>{
     CHEERS.push({team:c.team||'応援',name:c.name,msg:c.msg,from:c.from,_id:c._id,seqNo:c.seqNo,playerId:c.playerId||null});
   });
+}
+function mergeApproved(){
+  mergeApprovedPhotos();
+  mergeApprovedCheers();
 }
 
 // 絵文字かURL（base64またはhttps）かを判定して適切なHTMLを返す（クリックで拡大対応）
@@ -4926,8 +4933,15 @@ function renderAlbumAdmin(){
    ============================================================ */
 // Supabaseから初期データを読み込んでから描画
 (async()=>{
+  // 応援メッセージは他の重いデータ（写真・アルバム等）の取得完了を待たず、
+  // 取得でき次第すぐに流れ始めるよう先行して読み込み・描画する
+  const cheersReady=loadCheersFromSupabase().then(()=>{
+    mergeApprovedCheers();
+    rebuildCheerRows();
+  }).catch(e=>console.error('応援メッセージ先行読み込みエラー:',e));
+
   await Promise.all([
-    loadCheersFromSupabase(),
+    cheersReady,
     loadGamesFromSupabase(),
     loadBlocksFromSupabase(),
     loadSettingsFromSupabase(),
