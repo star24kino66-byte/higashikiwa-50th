@@ -5125,6 +5125,32 @@ function renderAlbumAdmin(){
     forceRefreshAll('visibilitychange');
   });
   _dbg('⑧メイン初期化IIFE末尾まで到達（イベント登録完了）');
+  // 「消えて出て」現象の原因特定用：応援メッセージエリアのDOM変化・表示状態を漏れなく監視する
+  try{
+    const cheerSection=document.getElementById('cheerRowA') && document.getElementById('cheerRowA').closest('.sc');
+    if(cheerSection){
+      const mo=new MutationObserver((mutations)=>{
+        _dbg('👀MutationObserver検知: 応援メッセージエリア内でDOM変化 件数:'+mutations.length+' 種類:'+[...new Set(mutations.map(m=>m.type))].join(','));
+      });
+      mo.observe(cheerSection, {childList:true, subtree:true, attributes:true, attributeFilter:['style','class']});
+      _dbg('👀MutationObserver設置完了（応援メッセージエリア監視中）');
+      // 500ms毎に実際の表示状態（見た目上見えているか）もチェックする
+      let _wasVisible=null;
+      setInterval(()=>{
+        const rect=cheerSection.getBoundingClientRect();
+        const cs=getComputedStyle(cheerSection);
+        const visible = rect.height>0 && cs.display!=='none' && cs.visibility!=='hidden' && parseFloat(cs.opacity)>0;
+        const rowA=document.getElementById('cheerRowA');
+        const hasCards = rowA && rowA.children.length>0;
+        if(_wasVisible!==null && (visible!==_wasVisible || !hasCards)){
+          _dbg('⚠表示状態変化: visible='+visible+' カード数='+(rowA?rowA.children.length:'?')+' height='+Math.round(rect.height)+' opacity='+cs.opacity+' display='+cs.display);
+        }
+        _wasVisible=visible;
+      },500);
+    } else {
+      _dbg('❌MutationObserver設置失敗: cheerSection要素が見つからない');
+    }
+  }catch(e){ _dbg('❌MutationObserver設置エラー: '+e.message); }
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
