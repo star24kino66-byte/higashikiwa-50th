@@ -67,6 +67,7 @@ function friendlyErrorMessage(e, fallback){
 <style>
 /* ===== テーマ変数（Classic=既定値。7/5版デザインに準拠） ===== */
 :root{
+  --sp-top-height:62px;
   --theme-nav-active-bg:#1a3260;
   --theme-nav-active-text:#fff;
   --theme-hero-bg:linear-gradient(155deg,#060e1e 0%,#1a3260 45%,#2a0d3a 100%);
@@ -976,7 +977,7 @@ window.addEventListener('load', function(){
 </div>
 
 <!-- PAGE NAV（常時表示） -->
-<nav class="page-nav" style="max-width:700px;margin:62px auto .4rem;">
+<nav class="page-nav" style="max-width:700px;margin:var(--sp-top-height) auto .4rem;">
   <button class="page-nav-btn on" onclick="switchPage(this,'top')">🏠 トップ</button>
   <button class="page-nav-btn" onclick="switchPage(this,'info')">📋 大会要綱</button>
   <button class="page-nav-btn" onclick="switchPage(this,'players')">⚾ 選手紹介</button>
@@ -3149,6 +3150,7 @@ function startSpBanner(){
   if(sponsors.length===0){
     document.getElementById('spTopName').textContent='協賛企業様を募集中';
     document.getElementById('spTopMsg').textContent=`${SITE_TOURNAMENT_TITLE}へのご支援をお待ちしております`;
+    _syncSpTopHeight();
     return;
   }
   if(_spBannerDismissed) return;
@@ -3164,6 +3166,23 @@ function startSpBanner(){
   _spIdx=0;
   showSpSlide(sponsors);
 }
+// 上部協賛バナーは掲載企業ごとにメッセージの長さが違い、実際の高さが変動する。
+// 固定のmargin-topのままだと、長いメッセージの企業に切り替わった瞬間、
+// バナーがページ本文（応援メッセージ欄など）に覆いかぶさって「消えて出て」のように見えてしまう。
+// そのため、バナーの実際の高さを都度計測してCSS変数に反映し、本文側の余白を追従させる。
+function _syncSpTopHeight(){
+  try{
+    const topBanner=document.getElementById('spTopBanner');
+    if(!topBanner || topBanner.classList.contains('hidden')) return;
+    const h=Math.ceil(topBanner.getBoundingClientRect().height);
+    if(h>0){
+      const prev=getComputedStyle(document.documentElement).getPropertyValue('--sp-top-height');
+      document.documentElement.style.setProperty('--sp-top-height', (h+6)+'px');
+      if(typeof _dbg==='function') _dbg('📢協賛バナー高さ同期: '+(h+6)+'px（変更前:'+prev.trim()+'）　企業名:'+(document.getElementById('spTopName')?document.getElementById('spTopName').textContent:'?'));
+    }
+  }catch(e){}
+}
+window.addEventListener('resize', ()=>{ _syncSpTopHeight(); });
 
 function showSpSlide(sponsors){
   if(_spBannerDismissed) return;
@@ -3180,6 +3199,7 @@ function showSpSlide(sponsors){
   document.getElementById('spTopName').textContent=sTop.name;
   document.getElementById('spTopMsg').textContent=sTop.note||`${sTop.name}より子どもたちへ応援のメッセージ`;
   if(topBanner){topBanner.classList.remove('fade-out');topBanner.classList.add('fade-in');}
+  _syncSpTopHeight();
   // 8秒後にフェードアウト→次へ
   if(_spTimer) clearTimeout(_spTimer);
   _spTimer=setTimeout(()=>{
