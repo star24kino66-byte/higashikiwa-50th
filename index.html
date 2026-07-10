@@ -881,6 +881,46 @@ img{
 </head>
 <body>
 
+<!-- ▼▼▼ 一時デバッグ表示（原因特定用・後で削除） ▼▼▼ -->
+<div id="dbgOverlay" style="position:fixed;top:0;left:0;right:0;z-index:999999;background:rgba(0,0,0,.88);color:#0f0;font:10px/1.5 monospace;padding:4px 6px;max-height:38vh;overflow-y:auto;white-space:pre-wrap;">
+  <button onclick="document.getElementById('dbgOverlay').style.display='none'" style="float:right;background:#333;color:#fff;border:none;padding:2px 8px;font-size:11px;border-radius:4px;">×閉じる</button>
+  <div style="color:#ff0;font-weight:bold;">🔍デバッグログ（原因特定用・テスト後削除）</div>
+</div>
+<script>
+window._dbgStart=performance.now();
+function _dbg(msg){
+  try{
+    const t=(performance.now()-window._dbgStart).toFixed(0);
+    const line='['+t+'ms] '+msg;
+    console.log(line);
+    const el=document.getElementById('dbgOverlay');
+    if(el){
+      const p=document.createElement('div');
+      p.textContent=line;
+      el.appendChild(p);
+      el.scrollTop=el.scrollHeight;
+    }
+  }catch(e){}
+}
+window.addEventListener('error', function(e){
+  _dbg('❌JSエラー: '+e.message+' @ '+(e.filename?e.filename.split('/').pop():'')+':'+e.lineno+':'+e.colno);
+});
+window.addEventListener('unhandledrejection', function(e){
+  _dbg('❌Promiseエラー: '+(e.reason&&e.reason.message?e.reason.message:e.reason));
+});
+_dbg('①body先頭スクリプト実行開始');
+document.addEventListener('visibilitychange', function(){
+  _dbg('👁visibilitychange発火: '+document.visibilityState);
+});
+document.addEventListener('DOMContentLoaded', function(){
+  _dbg('②DOMContentLoaded発火');
+});
+window.addEventListener('load', function(){
+  _dbg('③window load発火（全リソース読み込み完了）');
+});
+</script>
+<!-- ▲▲▲ 一時デバッグ表示ここまで ▲▲▲ -->
+
 <!-- 写真拡大Lightbox -->
 <div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
   <span class="lightbox-close" onclick="closeLightbox()">✕</span>
@@ -3596,8 +3636,10 @@ async function loadPhotosFromSupabase(){
 
 // Supabaseからメッセージを全件読み込んでpendingCheers・approvedCheersExtraに反映
 async function loadCheersFromSupabase(){
+  _dbg('▶loadCheersFromSupabase呼び出し（fetch開始）');
   try{
     const {data,error}=await sb.from('messages').select('*').order('created_at',{ascending:true});
+    _dbg('◀messages fetch応答受信 件数:'+((data||[]).length)+(error?(' エラー:'+error.message):''));
     if(error){ console.error('Supabase読み込みエラー詳細:', error.message||error); return; }
     pendingCheers=(data||[]).filter(r=>r['status']==='pending').map(r=>({
       _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at'], playerId:r['player_id']||null
@@ -3605,7 +3647,7 @@ async function loadCheersFromSupabase(){
     approvedCheersExtra=(data||[]).filter(r=>r['status']==='approved').map(r=>({
       _id:r.id, seqNo:r.seq_no, team:r['team'], name:r['name'], from:r['from_label'], msg:r['msg'], submittedAt:r['created_at'], playerId:r['player_id']||null
     }));
-  } catch(e){ console.error('loadCheers例外:',e); }
+  } catch(e){ _dbg('❌loadCheers例外: '+e.message); console.error('loadCheers例外:',e); }
 }
 
 // 承認済み写真をPH（表示用データ）に反映する
@@ -4933,13 +4975,16 @@ function renderAlbumAdmin(){
    ============================================================ */
 // Supabaseから初期データを読み込んでから描画
 (async()=>{
+  _dbg('④メイン初期化IIFE開始');
   // 応援メッセージは他の重いデータ（写真・アルバム等）の取得完了を待たず、
   // 取得でき次第すぐに流れ始めるよう先行して読み込み・描画する
   const cheersReady=loadCheersFromSupabase().then(()=>{
+    _dbg('⑤cheers先行取得 完了・rebuildCheerRows実行');
     mergeApprovedCheers();
     rebuildCheerRows();
-  }).catch(e=>console.error('応援メッセージ先行読み込みエラー:',e));
+  }).catch(e=>{ _dbg('❌cheers先行取得エラー: '+e.message); console.error('応援メッセージ先行読み込みエラー:',e); });
 
+  _dbg('⑥Promise.all待機開始（cheers+games+blocks+settings+donors+photos+album）');
   await Promise.all([
     cheersReady,
     loadGamesFromSupabase(),
@@ -4949,6 +4994,7 @@ function renderAlbumAdmin(){
     loadPhotosFromSupabase(),
     loadAlbumFromSupabase(),
   ]);
+  _dbg('⑦Promise.all完了');
   mergeApproved();
   rp(ct);
   rebuildCheerRows();
@@ -5042,14 +5088,16 @@ function renderAlbumAdmin(){
       .on('postgres_changes',{event:'*',schema:'public',table:'settings'}, _scheduleSettingsSync)
       .subscribe(status=>{
         _realtimeOk=(status==='SUBSCRIBED');
+        _dbg('📡Realtime状態: '+status);
         console.log('Realtime:',status);
         updateRealtimeBadge(status);
       });
-  }catch(e){ console.warn('Realtime初期化失敗、ポーリングに切替:', e); updateRealtimeBadge('CHANNEL_ERROR'); }
+  }catch(e){ _dbg('❌Realtime初期化失敗: '+e.message); console.warn('Realtime初期化失敗、ポーリングに切替:', e); updateRealtimeBadge('CHANNEL_ERROR'); }
 
   // フォールバック：Realtimeが繋がっていない場合は10秒ポーリング
   setInterval(async()=>{
     if(_realtimeOk) return;
+    _dbg('⏱10秒ポーリング実行（realtime未接続）');
     await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase()]);
     checkPeriods();
     _refreshPublic(); _refreshAdmin();
@@ -5057,23 +5105,39 @@ function renderAlbumAdmin(){
 
   // 画面復帰時（アプリ切り替え・画面ロック解除など）は、ポーリングの最大10秒待ちを待たずに
   // その場で最新データを取り直す。管理画面を開いている場合は管理側の表示も更新する。
-  async function forceRefreshAll(){
+  async function forceRefreshAll(reason){
+    _dbg('🔄forceRefreshAll開始（理由:'+(reason||'-')+'）');
     try{
       await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase()]);
       checkPeriods();
       _refreshPublic();
       const adminMain=document.getElementById('adminMainView');
       if(adminMain && adminMain.style.display!=='none'){ _refreshAdmin(); }
-    }catch(e){ console.warn('再取得に失敗:', e); }
+      _dbg('✅forceRefreshAll完了（理由:'+(reason||'-')+'）');
+    }catch(e){ _dbg('❌forceRefreshAll失敗: '+e.message); console.warn('再取得に失敗:', e); }
   }
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState!=='visible') return;
-    forceRefreshAll();
+    forceRefreshAll('visibilitychange');
   });
-  // 一部のスマホ環境では、タブ表示直後は初回の通信（fetch/setInterval）が
+  // 一部のスマホ環境（特にアプリ内ブラウザ）では、タブ表示直後は初回の通信（fetch/setInterval）が
   // 後回しにされ、応援メッセージ等がしばらく流れないことがある。
-  // タブ切り替え時と同じ再取得処理を、初回表示から数秒後にも保険として一度だけ実行する。
-  setTimeout(forceRefreshAll, 3000);
+  // タブ切り替え時と同じ再取得処理を、初回表示から複数回（保険として）自動実行する。
+  setTimeout(()=>forceRefreshAll('3秒タイマー'), 3000);
+  setTimeout(()=>forceRefreshAll('7秒タイマー'), 7000);
+  setTimeout(()=>forceRefreshAll('15秒タイマー'), 15000);
+  // visibilitychangeが正しく発火しないアプリ内ブラウザ環境向けに、
+  // 画面への最初のタップ・スクロールをきっかけにも強制再取得する（ユーザー操作は通信制限が解除されやすいため）
+  let _firstInteractionRefreshDone=false;
+  function _onFirstInteraction(ev){
+    if(_firstInteractionRefreshDone) return;
+    _firstInteractionRefreshDone=true;
+    _dbg('👆初回操作検知: '+(ev&&ev.type));
+    forceRefreshAll('初回操作:'+(ev&&ev.type));
+    ['touchstart','click','scroll'].forEach(ev=>document.removeEventListener(ev,_onFirstInteraction));
+  }
+  ['touchstart','click','scroll'].forEach(ev=>document.addEventListener(ev,_onFirstInteraction,{passive:true}));
+  _dbg('⑧メイン初期化IIFE末尾まで到達（イベント登録完了）');
 })();
 
 /* ---------- リセット 2段階認証 ---------- */
@@ -6677,6 +6741,7 @@ applySiteName();
 applyLogo();
 renderLatestScoreboard();
 renderTournamentView();
+_dbg('⑨ファイル末尾まで同期実行完了（スクリプト全体パース成功）');
 </script>
 </body>
 </html>
