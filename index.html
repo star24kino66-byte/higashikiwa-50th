@@ -4679,7 +4679,8 @@ function rebuildCheerRows(force){
   // 並び順が取得タイミングで多少ゆらいでも「中身が同じなら再描画しない」ようにするため、
   // idを一度ソートしてから signature を作る（表示順自体はCHEERSの並びをそのまま使う）
   const sig=CHEERS.map(c=>c._id).slice().sort().join(',');
-  if(!force && sig===_lastCheerSig) return; // 変化なし→スキップしてアニメーションを止めない
+  if(!force && sig===_lastCheerSig){ _dbg('⏭rebuildCheerRows: 変化なしでスキップ (件数:'+CHEERS.length+')'); return; }
+  _dbg('🃏rebuildCheerRows: 再構築を実行 (件数:'+CHEERS.length+', force:'+!!force+')');
   _lastCheerSig=sig;
   document.getElementById('cheerRowA').innerHTML='';
   document.getElementById('cheerRowB').innerHTML='';
@@ -5049,6 +5050,7 @@ function renderAlbumAdmin(){
     };
   }
   const _scheduleMessagesSync=_makeBurstSync(async()=>{
+    _dbg('📨Realtime受信: messagesテーブル変化イベント発火');
     await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows(); renderAdminCounts(); renderAdminAll();
     if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
     if(currentModalType==='cheer') renderCheerModalList(true);
