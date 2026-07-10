@@ -366,9 +366,9 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 @media(max-width:600px){.bt-sp{display:none;}}
 
 /* MESSAGES */
-.cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;}
+.cheer-row-wrap{overflow:hidden;border-radius:10px;border:1px solid #eee;background:#f9f7fb;padding:8px 0;margin-bottom:8px;-webkit-transform:translateZ(0);transform:translateZ(0);}
 .cheer-track{display:flex;gap:7px;width:max-content;padding:0 6px;}
-.cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;will-change:transform;}
+.cheer-track.scroll-left{animation:scrollLeft 30s linear infinite;-webkit-backface-visibility:hidden;backface-visibility:hidden;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);}
 .cheer-track.scroll-left.s2{animation-duration:24s;}
 .cheer-track.scroll-left.s3{animation-duration:34s;}
 .cheer-card{background:#fff;border:1px solid #eee;border-left:3px solid #d63384;border-radius:8px;padding:7px 9px;flex-shrink:0;min-width:190px;max-width:220px;}
