@@ -16,6 +16,10 @@ const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// 機能ON/OFFスイッチ（クライアント（大会）ごとにこのファイル内で切り替える）
+// donation: 寄付金・協賛管理機能（ナビタブ・ページ・ダッシュボード表示・管理画面・募集バナーを一括制御）
+const FEATURES = { donation: true };
+
 // 通信タイムアウト対策：Supabaseの呼び出しが一定時間で応答しない場合に
 // 「保存できたか分からない」状態を防ぐためのラッパー。
 // 使い方：await withTimeout(sb.from('photos').update(...), 8000)
@@ -429,6 +433,17 @@ body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;background:v
 .splogo{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;margin-bottom:4px;}
 .spn{font-size:11px;color:#666;text-align:center;}
 .spm{font-size:9px;color:#999;text-align:center;max-width:100px;margin-top:2px;}
+
+/* 新着通知トースト（写真・応援メッセージの投稿/公開をリアルタイムでお知らせ） */
+.toast-container{position:fixed;top:calc(var(--sp-top-height) + 10px);right:10px;z-index:1200;display:flex;flex-direction:column;gap:8px;max-width:min(280px,78vw);pointer-events:none;}
+.toast-item{background:linear-gradient(135deg,#1b2a4a 0%,#101b30 100%);color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,.28);opacity:0;transform:translateX(24px);transition:opacity .3s ease,transform .3s ease;pointer-events:auto;}
+.toast-item.show{opacity:1;transform:translateX(0);}
+.toast-item.hide{opacity:0;transform:translateX(24px);}
+.toast-item.pending{background:linear-gradient(135deg,#3a4560,#232e48);}
+@media(max-width:480px){
+  .toast-container{top:calc(var(--sp-top-height) + 6px);right:6px;max-width:70vw;}
+  .toast-item{font-size:11px;padding:8px 12px;}
+}
 
 /* LIGHTBOX */
 .lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;}
@@ -884,6 +899,7 @@ img{
 </style>
 </head>
 <body>
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <!-- 写真拡大Lightbox -->
 <div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
@@ -944,7 +960,7 @@ img{
   <button class="page-nav-btn on" onclick="switchPage(this,'top')">🏠 トップ</button>
   <button class="page-nav-btn" onclick="switchPage(this,'info')">📋 大会要綱</button>
   <button class="page-nav-btn" onclick="switchPage(this,'players')">⚾ 選手紹介</button>
-  <button class="page-nav-btn" onclick="switchPage(this,'donation')">💰 寄付・協賛</button>
+  <button class="page-nav-btn" id="navDonationBtn" onclick="switchPage(this,'donation')">💰 寄付・協賛</button>
   <button class="page-nav-btn" onclick="switchPage(this,'admin')">⚙️ 管理</button>
 </nav>
 
@@ -1458,7 +1474,7 @@ img{
       <div class="admin-tab-group"><span class="admin-tab-group-label">💬 応援メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合管理</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合結果入力</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント・リーグ戦設定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手登録</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">⚙️ 大会設定</button></div></div>
-      <div class="admin-tab-group"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
+      <div class="admin-tab-group" id="donationAdminTabGroup"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚙️ サイト設定</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'periodAdmin')" style="grid-column:span 2;">⏰ 期間設定</button></div></div>
     </div>
     <div class="admin-modal-backdrop" id="adminModalBackdrop" onclick="closeAdminModal()"></div>
@@ -1831,7 +1847,7 @@ img{
         <button class="reset-btn" onclick="confirmReset('info')">🗑 大会設定</button>
         <button class="reset-btn" onclick="confirmReset('cheers')">🗑 応援メッセージ</button>
         <button class="reset-btn" onclick="confirmReset('photos')">🗑 写真</button>
-        <button class="reset-btn" onclick="confirmReset('donation')">🗑 寄付金</button>
+        <button class="reset-btn" id="donationResetBtn" onclick="confirmReset('donation')">🗑 寄付金</button>
       </div>
     </div>
 
@@ -3134,6 +3150,7 @@ function getSpecialSponsors(){
 }
 
 function startSpBanner(){
+  if(!FEATURES.donation) return;
   const sponsors=getSpecialSponsors();
   const banner=document.getElementById('spFixedBanner');
   const topBanner=document.getElementById('spTopBanner');
@@ -5085,6 +5102,33 @@ function renderAlbumAdmin(){
     if(adminMain && adminMain.style.display!=='none'){ renderPeriodAdmin(); }
   });
 
+  // 新着通知トースト：写真・応援メッセージの「投稿」「公開（承認）」をその場にいる全員へお知らせする
+  function showToast(text, isPending){
+    const container=document.getElementById('toastContainer');
+    if(!container) return;
+    const el=document.createElement('div');
+    el.className='toast-item'+(isPending?' pending':'');
+    el.textContent=text;
+    container.appendChild(el);
+    requestAnimationFrame(()=>el.classList.add('show'));
+    setTimeout(()=>{
+      el.classList.remove('show');
+      el.classList.add('hide');
+      setTimeout(()=>el.remove(),350);
+    }, 4200);
+  }
+  function notifyOnInsert(kind, label){
+    return ()=>{ showToast(`${label} 新しい${kind}が投稿されました（承認待ち）`, true); };
+  }
+  function notifyOnApprove(label){
+    return (payload)=>{
+      const n=payload && payload.new, o=payload && payload.old;
+      if(n && n.status==='approved' && o && o.status!=='approved'){
+        showToast(`${label}公開されました！`, false);
+      }
+    };
+  }
+
   try{
     sb.channel('realtime-all')
       .on('postgres_changes',{event:'*',schema:'public',table:'messages'}, _scheduleMessagesSync)
@@ -5093,6 +5137,10 @@ function renderAlbumAdmin(){
       .on('postgres_changes',{event:'*',schema:'public',table:'games'}, _scheduleGamesSync)
       .on('postgres_changes',{event:'*',schema:'public',table:'tournament_blocks'}, _scheduleBlocksSync)
       .on('postgres_changes',{event:'*',schema:'public',table:'settings'}, _scheduleSettingsSync)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'photos'}, notifyOnInsert('写真','📷'))
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'photos'}, notifyOnApprove('📷 写真が'))
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'}, notifyOnInsert('応援メッセージ','💬'))
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages'}, notifyOnApprove('💬 応援メッセージが'))
       .subscribe(status=>{
         _realtimeOk=(status==='SUBSCRIBED');
         console.log('Realtime:',status);
@@ -6721,7 +6769,18 @@ function renderGameAdmin(){
   });
 }
 
+// 機能ON/OFFスイッチの反映：OFFの機能はナビ・ページ・ダッシュボード・管理画面から一括で隠す
+function applyFeatureFlags(){
+  if(!FEATURES.donation){
+    ['navDonationBtn','page-donation','dashSponsors','donationAdminTabGroup','donationResetBtn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+  }
+}
+
 // 初期描画
+applyFeatureFlags();
 applySiteName();
 applyLogo();
 renderLatestScoreboard();
