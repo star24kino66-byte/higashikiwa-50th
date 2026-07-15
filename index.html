@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ＵＪＢ　ＦＵＳＩＯＮ　ＣＵＰ２０２６</title>
+<title>創立５０周年記念大会</title>
 <!-- OGPタグ：SNS・LINE等でリンクを共有した際のプレビュー表示用。
      クローラーはJSを実行しないため、この静的な値がそのまま表示される。
      管理画面で大会名・ロゴを変更した場合は、ここも合わせて更新して再デプロイが必要。 -->
-<meta property="og:title" content="ＵＪＢ　ＦＵＳＩＯＮ　ＣＵＰ２０２６">
-<meta property="og:description" content="4つの想いがひとつになる。交流・挑戦・友情・団結">
-<meta property="og:image" content="https://xohjlirseoyuklehqrmx.supabase.co/storage/v1/object/public/photos/logo/logo_1783849985374.jpg">
+<meta property="og:title" content="創立５０周年記念大会">
+<meta property="og:description" content="地域とともに歩んだ５０年。その感謝を、この一球に。">
+<meta property="og:image" content="https://imaaemmldqqjiealaqxc.supabase.co/storage/v1/object/public/photos/logo/logo_1783947682253.jpg">
 <meta property="og:type" content="website">
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2"></script>
@@ -20,8 +20,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <script>
-const SUPABASE_URL = 'https://xohjlirseoyuklehqrmx.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_0dcx37bRhzPywFX59OBERA_E6UMWVp5';
+const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // 管理者ログイン用メールアドレス（Supabase Authのユーザー作成時と同じものを設定）
 const ADMIN_EMAIL = 'higashikiwa50th-staff@example.com';
@@ -59,7 +59,7 @@ window.addEventListener('unhandledrejection', function(e){
 
 // 機能ON/OFFスイッチ（クライアント（大会）ごとにこのファイル内で切り替える）
 // donation: 寄付金・協賛管理機能（ナビタブ・ページ・ダッシュボード表示・管理画面・募集バナーを一括制御）
-const FEATURES = { donation: false };
+const FEATURES = { donation: true };
 
 /* ---------- Storage抽象化層 ----------
  * 画像等メディアファイルの保存先を、コード全体から隠蔽する窓口。
