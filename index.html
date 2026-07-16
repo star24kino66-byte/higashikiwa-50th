@@ -76,7 +76,7 @@ const FEATURES = { donation: true };
 const STORAGE_BUCKET='photos';
 function storageUpload(path, blob, options){
   return sb.storage.from(STORAGE_BUCKET).upload(path, blob,
-    Object.assign({contentType:'image/jpeg', upsert:false}, options||{}));
+    Object.assign({contentType:(blob&&blob.type)||'image/jpeg', upsert:false}, options||{}));
 }
 function storageDelete(paths){
   return sb.storage.from(STORAGE_BUCKET).remove(paths);
@@ -107,6 +107,25 @@ function toStoragePath(value){
   if(!value) return null;
   if(/^https?:\/\//.test(value)) return storagePathFromUrl(value); // 既存データはURLから逆算
   return value; // 新データは既にパスそのもの
+}
+// 2026/7/16〜：画像はWebP優先で保存（対応ブラウザではJPEGよりファイルサイズを削減）。
+// canvasからBlobを生成する箇所は必ずこれを経由する。WebPエンコード非対応のブラウザでは
+// canvas.toBlob(...,'image/webp',...)が黙ってPNG等にフォールバックすることがあるため、
+// 返ってきたBlobのtypeを確認し、'image/webp'でなければ明示的にJPEGを生成し直す。
+function canvasToBlobSmart(canvas, quality){
+  return new Promise((resolve)=>{
+    canvas.toBlob((webpBlob)=>{
+      if(webpBlob && webpBlob.type==='image/webp'){
+        resolve(webpBlob);
+      } else {
+        canvas.toBlob((jpgBlob)=>{ resolve(jpgBlob||null); }, 'image/jpeg', quality);
+      }
+    }, 'image/webp', quality);
+  });
+}
+// Blobの実際の形式（webp/jpeg）から、保存用ファイル名の拡張子を決定する
+function extFromBlob(blob){
+  return (blob && blob.type==='image/webp') ? 'webp' : 'jpg';
 }
 
 // 通信タイムアウト対策：Supabaseの呼び出しが一定時間で応答しない場合に
@@ -2226,7 +2245,7 @@ function makeThumbBlob(sourceBlob,maxDim=360,quality=0.72){
       canvas.width=w; canvas.height=h;
       const c=canvas.getContext('2d');
       c.drawImage(img,0,0,w,h);
-      canvas.toBlob((blob)=>{ resolve(blob||null); }, 'image/jpeg', quality);
+      canvasToBlobSmart(canvas, quality).then(blob=>resolve(blob||null));
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); };
     img.src=url;
@@ -2269,11 +2288,12 @@ document.addEventListener('input',(e)=>{
 });
 function confirmCropModal(){
   if(!_cropper){ return; }
-  _cropper.getCroppedCanvas({imageSmoothingQuality:'high',maxWidth:1600,maxHeight:1600}).toBlob((blob)=>{
+  const canvas=_cropper.getCroppedCanvas({imageSmoothingQuality:'high',maxWidth:1600,maxHeight:1600});
+  canvasToBlobSmart(canvas, 0.88).then((blob)=>{
     const resolve=_cropResolve;
     closeCropModalInternal();
     if(resolve) resolve(blob);
-  },'image/jpeg',0.88);
+  });
 }
 // 切り取りをせず、元画像をそのまま（サイズ調整のみ）使用する
 function useOriginalCropModal(){
@@ -2291,11 +2311,11 @@ function useOriginalCropModal(){
     canvas.width=w; canvas.height=h;
     const c=canvas.getContext('2d');
     c.drawImage(img,0,0,w,h);
-    canvas.toBlob((blob)=>{
+    canvasToBlobSmart(canvas, 0.88).then((blob)=>{
       const resolve=_cropResolve;
       closeCropModalInternal();
       if(resolve) resolve(blob);
-    },'image/jpeg',0.88);
+    });
   };
   img.onerror=()=>{
     URL.revokeObjectURL(url);
@@ -2849,7 +2869,7 @@ async function uploadSiteLogo(){
   if(blob.size>15*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   if(statusEl) statusEl.textContent='アップロード中…';
   try{
-    const filePath='logo/logo_'+Date.now()+'.jpg';
+    const filePath='logo/logo_'+Date.now()+'.'+extFromBlob(blob);
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ if(statusEl) statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const url=storageGetUrl(filePath); // 画面即時反映用（LOGO_URLはフルURLで保持）
@@ -3125,7 +3145,7 @@ function resizeImageFile(file,maxDim,quality){
         const canvas=document.createElement('canvas');
         canvas.width=w; canvas.height=h;
         canvas.getContext('2d').drawImage(img,0,0,w,h);
-        canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('変換失敗')),'image/jpeg',quality);
+        canvasToBlobSmart(canvas, quality).then(blob=>blob?resolve(blob):reject(new Error('変換失敗')));
       };
       img.onerror=()=>reject(new Error('画像の読み込みに失敗しました'));
       img.src=e.target.result;
@@ -3187,7 +3207,7 @@ async function confirmUploadInfoImages(){
     const file=targetFiles[i];
     try{
       const blob=await resizeImageFile(file,1600,0.85);
-      const path=`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+      const path=`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${extFromBlob(blob)}`;
       const {error:upErr}=await storageUpload(path,blob);
       if(upErr){ console.error('参考画像アップロードエラー:',upErr); continue; }
       images.push({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),path,url:storageGetUrl(path),title:titles[i]||''});
@@ -4230,7 +4250,7 @@ async function submitEntry(){
     // 画像ファイルがある場合はStorageにアップロード（切り取り済みBlobを使用）
     if(_pendingSubmitPhotoBlob){
       if(_pendingSubmitPhotoBlob.size>10*1024*1024){ showInlineMsg('submitError','画像サイズは10MB以下にしてください'); return; }
-      const filePath=newId+'.jpg';
+      const filePath=newId+'.'+extFromBlob(_pendingSubmitPhotoBlob);
       const {error:upErr}=await withTimeout(storageUpload(filePath, _pendingSubmitPhotoBlob), 15000);
       if(upErr){ showInlineMsg('submitError','画像のアップロードに失敗しました：'+upErr.message); return; }
       imageUrl=filePath; // DBには相対パスのみ保存（表示時はresolveMediaUrlでURL化）
@@ -4239,7 +4259,7 @@ async function submitEntry(){
       try{
         const thumbBlob=await makeThumbBlob(_pendingSubmitPhotoBlob,360,0.72);
         if(thumbBlob){
-          const thumbPath='thumb_'+newId+'.jpg';
+          const thumbPath='thumb_'+newId+'.'+extFromBlob(thumbBlob);
           const {error:thumbUpErr}=await storageUpload(thumbPath, thumbBlob);
           if(!thumbUpErr){
             thumbUrl=thumbPath; // DBには相対パスのみ保存
@@ -4434,7 +4454,7 @@ async function uploadRosterPhoto(){
   if(blob.size>15*1024*1024){ statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   statusEl.textContent='アップロード中…';
   try{
-    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const url=storageGetUrl(filePath);
@@ -4616,7 +4636,7 @@ function resizeImageFileSquare(file,size,quality){
       canvas.width=size; canvas.height=size;
       const c=canvas.getContext('2d');
       c.drawImage(img,sx,sy,side,side,0,0,size,size);
-      canvas.toBlob(blob=>{ blob?resolve(blob):reject(new Error('画像の変換に失敗しました')); },'image/jpeg',quality);
+      canvasToBlobSmart(canvas, quality).then(blob=>{ blob?resolve(blob):reject(new Error('画像の変換に失敗しました')); });
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗しました')); };
     img.src=url;
@@ -4641,7 +4661,7 @@ async function confirmBulkRosterUpload(){
     if(statusEl) statusEl.textContent=`アップロード中… (${done}/${targets.length})`;
     try{
       const blob=m.customBlob||await resizeImageFileSquare(m.file,800,0.85);
-      const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+      const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
       const {error:upErr}=await storageUpload(filePath,blob);
       if(upErr){ failed++; continue; }
       const url=storageGetUrl(filePath);
@@ -5303,7 +5323,7 @@ function renderApprovedCheerList(){
 // ファイルが存在しない場合もエラーにはならないため、失敗しても投稿削除自体には影響させない。
 async function deletePhotoStorageFiles(ids){
   if(!ids||!ids.length) return;
-  const paths=ids.flatMap(id=>[id+'.jpg','thumb_'+id+'.jpg']);
+  const paths=ids.flatMap(id=>[id+'.jpg', id+'.webp', 'thumb_'+id+'.jpg', 'thumb_'+id+'.webp']);
   try{
     const {error}=await storageDelete(paths);
     if(error) console.warn('Storage孤児ファイル削除エラー（投稿自体は削除済み）:',error.message);
@@ -5629,7 +5649,7 @@ async function addAlbumPhoto(){
   statusEl.textContent='アップロード中...';
   try{
     const newId='alb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-    const filePath='album/'+newId+'.jpg';
+    const filePath='album/'+newId+'.'+extFromBlob(blob);
 
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ statusEl.textContent='❌ アップロード失敗：'+upErr.message; return; }
@@ -6954,7 +6974,7 @@ async function submitTeamRoster(){
     let teamPhotoUrl=_tiExistingTeamPhotoUrl||undefined;
     if(_pendingTiTeamPhotoBlob){
       showInlineMsg('tiSuccess','集合写真をアップロード中…');
-      const path='roster/'+_tiCurrentToken+'_team_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+      const path='roster/'+_tiCurrentToken+'_team_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(_pendingTiTeamPhotoBlob);
       try{
         const {error:upErr}=await withTimeout(storageUpload(path, _pendingTiTeamPhotoBlob), 15000);
         if(!upErr){
@@ -6968,7 +6988,7 @@ async function submitTeamRoster(){
       showInlineMsg('tiSuccess','写真をアップロード中…（'+photoJobs.length+'枚）');
       for(let i=0;i<photoJobs.length;i++){
         const job=photoJobs[i];
-        const path='roster/'+_tiCurrentToken+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+        const path='roster/'+_tiCurrentToken+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(job.blob);
         try{
           const {error:upErr}=await withTimeout(storageUpload(path, job.blob), 15000);
           if(!upErr){
