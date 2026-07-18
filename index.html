@@ -109,20 +109,25 @@ async function storageUpload(path, blob, options){
 async function storageDelete(paths){
   if(!paths||!paths.length) return {data:[], error:null};
   try{
-    const r2Promise=Promise.all(paths.map(p=>
+    // 【検証用サイト】本番からコピーしたデータはstaging/プレフィックスなしの本番パスのまま保持している。
+    // 誤って本番の実ファイルを削除してしまわないよう、staging/配下のパスのみ実削除する。
+    // 本番パスは「DB上の参照だけ消える（実ファイルは無傷）」という安全な形でスキップする。
+    const deletable=paths.filter(p=>p&&p.indexOf(STORAGE_PREFIX)===0);
+    const skipped=paths.filter(p=>!(p&&p.indexOf(STORAGE_PREFIX)===0));
+    const r2Promise=Promise.all(deletable.map(p=>
       fetch(STORAGE_WORKER_URL+'/'+p, {method:'DELETE'}).then(res=>({path:p, ok:res.ok}))
     ));
     // 旧Supabase Storageにまだ実体が残っている過去データも対象に削除を試みる（ベストエフォート）。
     // R2の削除は存在しないキーに対してもok:trueを返す（冪等な仕様）ため、R2側の結果だけでは
     // 「旧データがSupabase Storageに残っている」ケースを検知できない。そのため常に両方を叩く。
     // R2にしか無い新データに対しては、この呼び出しは単に対象が無いだけで無害。
-    const legacyPromise=sb.storage.from(SUPABASE_LEGACY_BUCKET).remove(paths).catch(()=>null);
+    const legacyPromise=sb.storage.from(SUPABASE_LEGACY_BUCKET).remove(deletable).catch(()=>null);
     const [results]=await Promise.all([r2Promise, legacyPromise]);
     const failed=results.filter(r=>!r.ok);
     if(failed.length){
       return {data:results, error:{message:failed.length+'件の削除に失敗しました'}};
     }
-    return {data:results, error:null};
+    return {data:[...results, ...skipped.map(p=>({path:p, ok:true, skipped:true}))], error:null};
   }catch(e){
     return {data:null, error:{message:String(e)}};
   }
