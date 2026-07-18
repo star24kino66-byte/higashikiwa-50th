@@ -22,7 +22,9 @@
 <script>
 const SUPABASE_URL = 'https://imaaemmldqqjiealaqxc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWFlbW1sZHFxamllYWxhcXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQxOTcsImV4cCI6MjA5NzgyMDE5N30.x0nk9yN-SG-eVDg8qbIl4yAvw2x0YMOpZ6J7B4zXJ08';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 【検証用サイト】本番と同一プロジェクトの別スキーマ(staging)を参照する。
+// Authは同一プロジェクトのため本番の管理者アカウントがそのまま使える。
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'staging' } });
 // 管理者ログイン用メールアドレス（Supabase Authのユーザー作成時と同じものを設定）
 const ADMIN_EMAIL = 'higashikiwa50th-staff@example.com';
 
@@ -82,8 +84,12 @@ const FEATURES = { donation: true };
 const STORAGE_WORKER_URL='https://higashikiwa-storage.star24kino66.workers.dev';
 const STORAGE_PUBLIC_URL='https://pub-17f3a29307714893bbca16a3d26a1d6f.r2.dev';
 const SUPABASE_LEGACY_BUCKET='photos'; // 移行前の既存データ（フルURL）解決用。新規保存には使わない。
+// 【検証用サイト】既存Worker・バケットを流用しつつ、本番データと混ざらないよう専用プレフィックスで分離。
+// このプレフィックス込みのパスをそのままDBに保存するため、storageUpload以外の関数は無変更で動く。
+const STORAGE_PREFIX='staging/';
 
 async function storageUpload(path, blob, options){
+  path = STORAGE_PREFIX + path;
   try{
     const contentType=(options&&options.contentType)||(blob&&blob.type)||'image/jpeg';
     const res=await fetch(STORAGE_WORKER_URL+'/'+path, {
