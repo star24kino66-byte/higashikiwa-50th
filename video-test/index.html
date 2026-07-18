@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>5秒動画 録画テスト</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#1a1d24; --line:#2a2e38;
+    --text:#eef0f4; --sub:#9aa2b1; --accent:#ff5a3c; --accent2:#3ca9ff; --good:#3ecf8e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    padding:16px; padding-bottom:48px;
+  }
+  h1{font-size:18px; margin:0 0 4px;}
+  p.lead{color:var(--sub); font-size:13px; margin:0 0 16px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px;}
+  .card h2{font-size:13px; color:var(--sub); margin:0 0 10px; font-weight:600; letter-spacing:.02em;}
+  video{width:100%; border-radius:10px; background:#000; display:block;}
+  .row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+  .row:last-child{margin-bottom:0;}
+  select{
+    flex:1; min-width:100px; background:#12141a; color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:10px 8px; font-size:14px;
+  }
+  label.sel{display:flex; flex-direction:column; gap:4px; flex:1; min-width:100px;}
+  label.sel span{font-size:11px; color:var(--sub);}
+  button{
+    width:100%; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:700;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  #startBtn{background:var(--accent); color:#fff;}
+  #startBtn:disabled{background:#4a3a34; color:#8a8a8a;}
+  #dlBtn{background:var(--accent2); color:#fff; margin-top:8px; display:none;}
+  #retryBtn{background:#2a2e38; color:var(--text); margin-top:8px; display:none;}
+  .countdown{
+    position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff;
+    padding:4px 10px; border-radius:20px; font-size:13px; font-weight:700; display:none;
+  }
+  .wrap{position:relative;}
+  .stat{display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px dashed var(--line);}
+  .stat:last-child{border-bottom:none;}
+  .stat .k{color:var(--sub);}
+  .stat .v{font-weight:700; font-variant-numeric:tabular-nums;}
+  .v.good{color:var(--good);}
+  .v.warn{color:#ffb84c;}
+  .badge{display:inline-block; font-size:11px; background:#12141a; border:1px solid var(--line); color:var(--sub); padding:2px 8px; border-radius:20px; margin-top:8px;}
+  #err{color:#ff6b6b; font-size:13px; white-space:pre-wrap;}
+</style>
+</head>
+<body>
+
+<h1>🎬 5秒動画 録画テスト</h1>
+<p class="lead">本番サイトとは無関係の単体テストページです。設定を変えて録画し、実際のファイルサイズ・画質を確認してください。</p>
+
+<div class="card">
+  <h2>① 録画設定</h2>
+  <div class="row">
+    <label class="sel"><span>解像度</span>
+      <select id="resSel">
+        <option value="480">480p</option>
+        <option value="720" selected>720p</option>
+      </select>
+    </label>
+    <label class="sel"><span>映像ビットレート</span>
+      <select id="vBitSel">
+        <option value="800000">800kbps</option>
+        <option value="1000000" selected>1000kbps</option>
+        <option value="1200000">1200kbps</option>
+      </select>
+    </label>
+  </div>
+  <div class="row">
+    <label class="sel"><span>音声ビットレート</span>
+      <select id="aBitSel">
+        <option value="64000">64kbps</option>
+        <option value="96000" selected>96kbps</option>
+      </select>
+    </label>
+    <label class="sel"><span>録画秒数</span>
+      <select id="durSel">
+        <option value="5" selected>5秒</option>
+        <option value="3">3秒（お試し）</option>
+      </select>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <h2>② カメラプレビュー</h2>
+  <div class="wrap">
+    <video id="preview" autoplay playsinline muted></video>
+    <div class="countdown" id="countdown">5</div>
+  </div>
+  <button id="startBtn" style="margin-top:10px;">カメラを起動</button>
+  <div id="err"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <h2>③ 録画結果</h2>
+  <video id="playback" controls playsinline></video>
+  <div style="margin-top:10px;">
+    <div class="stat"><span class="k">ファイルサイズ</span><span class="v" id="stSize">-</span></div>
+    <div class="stat"><span class="k">目標範囲(600〜850KB)</span><span class="v" id="stJudge">-</span></div>
+    <div class="stat"><span class="k">実測時間</span><span class="v" id="stDur">-</span></div>
+    <div class="stat"><span class="k">使用mimeType</span><span class="v" id="stMime">-</span></div>
+    <div class="stat"><span class="k">設定(解像度/映像/音声)</span><span class="v" id="stSettings">-</span></div>
+  </div>
+  <button id="dlBtn">動画をダウンロード</button>
+  <button id="retryBtn">もう一度録画</button>
+</div>
+
+<span class="badge" id="uaBadge"></span>
+
+<script>
+const preview = document.getElementById('preview');
+const playback = document.getElementById('playback');
+const startBtn = document.getElementById('startBtn');
+const dlBtn = document.getElementById('dlBtn');
+const retryBtn = document.getElementById('retryBtn');
+const countdownEl = document.getElementById('countdown');
+const resultCard = document.getElementById('resultCard');
+const errEl = document.getElementById('err');
+document.getElementById('uaBadge').textContent = navigator.userAgent.slice(0, 80);
+
+let stream = null;
+let recordedBlob = null;
+
+function pickMimeType(){
+  const candidates = [
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  for(const c of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return '';
+}
+
+startBtn.addEventListener('click', async () => {
+  errEl.textContent = '';
+  if(!stream){
+    // カメラ起動フェーズ
+    try{
+      const res = document.getElementById('resSel').value;
+      const constraints = {
+        audio: true,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: res === '720' ? 1280 : 854 },
+          height: { ideal: res === '720' ? 720 : 480 }
+        }
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      preview.srcObject = stream;
+      startBtn.textContent = '🔴 5秒録画スタート';
+    }catch(e){
+      errEl.textContent = 'カメラ起動エラー: ' + e.message + '\n(HTTPS必須・カメラ許可を確認してください)';
+    }
+    return;
+  }
+
+  // 録画フェーズ
+  startRecording();
+});
+
+function startRecording(){
+  const mimeType = pickMimeType();
+  const vBit = parseInt(document.getElementById('vBitSel').value, 10);
+  const aBit = parseInt(document.getElementById('aBitSel').value, 10);
+  const dur = parseInt(document.getElementById('durSel').value, 10);
+  const res = document.getElementById('resSel').value;
+
+  let recorder;
+  try{
+    recorder = new MediaRecorder(stream, {
+      mimeType: mimeType || undefined,
+      videoBitsPerSecond: vBit,
+      audioBitsPerSecond: aBit
+    });
+  }catch(e){
+    errEl.textContent = 'MediaRecorder初期化エラー: ' + e.message;
+    return;
+  }
+
+  const chunks = [];
+  const startTime = Date.now();
+  recorder.ondataavailable = (e) => { if(e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const actualDur = ((Date.now() - startTime) / 1000).toFixed(2);
+    recordedBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
+    showResult(actualDur, mimeType, res, vBit, aBit);
+  };
+
+  recorder.start();
+  startBtn.disabled = true;
+  countdownEl.style.display = 'block';
+  let remain = dur;
+  countdownEl.textContent = remain;
+  const timer = setInterval(() => {
+    remain -= 1;
+    countdownEl.textContent = remain > 0 ? remain : '停止中';
+    if(remain <= 0){
+      clearInterval(timer);
+      recorder.stop();
+    }
+  }, 1000);
+}
+
+function showResult(actualDur, mimeType, res, vBit, aBit){
+  countdownEl.style.display = 'none';
+  startBtn.disabled = false;
+  startBtn.textContent = 'カメラを起動';
+  // ストリーム停止(次回また起動しなおす想定。連続テストしたい場合はretryで維持)
+  const url = URL.createObjectURL(recordedBlob);
+  playback.src = url;
+
+  const kb = (recordedBlob.size / 1024).toFixed(1);
+  document.getElementById('stSize').textContent = kb + ' KB';
+  const judgeEl = document.getElementById('stJudge');
+  if(recordedBlob.size >= 600*1024 && recordedBlob.size <= 850*1024){
+    judgeEl.textContent = '✓ 範囲内'; judgeEl.className = 'v good';
+  }else{
+    judgeEl.textContent = recordedBlob.size < 600*1024 ? '軽い(要調整)' : '重い(要調整)';
+    judgeEl.className = 'v warn';
+  }
+  document.getElementById('stDur').textContent = actualDur + ' 秒';
+  document.getElementById('stMime').textContent = mimeType || recordedBlob.type || '(不明)';
+  document.getElementById('stSettings').textContent = `${res}p / ${vBit/1000}kbps / ${aBit/1000}kbps`;
+
+  resultCard.style.display = 'block';
+  dlBtn.style.display = 'block';
+  retryBtn.style.display = 'block';
+  resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+dlBtn.addEventListener('click', () => {
+  if(!recordedBlob) return;
+  const ext = (recordedBlob.type.includes('mp4')) ? 'mp4' : 'webm';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(recordedBlob);
+  a.download = `test_${Date.now()}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+retryBtn.addEventListener('click', () => {
+  resultCard.style.display = 'none';
+  dlBtn.style.display = 'none';
+  retryBtn.style.display = 'none';
+  recordedBlob = null;
+});
+</script>
+</body>
+</html>
