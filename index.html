@@ -61,7 +61,8 @@ window.addEventListener('unhandledrejection', function(e){
 
 // 機能ON/OFFスイッチ（クライアント（大会）ごとにこのファイル内で切り替える）
 // donation: 寄付金・協賛管理機能（ナビタブ・ページ・ダッシュボード表示・管理画面・募集バナーを一括制御）
-const FEATURES = { donation: true };
+// video: 動画メッセージ機能（②Worker+R2最小プロトタイプ検証済み・2026/7/18〜本実装。検証用サイトでON）
+const FEATURES = { donation: true, video: true };
 
 /* ---------- Storage抽象化層 ----------
  * 画像等メディアファイルの保存先を、コード全体から隠蔽する窓口。
@@ -89,7 +90,6 @@ const SUPABASE_LEGACY_BUCKET='photos'; // 移行前の既存データ（フルUR
 const STORAGE_PREFIX='staging/';
 
 async function storageUpload(path, blob, options){
-  path = STORAGE_PREFIX + path;
   try{
     const contentType=(options&&options.contentType)||(blob&&blob.type)||'image/jpeg';
     const res=await fetch(STORAGE_WORKER_URL+'/'+path, {
@@ -1081,6 +1081,40 @@ img{
   user-select:none;
   -webkit-user-select:none;
 }
+
+/* ▼動画メッセージ機能 */
+.video-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.8rem;}
+.video-grid-item{position:relative;border-radius:10px;overflow:hidden;background:#111;aspect-ratio:9/16;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+.video-grid-item video{width:100%;height:100%;object-fit:cover;display:block;}
+.video-grid-item .video-play-badge{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;background:rgba(0,0,0,.15);pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.6);}
+.video-grid-item .video-caption{position:absolute;left:0;right:0;bottom:0;padding:5px 6px 4px;font-size:10px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.75));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.video-empty-msg{grid-column:1/-1;text-align:center;color:#999;font-size:12px;padding:1.4rem 0;}
+
+.video-topic-banner{position:relative;border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;
+  background:linear-gradient(135deg,#1a2350,#3a2a6b 55%,#7a2f5c);
+  box-shadow:0 4px 14px rgba(26,35,80,.35);overflow:hidden;}
+.video-topic-banner::before{content:'🎤';position:absolute;right:-6px;bottom:-14px;font-size:64px;opacity:.14;transform:rotate(-12deg);}
+.video-topic-label{font-size:10px;letter-spacing:.12em;font-weight:700;color:#ffd76a;text-transform:uppercase;margin-bottom:4px;}
+.video-topic-text{font-size:17px;font-weight:800;color:#fff;line-height:1.4;text-shadow:0 1px 3px rgba(0,0,0,.3);min-height:1.4em;}
+.video-topic-actions{display:flex;gap:8px;margin-top:.7rem;}
+.video-topic-btn{flex:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:7px 4px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s;backdrop-filter:blur(2px);}
+.video-topic-btn:hover{background:rgba(255,255,255,.26);}
+.video-topic-btn:active{transform:scale(.97);}
+.video-topic-banner.speaking .video-topic-text{animation:videoTopicPulse 1s ease-in-out infinite;}
+@keyframes videoTopicPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
+
+.video-record-area{position:relative;width:100%;max-width:280px;aspect-ratio:9/16;margin:0 auto;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+.video-record-area video{width:100%;height:100%;object-fit:cover;display:block;}
+.video-record-idle-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8891b0;font-size:12.5px;text-align:center;padding:0 1rem;}
+.video-record-ring{position:absolute;top:10px;right:10px;width:46px;height:46px;border-radius:50%;background:rgba(200,39,60,.92);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 0 0 4px rgba(200,39,60,.25);animation:videoRecPulse 1s ease-in-out infinite;}
+@keyframes videoRecPulse{0%,100%{box-shadow:0 0 0 4px rgba(200,39,60,.25);}50%{box-shadow:0 0 0 8px rgba(200,39,60,.12);}}
+.video-rec-dot{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);border-radius:999px;padding:4px 9px 4px 7px;color:#fff;font-size:10.5px;font-weight:700;}
+.video-rec-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:#ff3b3b;animation:videoRecPulse 1s ease-in-out infinite;}
+
+.video-record-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:.9rem;}
+.video-icon-btn{background:#fff;border:1px solid #ddd;color:#333;border-radius:999px;padding:9px 16px;font-size:12.5px;font-weight:700;cursor:pointer;}
+.video-icon-btn:hover{background:#f5f5f5;}
+#videoStartCameraBtn,#videoRecordBtn{max-width:280px;}
 </style>
 </head>
 <body>
@@ -1146,6 +1180,7 @@ img{
   <button class="page-nav-btn" onclick="switchPage(this,'info')">📋 大会要綱</button>
   <button class="page-nav-btn" onclick="switchPage(this,'players')">⚾ 選手紹介</button>
   <button class="page-nav-btn" id="navDonationBtn" onclick="switchPage(this,'donation')">💰 寄付・協賛</button>
+  <button class="page-nav-btn" id="navVideoBtn" onclick="switchPage(this,'video')">🎥 動画</button>
   <button class="page-nav-btn" onclick="openAdminLogin()">⚙️ 管理</button>
 </nav>
 <!-- TOP PAGE -->
@@ -1416,6 +1451,78 @@ img{
 </div>
 </div><!-- /page-donation -->
 
+<!-- VIDEO PAGE -->
+<div class="page-view" id="page-video">
+<div class="wrap" style="padding-top:.4rem;">
+
+  <div class="sc" id="videoSection">
+    <div class="sl">🎥 動画メッセージ</div>
+
+    <div id="videoBeforeNotice" style="display:none;" class="period-notice period-before">
+      <div class="period-notice-icon">📅</div>
+      <div class="period-notice-text">
+        <b>動画メッセージは受付開始前です</b>
+        <span id="videoBeforeDate"></span>
+      </div>
+    </div>
+    <div id="videoAfterNotice" style="display:none;" class="period-notice period-after">
+      <div class="period-notice-icon">🔒</div>
+      <div class="period-notice-text">
+        <b>動画メッセージの受付期間が終了しました</b>
+        <span>たくさんのご投稿ありがとうございました！</span>
+      </div>
+    </div>
+
+    <div id="videoInPeriod">
+      <p style="font-size:12px;color:#888;margin-bottom:1rem;">5秒間の動画で気持ちを届けよう！お題に沿って撮影してね📹</p>
+      <div id="videoGrid" class="video-grid"><div class="video-empty-msg">投稿をお待ちしています！</div></div>
+      <button class="more-btn" onclick="openModal('video')">すべての投稿動画を見る</button>
+
+      <div class="uf" id="videoRecordCard">
+        <div class="ut">🎬 動画を撮影して投稿する</div>
+        <div class="notice-box" style="margin-bottom:.6rem;">
+          ✅ 投稿動画は<b>承認後</b>に掲載します。個人情報が写り込んでいるもの・不適切なものは掲載を見送る場合があります。<br>
+          <span style="color:#666;">📱 投稿はこの端末からいつでも確認・削除できます（<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿を見る</a>）。</span>
+        </div>
+
+        <div class="video-topic-banner" id="videoTopicBanner">
+          <div class="video-topic-label">今日のお題</div>
+          <div class="video-topic-text" id="videoTopicText">…</div>
+          <div class="video-topic-actions">
+            <button class="video-topic-btn" onclick="playCurrentTopicVoice()">🔊 声で聞く</button>
+            <button class="video-topic-btn" onclick="rerollTopic()">🔁 お題を変える</button>
+          </div>
+        </div>
+
+        <div class="video-record-area" id="videoRecordArea">
+          <video id="videoCameraPreview" autoplay playsinline muted></video>
+          <video id="videoPlaybackPreview" playsinline controls style="display:none;"></video>
+          <div class="video-rec-dot" id="videoRecDot" style="display:none;">REC</div>
+          <div class="video-record-ring" id="videoRecordRing" style="display:none;"><span id="videoCountdownNum">5</span></div>
+          <div class="video-record-idle-hint" id="videoIdleHint">📷 下のボタンでカメラを起動してください</div>
+        </div>
+
+        <div class="video-record-controls" id="videoRecordControls">
+          <button class="ubtn" id="videoStartCameraBtn" onclick="startVideoCamera()">📷 カメラを起動</button>
+          <button class="video-icon-btn" id="videoFlipBtn" onclick="flipVideoCamera()" style="display:none;">🔄 前後カメラ切替</button>
+          <button class="ubtn" id="videoRecordBtn" style="display:none;background:#c8273c;" onclick="startVideoRecording()">⏺ 5秒録画スタート</button>
+          <button class="video-icon-btn" id="videoRetakeBtn" style="display:none;" onclick="retakeVideo()">↺ 撮り直す</button>
+        </div>
+
+        <div id="videoFormFields" style="display:none;flex-direction:column;gap:8px;margin-top:10px;">
+          <div class="fr"><input type="text" id="videoAuthorName" placeholder="投稿者のお名前（10文字以内）" maxlength="10" style="flex:1;"></div>
+          <div class="fr"><input type="text" id="videoTeamName" placeholder="チーム名（任意）" maxlength="30" style="flex:1;"></div>
+          <button class="ubtn" onclick="submitVideoEntry()">この動画を投稿する</button>
+        </div>
+        <div class="submit-success" id="videoSubmitSuccess">✅ 動画を受け付けました！確認後、掲載いたします。</div>
+        <div class="submit-error" id="videoSubmitError"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /page-video -->
+
 <!-- PLAYERS PAGE（wrap外・全幅） -->
 <div class="page-view" id="page-players">
 <div class="pl-wrap">
@@ -1681,6 +1788,7 @@ img{
     <div class="admin-tabs">
       <div class="admin-tab-group"><span class="admin-tab-group-label">📷 フォトベスト9</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingPhotos')">未承認写真 <span class="pending-count" id="photoCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedPhotos')">承認済写真</button><button class="admin-tab" onclick="switchAdminTab(this,'bestNineAdmin')" style="grid-column:span 2;">🏆 ベスト9選定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">💬 応援メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingCheers')">未承認メッセージ <span class="pending-count" id="cheerCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedCheers')">承認済メッセージ</button></div></div>
+      <div class="admin-tab-group" id="videoAdminTabGroup"><span class="admin-tab-group-label">🎥 動画メッセージ</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'pendingVideos')">未承認動画 <span class="pending-count" id="videoCount">0</span></button><button class="admin-tab" onclick="switchAdminTab(this,'approvedVideos')">承認済動画</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">⚾ 試合管理</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'gameAdmin')">⚾ 試合結果入力</button><button class="admin-tab" onclick="switchAdminTab(this,'tournamentAdmin')">🏆 トーナメント・リーグ戦設定</button></div></div>
       <div class="admin-tab-group"><span class="admin-tab-group-label">👥 選手・大会情報</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'csvAdmin')">👥 選手登録</button><button class="admin-tab" onclick="switchAdminTab(this,'infoAdmin')">⚙️ 大会設定</button><button class="admin-tab" onclick="switchAdminTab(this,'teamLinkAdmin')">🔗 チーム入力リンク</button><button class="admin-tab" onclick="switchAdminTab(this,'rosterPendingAdmin')">📋 名簿承認待ち <span class="pending-count" id="rosterPendingCount">0</span></button></div></div>
       <div class="admin-tab-group" id="donationAdminTabGroup"><span class="admin-tab-group-label">💰 寄付金・協賛</span><div class="admin-tab-group-btns"><button class="admin-tab" onclick="switchAdminTab(this,'donationAdmin')">💰 寄付金管理</button><button class="admin-tab" onclick="switchAdminTab(this,'albumAdmin')">🖼 活動アルバム</button></div></div>
@@ -1690,6 +1798,8 @@ img{
     <div class="admin-modal-backdrop" id="adminModalBackdrop" onclick="closeAdminModal()"></div>
     <div class="admin-section" id="pendingPhotos"><div id="pendingPhotoList"></div></div>
     <div class="admin-section" id="pendingCheers"><div id="pendingCheerList"></div></div>
+    <div class="admin-section" id="pendingVideos"><div id="pendingVideoList"></div></div>
+    <div class="admin-section" id="approvedVideos"><div id="approvedVideoList"></div></div>
     <div class="admin-section" id="bestNineAdmin"><div id="bestNineList"></div></div>
     <div class="admin-section" id="approvedPhotos"><div id="approvedPhotoList"></div></div>
     <div class="admin-section" id="approvedCheers"><div id="approvedCheerList"></div></div>
@@ -1913,6 +2023,24 @@ img{
         <div id="photoPeriodCurrentStatus" style="font-size:12px;margin-bottom:.5rem;"></div>
         <button class="ubtn" onclick="savePeriod('photo')">保存する</button>
         <div id="photoPeriodStatus" style="font-size:12px;margin-top:.5rem;color:#666;"></div>
+      </div>
+      <div class="admin-form-card">
+        <div class="admin-form-title">🎥 動画メッセージ 受付期間</div>
+        <div style="font-size:11px;color:#888;margin-bottom:.7rem;line-height:1.6;background:#f8f9fb;border-radius:6px;padding:.5rem .7rem;">
+          ⚠️ 期間外は動画メッセージセクションが非表示になります。<br>
+          未設定の場合は常時表示されます。
+        </div>
+        <div class="admin-form-row">
+          <label style="font-size:12px;color:#888;min-width:60px;">開始</label>
+          <input type="datetime-local" id="videoStart" style="flex:1;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;">
+        </div>
+        <div class="admin-form-row">
+          <label style="font-size:12px;color:#888;min-width:60px;">終了</label>
+          <input type="datetime-local" id="videoEnd" style="flex:1;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;">
+        </div>
+        <div id="videoPeriodCurrentStatus" style="font-size:12px;margin-bottom:.5rem;"></div>
+        <button class="ubtn" onclick="savePeriod('video')">保存する</button>
+        <div id="videoPeriodStatus" style="font-size:12px;margin-top:.5rem;color:#666;"></div>
       </div>
     </div>
 
@@ -2971,7 +3099,7 @@ async function uploadSiteLogo(){
   if(blob.size>15*1024*1024){ if(statusEl) statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   if(statusEl) statusEl.textContent='アップロード中…';
   try{
-    const filePath='logo/logo_'+Date.now()+'.'+extFromBlob(blob);
+    const filePath=STORAGE_PREFIX+'logo/logo_'+Date.now()+'.'+extFromBlob(blob);
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ if(statusEl) statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const url=storageGetUrl(filePath); // 画面即時反映用（LOGO_URLはフルURLで保持）
@@ -3380,7 +3508,7 @@ async function confirmUploadInfoImages(){
     const file=targetFiles[i];
     try{
       const blob=await resizeImageFile(file,1600,0.85);
-      const path=`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${extFromBlob(blob)}`;
+      const path=STORAGE_PREFIX+`info/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${extFromBlob(blob)}`;
       const {error:upErr}=await storageUpload(path,blob);
       if(upErr){ console.error('参考画像アップロードエラー:',upErr); continue; }
       images.push({id:'img'+Date.now()+Math.random().toString(36).slice(2,6),path,url:storageGetUrl(path),title:titles[i]||''});
@@ -3952,6 +4080,8 @@ function openModal(type){
     renderGamesModalList();
   } else if(type==='myposts'){
     renderMyPostsModal();
+  } else if(type==='video'){
+    renderVideoModalList();
   }
   overlay.classList.add('open');
 }
@@ -3971,11 +4101,14 @@ function renderMyPostsModal(){
     if(entry.type==='cheer'){
       if(approvedCheersExtra.some(c=>c._id===entry.id)){ statusLabel='✅ 承認済み'; statusColor='#28a745'; }
       else if(pendingCheers.some(c=>c._id===entry.id)){ statusLabel='⏳ 審査待ち'; statusColor='#c9a227'; }
+    } else if(entry.type==='video'){
+      if(approvedVideos.some(v=>v._id===entry.id)){ statusLabel='✅ 承認済み'; statusColor='#28a745'; }
+      else if(pendingVideos.some(v=>v._id===entry.id)){ statusLabel='⏳ 審査待ち'; statusColor='#c9a227'; }
     } else {
       if(approvedPhotosExtra.some(p=>p._id===entry.id)){ statusLabel='✅ 承認済み'; statusColor='#28a745'; }
       else if(pendingPhotos.some(p=>p._id===entry.id)){ statusLabel='⏳ 審査待ち'; statusColor='#c9a227'; }
     }
-    const typeIcon=entry.type==='cheer'?'💬':'📸';
+    const typeIcon=entry.type==='cheer'?'💬':(entry.type==='video'?'🎥':'📸');
     html+=`<div class="modal-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
       <div style="min-width:0;flex:1;">
         <div style="font-size:11px;font-weight:700;color:${statusColor};margin-bottom:2px;">${statusLabel}</div>
@@ -3991,12 +4124,15 @@ async function deleteMyPost(id){
   if(!entry) return;
   if(!confirm('この投稿を削除します。元に戻せません。よろしいですか？')) return;
   try{
-    const rpcName=entry.type==='cheer'?'delete_own_message':'delete_own_photo';
+    const rpcName=entry.type==='cheer'?'delete_own_message':(entry.type==='video'?'delete_own_video':'delete_own_photo');
     const {error}=await withTimeout(sb.rpc(rpcName,{target_id:id, token:entry.token}), 8000);
     if(error){ alert('削除に失敗しました：'+friendlyErrorMessage(error)); return; }
     removeMyPost(id);
     if(entry.type==='cheer'){
       await loadCheersFromSupabase(); mergeApproved(); rebuildCheerRows();
+    } else if(entry.type==='video'){
+      deleteVideoStorageFiles([id]);
+      await loadVideosFromSupabase(); renderVideoGrid();
     } else {
       deletePhotoStorageFiles([id]); // 本体・サムネイルファイルも削除
       await loadPhotosFromSupabase(); mergeApproved(); rp();
@@ -4371,6 +4507,427 @@ function showInlineMsg(elId, msg){
   },5000);
 }
 
+/* ================= 動画メッセージ機能 ================= */
+// お題データ：カテゴリ分けして管理（将来的に対象者別の出し分けにも使える設計）
+const VIDEO_TOPICS=[
+  {id:'t01',cat:'match',text:'今日どうだった？'},
+  {id:'t02',cat:'match',text:'今日一番楽しかったことは？'},
+  {id:'t03',cat:'match',text:'今日一番悔しかったことは？'},
+  {id:'t04',cat:'match',text:'今日の試合を一言で！'},
+  {id:'t05',cat:'match',text:'今日のベストプレーは？'},
+  {id:'t06',cat:'baseball',text:'今日一番頑張ったことは？'},
+  {id:'t07',cat:'baseball',text:'今日のヒーローは誰？'},
+  {id:'t08',cat:'team',text:'チームメイトに一言！'},
+  {id:'t09',cat:'coach',text:'監督に一言！'},
+  {id:'t10',cat:'coach',text:'コーチに一言！'},
+  {id:'t11',cat:'family',text:'お父さんへ一言！'},
+  {id:'t12',cat:'family',text:'お母さんへ一言！'},
+  {id:'t13',cat:'family',text:'家族へありがとう！'},
+  {id:'t14',cat:'family',text:'応援ありがとう！'},
+  {id:'t15',cat:'future',text:'次の試合の目標は？'},
+  {id:'t16',cat:'future',text:'将来どんな選手になりたい？'},
+  {id:'t17',cat:'future',text:'10年後の自分へ一言！'},
+  {id:'t18',cat:'fun',text:'今日一番笑ったことは？'},
+  {id:'t19',cat:'fun',text:'好きなプロ野球選手は？'},
+  {id:'t20',cat:'fun',text:'好きな食べ物は？'},
+  {id:'t21',cat:'anniv50',text:'50周年大会の思い出は？'},
+  {id:'t22',cat:'anniv50',text:'この大会で楽しかったことは？'},
+  {id:'t23',cat:'anniv50',text:'東岐波クラブへ一言！'},
+  {id:'t24',cat:'anniv50',text:'50周年おめでとう！'},
+  {id:'t25',cat:'anniv50',text:'みんなにありがとう！'},
+];
+let _currentTopic=null;
+
+function pickRandomTopic(){
+  const list=VIDEO_TOPICS;
+  return list[Math.floor(Math.random()*list.length)];
+}
+function rerollTopic(){
+  let next=pickRandomTopic();
+  if(VIDEO_TOPICS.length>1){
+    let guard=0;
+    while(_currentTopic && next.id===_currentTopic.id && guard<10){ next=pickRandomTopic(); guard++; }
+  }
+  _currentTopic=next;
+  const el=document.getElementById('videoTopicText');
+  if(el) el.textContent=_currentTopic.text;
+  playCurrentTopicVoice();
+}
+// 音声：VOICEVOX等で事前生成した音声ファイル（voice/<id>.mp3）があればそれを再生し、
+// ファイルが無い・再生失敗の場合はブラウザ標準の音声合成（Web Speech API）に自動フォールバックする。
+// これにより音声ファイルが未整備の段階でも機能全体のテストが可能。
+function playCurrentTopicVoice(){
+  if(!_currentTopic) return;
+  const banner=document.getElementById('videoTopicBanner');
+  const path=STORAGE_PREFIX+'voice/'+_currentTopic.id+'.mp3';
+  const audio=new Audio(storageGetUrl(path));
+  if(banner) banner.classList.add('speaking');
+  const endSpeaking=()=>{ if(banner) banner.classList.remove('speaking'); };
+  audio.addEventListener('ended', endSpeaking);
+  audio.addEventListener('error', ()=>{
+    endSpeaking();
+    speakTopicFallback(_currentTopic.text);
+  });
+  audio.play().catch(()=>{
+    endSpeaking();
+    speakTopicFallback(_currentTopic.text);
+  });
+}
+function speakTopicFallback(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    const banner=document.getElementById('videoTopicBanner');
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='ja-JP';
+    u.rate=1.0;
+    if(banner){
+      banner.classList.add('speaking');
+      u.onend=()=>banner.classList.remove('speaking');
+    }
+    window.speechSynthesis.speak(u);
+  }catch(e){ console.warn('音声合成フォールバックに失敗:',e); }
+}
+
+// ---- カメラ・録画 ----
+let _videoStream=null;
+let _videoFacingMode='user';
+let _mediaRecorder=null;
+let _recordedChunks=[];
+let _recordedBlob=null;
+let _recordedThumbBlob=null;
+let _videoCountdownTimer=null;
+
+async function startVideoCamera(){
+  if(!_currentTopic) rerollTopic();
+  try{
+    _videoStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:_videoFacingMode, width:{ideal:720}, height:{ideal:1280}},
+      audio:true
+    });
+  }catch(e){
+    showInlineMsg('videoSubmitError','カメラ・マイクへのアクセスが許可されませんでした。ブラウザの設定をご確認ください。');
+    return;
+  }
+  const preview=document.getElementById('videoCameraPreview');
+  preview.srcObject=_videoStream;
+  preview.style.display='block';
+  document.getElementById('videoPlaybackPreview').style.display='none';
+  document.getElementById('videoIdleHint').style.display='none';
+  document.getElementById('videoStartCameraBtn').style.display='none';
+  document.getElementById('videoFlipBtn').style.display='inline-block';
+  document.getElementById('videoRecordBtn').style.display='block';
+  document.getElementById('videoRetakeBtn').style.display='none';
+  document.getElementById('videoFormFields').style.display='none';
+}
+async function flipVideoCamera(){
+  _videoFacingMode=(_videoFacingMode==='user')?'environment':'user';
+  if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); }
+  try{
+    _videoStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:_videoFacingMode, width:{ideal:720}, height:{ideal:1280}},
+      audio:true
+    });
+    document.getElementById('videoCameraPreview').srcObject=_videoStream;
+  }catch(e){ showInlineMsg('videoSubmitError','カメラの切り替えに失敗しました。'); }
+}
+function stopVideoCameraStream(){
+  if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
+  if(_videoCountdownTimer){ clearInterval(_videoCountdownTimer); _videoCountdownTimer=null; }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+}
+function pickRecorderMimeType(){
+  const candidates=['video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  for(const c of candidates){ if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c; }
+  return '';
+}
+function startVideoRecording(){
+  if(!_videoStream) return;
+  _recordedChunks=[];
+  const mimeType=pickRecorderMimeType();
+  const opts={videoBitsPerSecond:1000000, audioBitsPerSecond:96000};
+  if(mimeType) opts.mimeType=mimeType;
+  try{
+    _mediaRecorder=new MediaRecorder(_videoStream, opts);
+  }catch(e){
+    showInlineMsg('videoSubmitError','この端末・ブラウザは動画録画に対応していません。');
+    return;
+  }
+  _mediaRecorder.ondataavailable=(e)=>{ if(e.data && e.data.size>0) _recordedChunks.push(e.data); };
+  _mediaRecorder.onstop=onVideoRecordingStop;
+  document.getElementById('videoRecordBtn').style.display='none';
+  document.getElementById('videoFlipBtn').style.display='none';
+  document.getElementById('videoRecDot').style.display='flex';
+  const ring=document.getElementById('videoRecordRing');
+  const num=document.getElementById('videoCountdownNum');
+  ring.style.display='flex';
+  let remain=5;
+  num.textContent=remain;
+  _mediaRecorder.start();
+  _videoCountdownTimer=setInterval(()=>{
+    remain--;
+    if(remain<=0){
+      clearInterval(_videoCountdownTimer); _videoCountdownTimer=null;
+      if(_mediaRecorder && _mediaRecorder.state==='recording') _mediaRecorder.stop();
+      return;
+    }
+    num.textContent=remain;
+  },1000);
+}
+async function onVideoRecordingStop(){
+  document.getElementById('videoRecDot').style.display='none';
+  document.getElementById('videoRecordRing').style.display='none';
+  if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
+  const mimeType=(_mediaRecorder&&_mediaRecorder.mimeType)||'video/webm';
+  _recordedBlob=new Blob(_recordedChunks,{type:mimeType});
+  const url=URL.createObjectURL(_recordedBlob);
+  const camPreview=document.getElementById('videoCameraPreview');
+  const playback=document.getElementById('videoPlaybackPreview');
+  camPreview.style.display='none';
+  playback.src=url;
+  playback.style.display='block';
+  playback.play().catch(()=>{});
+  document.getElementById('videoRetakeBtn').style.display='inline-block';
+  document.getElementById('videoFormFields').style.display='flex';
+  // サムネイル生成（動画の0.15秒地点のフレームを静止画として保存）
+  try{ _recordedThumbBlob=await generateVideoThumb(url); }catch(e){ console.warn('サムネイル生成失敗:',e); _recordedThumbBlob=null; }
+}
+function generateVideoThumb(objectUrl){
+  return new Promise((resolve)=>{
+    const v=document.createElement('video');
+    v.src=objectUrl; v.muted=true; v.playsInline=true;
+    v.addEventListener('loadeddata',()=>{
+      v.currentTime=Math.min(0.15, (v.duration||1)/2);
+    });
+    v.addEventListener('seeked',()=>{
+      try{
+        const canvas=document.createElement('canvas');
+        canvas.width=v.videoWidth||360; canvas.height=v.videoHeight||640;
+        canvas.getContext('2d').drawImage(v,0,0,canvas.width,canvas.height);
+        canvas.toBlob(b=>resolve(b),'image/jpeg',0.75);
+      }catch(e){ resolve(null); }
+    });
+    v.addEventListener('error',()=>resolve(null));
+  });
+}
+function retakeVideo(){
+  _recordedBlob=null; _recordedThumbBlob=null;
+  document.getElementById('videoPlaybackPreview').style.display='none';
+  document.getElementById('videoPlaybackPreview').src='';
+  document.getElementById('videoRetakeBtn').style.display='none';
+  document.getElementById('videoFormFields').style.display='none';
+  startVideoCamera();
+}
+
+async function submitVideoEntry(){
+  if(!isInPeriod('video')){ showInlineMsg('videoSubmitError','現在は投稿受付期間外です。'); checkPeriods(); return; }
+  if(!_recordedBlob){ showInlineMsg('videoSubmitError','動画を撮影してください。'); return; }
+  const author=document.getElementById('videoAuthorName').value.trim();
+  const team=document.getElementById('videoTeamName').value.trim();
+  if(!author){ showInlineMsg('videoSubmitError','投稿者のお名前を入力してください'); return; }
+  if(_recordedBlob.size>15*1024*1024){ showInlineMsg('videoSubmitError','動画サイズが大きすぎます。もう一度撮影してください。'); return; }
+
+  const videoCdKey='videoLastSubmitAt_'+siteKey();
+  const cdRemain=getSubmitCooldownRemain(videoCdKey);
+  if(cdRemain>0){
+    showInlineMsg('videoSubmitError',`連続投稿はできません。あと${Math.ceil(cdRemain/1000)}秒お待ちください。`);
+    return;
+  }
+
+  const btn=document.querySelector('button[onclick="submitVideoEntry()"]');
+  if(btn){ btn.disabled=true; btn.textContent='アップロード中…'; }
+  try{
+    const newId='v_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    const ext=(_recordedBlob.type||'').includes('mp4')?'mp4':'webm';
+    const videoPath=STORAGE_PREFIX+'videos/'+newId+'.'+ext;
+    const {error:upErr}=await withTimeout(storageUpload(videoPath,_recordedBlob),20000);
+    if(upErr){ showInlineMsg('videoSubmitError','動画のアップロードに失敗しました：'+upErr.message); return; }
+    let thumbPath=null;
+    if(_recordedThumbBlob){
+      thumbPath=STORAGE_PREFIX+'videos/thumb_'+newId+'.jpg';
+      const {error:thumbErr}=await storageUpload(thumbPath,_recordedThumbBlob);
+      if(thumbErr) thumbPath=null;
+    }
+    const deleteToken=genDeleteToken();
+    const {error:dbErr}=await withTimeout(sb.from('videos').insert({
+      id:newId,
+      title:(_currentTopic&&_currentTopic.text)||'動画メッセージ',
+      author, team,
+      status:'pending',
+      video_url:videoPath,
+      thumb_url:thumbPath,
+      duration_sec:5,
+      file_size_bytes:_recordedBlob.size,
+      delete_token:deleteToken
+    }),8000);
+    if(dbErr){ showInlineMsg('videoSubmitError','投稿の保存に失敗しました：'+friendlyErrorMessage(dbErr)); return; }
+    addMyPost({id:newId, token:deleteToken, type:'video', label:(_currentTopic&&_currentTopic.text)||'動画メッセージ', submittedAt:new Date().toISOString()});
+    markSubmitCooldown(videoCdKey);
+
+    // フォームリセット
+    _recordedBlob=null; _recordedThumbBlob=null;
+    document.getElementById('videoAuthorName').value='';
+    document.getElementById('videoTeamName').value='';
+    document.getElementById('videoPlaybackPreview').style.display='none';
+    document.getElementById('videoPlaybackPreview').src='';
+    document.getElementById('videoFormFields').style.display='none';
+    document.getElementById('videoRetakeBtn').style.display='none';
+    document.getElementById('videoStartCameraBtn').style.display='block';
+    document.getElementById('videoIdleHint').style.display='flex';
+    rerollTopic();
+
+    showInlineMsg('videoSubmitSuccess','✅ 動画を受け付けました！確認後、掲載いたします。');
+    await loadVideosFromSupabase(); renderVideoGrid();
+  }catch(e){
+    showInlineMsg('videoSubmitError','エラーが発生しました：'+friendlyErrorMessage(e));
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='この動画を投稿する'; }
+  }
+}
+
+// ---- 表示（一覧・ギャラリー） ----
+let approvedVideos=[];
+let pendingVideos=[];
+async function loadVideosFromSupabase(){
+  try{
+    const {data,error}=await sb.from('videos').select('*').order('created_at',{ascending:false});
+    if(error){ console.error('videos読み込みエラー:',error.message||error); return; }
+    approvedVideos=(data||[]).filter(r=>r.status==='approved').map(mapVideoRow);
+    pendingVideos=(data||[]).filter(r=>r.status==='pending').map(mapVideoRow);
+  }catch(e){ console.error('loadVideos例外:',e); }
+}
+function mapVideoRow(r){
+  return {
+    _id:r.id, title:r.title, author:r.author, team:r.team,
+    videoUrl:resolveMediaUrl(r.video_url), thumbUrl:r.thumb_url?resolveMediaUrl(r.thumb_url):null,
+    likes:r.likes||0, submittedAt:r.created_at
+  };
+}
+function renderVideoGrid(){
+  const grid=document.getElementById('videoGrid');
+  if(!grid) return;
+  if(approvedVideos.length===0){
+    grid.innerHTML='<div class="video-empty-msg">投稿をお待ちしています！</div>';
+    return;
+  }
+  grid.innerHTML=approvedVideos.slice(0,9).map(v=>`
+    <div class="video-grid-item" onclick="openLightboxVideo('${esc(v.videoUrl)}')">
+      <video src="${esc(v.videoUrl)}" muted playsinline preload="metadata"></video>
+      <div class="video-play-badge">▶</div>
+      <div class="video-caption">${esc(v.author||'')}</div>
+    </div>`).join('');
+}
+function renderVideoModalList(){
+  const list=document.getElementById('modalList');
+  const title=document.getElementById('modalTitle');
+  if(title) title.textContent='動画メッセージ 一覧（全'+approvedVideos.length+'件）';
+  if(approvedVideos.length===0){
+    list.innerHTML='<div style="text-align:center;color:#999;font-size:13px;padding:1.5rem 0;">投稿をお待ちしています！</div>';
+    return;
+  }
+  list.innerHTML=`<div class="video-grid" style="grid-template-columns:repeat(2,1fr);">`+
+    approvedVideos.map(v=>`
+      <div class="video-grid-item" onclick="openLightboxVideo('${esc(v.videoUrl)}')">
+        <video src="${esc(v.videoUrl)}" muted playsinline preload="metadata"></video>
+        <div class="video-play-badge">▶</div>
+        <div class="video-caption">${esc(v.title||'')}｜${esc(v.author||'')}</div>
+      </div>`).join('')
+    +'</div>';
+}
+function openLightboxVideo(src){
+  const overlay=document.getElementById('lightboxOverlay');
+  const img=document.getElementById('lightboxImg');
+  if(img) img.style.display='none';
+  let vidEl=document.getElementById('lightboxVideoEl');
+  if(!vidEl){
+    vidEl=document.createElement('video');
+    vidEl.id='lightboxVideoEl';
+    vidEl.controls=true; vidEl.autoplay=true; vidEl.playsInline=true;
+    vidEl.style.cssText='max-width:92vw;max-height:88vh;border-radius:10px;';
+    img.parentElement.appendChild(vidEl);
+  }
+  vidEl.style.display='block';
+  vidEl.src=src;
+  vidEl.play().catch(()=>{});
+  overlay.classList.add('open');
+}
+
+// ---- 管理画面：動画承認 ----
+async function approveVideo(id){
+  try{
+    const {data:cur,error:ce}=await withTimeout(sb.from('videos').select('status').eq('id',id).single(),8000);
+    if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadVideosFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('この投稿は既に処理済みです。画面を更新します。'); await loadVideosFromSupabase(); renderAdminAll(); return; }
+    const {error}=await withTimeout(sb.from('videos').update({status:'approved'}).eq('id',id),8000);
+    if(error){ alert('承認に失敗しました：'+friendlyErrorMessage(error)); return; }
+    await loadVideosFromSupabase(); renderVideoGrid(); renderAdminAll();
+  }catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
+}
+async function rejectVideo(id){
+  if(!confirm('この動画投稿を却下します。よろしいですか？')) return;
+  try{
+    const {data:cur,error:ce}=await withTimeout(sb.from('videos').select('status').eq('id',id).single(),8000);
+    if(ce||!cur){ alert('該当の投稿が見つかりません。既に削除された可能性があります。'); await loadVideosFromSupabase(); renderAdminAll(); return; }
+    if(cur.status!=='pending'){ alert('この投稿は既に処理済みです。画面を更新します。'); await loadVideosFromSupabase(); renderAdminAll(); return; }
+    const {error}=await withTimeout(sb.from('videos').delete().eq('id',id),8000);
+    if(error){ alert('却下に失敗しました：'+friendlyErrorMessage(error)); return; }
+    deleteVideoStorageFiles([id]);
+    await loadVideosFromSupabase(); renderAdminAll();
+  }catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
+}
+async function unpublishVideo(id){
+  if(!confirm('この動画の掲載を取り下げます。よろしいですか？')) return;
+  try{
+    const {error}=await withTimeout(sb.from('videos').delete().eq('id',id),8000);
+    if(error){ alert('取り下げに失敗しました：'+friendlyErrorMessage(error)); return; }
+    deleteVideoStorageFiles([id]);
+    await loadVideosFromSupabase(); renderVideoGrid(); renderAdminAll();
+  }catch(e){ alert(friendlyErrorMessage(e)); console.error(e); }
+}
+async function deleteVideoStorageFiles(ids){
+  if(!ids||!ids.length) return;
+  const paths=ids.flatMap(id=>[STORAGE_PREFIX+'videos/'+id+'.mp4',STORAGE_PREFIX+'videos/'+id+'.webm',STORAGE_PREFIX+'videos/thumb_'+id+'.jpg']);
+  try{
+    const {error}=await storageDelete(paths);
+    if(error) console.warn('動画Storage孤児ファイル削除エラー（投稿自体は削除済み）:',error.message);
+  }catch(e){ console.warn('動画Storage孤児ファイル削除で例外（投稿自体は削除済み）:',e); }
+}
+function renderPendingVideoList(){
+  const list=document.getElementById('pendingVideoList');
+  if(!list) return;
+  if(pendingVideos.length===0){ list.innerHTML='<div class="admin-empty">承認待ちの動画はありません</div>'; return; }
+  let html='<table class="photo-table photo-table--pending"><thead><tr><th>投稿者</th><th>お題</th><th>プレビュー</th><th>日時</th><th>操作</th></tr></thead><tbody>';
+  pendingVideos.forEach(v=>{
+    const dt=v.submittedAt?new Date(v.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    html+=`<tr>
+      <td>${esc(v.author||'-')}${v.team?'<br><span style="color:#888;font-size:11px;">'+esc(v.team)+'</span>':''}</td>
+      <td><b>${esc(v.title||'無題')}</b></td>
+      <td><video src="${esc(v.videoUrl)}" controls muted style="width:90px;border-radius:6px;"></video></td>
+      <td>${dt}</td>
+      <td>
+        <button class="btn-approve" onclick="approveVideo('${esc(v._id)}')">承認</button>
+        <button class="btn-reject" onclick="rejectVideo('${esc(v._id)}')">却下</button>
+      </td></tr>`;
+  });
+  html+='</tbody></table>';
+  list.innerHTML=html;
+}
+function renderApprovedVideoList(){
+  const list=document.getElementById('approvedVideoList');
+  if(!list) return;
+  if(approvedVideos.length===0){ list.innerHTML='<div class="admin-empty">承認済みの動画はありません</div>'; return; }
+  let html='<table class="photo-table"><thead><tr><th>投稿者</th><th>お題</th><th>プレビュー</th><th>操作</th></tr></thead><tbody>';
+  approvedVideos.forEach(v=>{
+    html+=`<tr>
+      <td>${esc(v.author||'-')}${v.team?'<br><span style="color:#888;font-size:11px;">'+esc(v.team)+'</span>':''}</td>
+      <td><b>${esc(v.title||'無題')}</b></td>
+      <td><video src="${esc(v.videoUrl)}" controls muted style="width:90px;border-radius:6px;"></video></td>
+      <td><button class="btn-reject" onclick="unpublishVideo('${esc(v._id)}')">取り下げ</button></td></tr>`;
+  });
+  html+='</tbody></table>';
+  list.innerHTML=html;
+}
+
 async function submitEntry(){
   if(!isInPeriod('photo')){ showInlineMsg('submitError','現在は投稿受付期間外です。'); checkPeriods(); return; }
   const cat=document.getElementById('submitCat').value;
@@ -4408,7 +4965,7 @@ async function submitEntry(){
     // 画像ファイルがある場合はStorageにアップロード（切り取り済みBlobを使用）
     if(_pendingSubmitPhotoBlob){
       if(_pendingSubmitPhotoBlob.size>10*1024*1024){ showInlineMsg('submitError','画像サイズは10MB以下にしてください'); return; }
-      const filePath=newId+'.'+extFromBlob(_pendingSubmitPhotoBlob);
+      const filePath=STORAGE_PREFIX+newId+'.'+extFromBlob(_pendingSubmitPhotoBlob);
       const {error:upErr}=await withTimeout(storageUpload(filePath, _pendingSubmitPhotoBlob), 15000);
       if(upErr){ showInlineMsg('submitError','画像のアップロードに失敗しました：'+upErr.message); return; }
       imageUrl=filePath; // DBには相対パスのみ保存（表示時はresolveMediaUrlでURL化）
@@ -4417,7 +4974,7 @@ async function submitEntry(){
       try{
         const thumbBlob=await makeThumbBlob(_pendingSubmitPhotoBlob,360,0.72);
         if(thumbBlob){
-          const thumbPath='thumb_'+newId+'.'+extFromBlob(thumbBlob);
+          const thumbPath=STORAGE_PREFIX+'thumb_'+newId+'.'+extFromBlob(thumbBlob);
           const {error:thumbUpErr}=await storageUpload(thumbPath, thumbBlob);
           if(!thumbUpErr){
             thumbUrl=thumbPath; // DBには相対パスのみ保存
@@ -4612,7 +5169,7 @@ async function uploadRosterPhoto(){
   if(blob.size>15*1024*1024){ statusEl.textContent='❌ 画像サイズは15MB以下にしてください'; return; }
   statusEl.textContent='アップロード中…';
   try{
-    const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
+    const filePath=STORAGE_PREFIX+'roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ statusEl.textContent='❌ アップロードに失敗しました：'+upErr.message; return; }
     const url=storageGetUrl(filePath);
@@ -4819,7 +5376,7 @@ async function confirmBulkRosterUpload(){
     if(statusEl) statusEl.textContent=`アップロード中… (${done}/${targets.length})`;
     try{
       const blob=m.customBlob||await resizeImageFileSquare(m.file,800,0.85);
-      const filePath='roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
+      const filePath=STORAGE_PREFIX+'roster/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(blob);
       const {error:upErr}=await storageUpload(filePath,blob);
       if(upErr){ failed++; continue; }
       const url=storageGetUrl(filePath);
@@ -5046,16 +5603,21 @@ document.addEventListener('keydown',(e)=>{
 function renderAdminCounts(){
   const pc=document.getElementById('photoCount');
   const cc=document.getElementById('cheerCount');
+  const vc=document.getElementById('videoCount');
   if(pc) pc.textContent=pendingPhotos.length;
   if(cc) cc.textContent=pendingCheers.length;
+  if(vc) vc.textContent=pendingVideos.length;
 }
 
 
 async function renderAdminAll(){
   await loadCheersFromSupabase();
+  await loadVideosFromSupabase();
   renderAdminCounts();
   renderPendingPhotoList();
   renderPendingCheerList();
+  renderPendingVideoList();
+  renderApprovedVideoList();
   renderBestNineAdmin();
   renderApprovedPhotoList();
   renderApprovedCheerList();
@@ -5481,7 +6043,7 @@ function renderApprovedCheerList(){
 // ファイルが存在しない場合もエラーにはならないため、失敗しても投稿削除自体には影響させない。
 async function deletePhotoStorageFiles(ids){
   if(!ids||!ids.length) return;
-  const paths=ids.flatMap(id=>[id+'.jpg', id+'.webp', 'thumb_'+id+'.jpg', 'thumb_'+id+'.webp']);
+  const paths=ids.flatMap(id=>[STORAGE_PREFIX+id+'.jpg', STORAGE_PREFIX+id+'.webp', STORAGE_PREFIX+'thumb_'+id+'.jpg', STORAGE_PREFIX+'thumb_'+id+'.webp']);
   try{
     const {error}=await storageDelete(paths);
     if(error) console.warn('Storage孤児ファイル削除エラー（投稿自体は削除済み）:',error.message);
@@ -5807,7 +6369,7 @@ async function addAlbumPhoto(){
   statusEl.textContent='アップロード中...';
   try{
     const newId='alb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-    const filePath='album/'+newId+'.'+extFromBlob(blob);
+    const filePath=STORAGE_PREFIX+'album/'+newId+'.'+extFromBlob(blob);
 
     const {error:upErr}=await storageUpload(filePath,blob);
     if(upErr){ statusEl.textContent='❌ アップロード失敗：'+upErr.message; return; }
@@ -5886,6 +6448,7 @@ function renderAlbumAdmin(){
     loadDonorsFromSupabase(),
     loadPhotosFromSupabase(),
     loadAlbumFromSupabase(),
+    loadVideosFromSupabase(),
   ]);
   mergeApproved();
   rp(ct);
@@ -5893,6 +6456,8 @@ function renderAlbumAdmin(){
   renderAdminCounts();
   checkPeriods();
   renderPeriodAdmin();
+  renderVideoGrid();
+  rerollTopic();
   // donors初期描画
   rebuildDonorRows();
   rebuildSponsorRow();
@@ -5911,12 +6476,13 @@ function renderAlbumAdmin(){
   // ---- Supabase Realtime 自動同期 ----
   let _realtimeOk=false;
   function _refreshPublic(){
-    mergeApproved(); rp(ct); rebuildCheerRows(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); updateDashboard();
+    mergeApproved(); rp(ct); rebuildCheerRows(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); updateDashboard(); renderVideoGrid();
     // 選手カードに表示中の応援メッセージも最新化（開いたまま新着承認があっても反映されるように）
     if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
     // 全件一覧モーダルを開いたままでも、裏側のデータ変化（取下など）に追随させる
     if(currentModalType==='cheer') renderCheerModalList(true);
     if(currentModalType==='photo') renderPhotoModalList(true);
+    if(currentModalType==='video') renderVideoModalList();
   }
   function _refreshAdmin(){
     renderAdminCounts(); renderAdminAll(); renderDonationAdmin(); startSpBanner();
@@ -5947,6 +6513,10 @@ function renderAlbumAdmin(){
   });
   const _schedulePhotosSync=_makeBurstSync(async()=>{
     await loadPhotosFromSupabase(); _refreshPublic(); renderAdminCounts(); renderAdminAll();
+  });
+  const _scheduleVideosSync=_makeBurstSync(async()=>{
+    await loadVideosFromSupabase(); renderVideoGrid(); renderAdminCounts(); renderAdminAll();
+    if(currentModalType==='video') renderVideoModalList();
   });
   const _scheduleDonorsSync=_makeBurstSync(async()=>{
     await loadDonorsFromSupabase(); rebuildDonorRows(); rebuildSponsorRow(); animateMeter(); renderDonationAdmin(); updateDashboard();
@@ -6021,25 +6591,30 @@ function renderAlbumAdmin(){
 
   try{
     sb.channel('realtime-all')
-      .on('postgres_changes',{event:'*',schema:'public',table:'messages'}, payload=>{
+      .on('postgres_changes',{event:'*',schema:'staging',table:'messages'}, payload=>{
         _scheduleMessagesSync();
         if(payload.eventType==='INSERT') notifyOnInsert('応援メッセージ','💬')();
         if(payload.eventType==='UPDATE') notifyOnApprove('💬 応援メッセージが')(payload);
       })
-      .on('postgres_changes',{event:'*',schema:'public',table:'photos'}, payload=>{
+      .on('postgres_changes',{event:'*',schema:'staging',table:'photos'}, payload=>{
         _schedulePhotosSync();
         if(payload.eventType==='INSERT') notifyOnInsert('写真','📷')();
         if(payload.eventType==='UPDATE') notifyOnApprove('📷 写真が')(payload);
       })
-      .on('postgres_changes',{event:'*',schema:'public',table:'donors'}, _scheduleDonorsSync)
-      .on('postgres_changes',{event:'*',schema:'public',table:'games'}, _scheduleGamesSync)
-      .on('postgres_changes',{event:'*',schema:'public',table:'tournament_blocks'}, _scheduleBlocksSync)
-      .on('postgres_changes',{event:'*',schema:'public',table:'teams'}, _scheduleTeamsSync)
-      .on('postgres_changes',{event:'*',schema:'public',table:'roster_submissions'}, payload=>{
+      .on('postgres_changes',{event:'*',schema:'staging',table:'videos'}, payload=>{
+        _scheduleVideosSync();
+        if(payload.eventType==='INSERT') notifyOnInsert('動画メッセージ','🎥')();
+        if(payload.eventType==='UPDATE') notifyOnApprove('🎥 動画が')(payload);
+      })
+      .on('postgres_changes',{event:'*',schema:'staging',table:'donors'}, _scheduleDonorsSync)
+      .on('postgres_changes',{event:'*',schema:'staging',table:'games'}, _scheduleGamesSync)
+      .on('postgres_changes',{event:'*',schema:'staging',table:'tournament_blocks'}, _scheduleBlocksSync)
+      .on('postgres_changes',{event:'*',schema:'staging',table:'teams'}, _scheduleTeamsSync)
+      .on('postgres_changes',{event:'*',schema:'staging',table:'roster_submissions'}, payload=>{
         _scheduleRosterSubmissionsSync();
         if(payload.eventType==='INSERT') notifyOnInsert('選手名簿の提出','📋')();
       })
-      .on('postgres_changes',{event:'*',schema:'public',table:'settings'}, payload=>{
+      .on('postgres_changes',{event:'*',schema:'staging',table:'settings'}, payload=>{
         // 【2026/7/17 追加】診断用ログ。「選手名簿の提出がリアルタイムで管理画面に出ない」件の切り分け用。
         // ここが出力されていれば通知は届いている＝原因は描画側。出力されなければ通知自体が届いていない。
         console.log('Realtime settings変更を受信:', payload.eventType, payload.new && payload.new.key);
@@ -6055,7 +6630,7 @@ function renderAlbumAdmin(){
   // フォールバック：Realtimeが繋がっていない場合は10秒ポーリング
   setInterval(async()=>{
     if(_realtimeOk) return;
-    await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase(), loadTeamsFromSupabase(), loadRosterSubmissionsFromSupabase()]);
+    await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadVideosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase(), loadTeamsFromSupabase(), loadRosterSubmissionsFromSupabase()]);
     checkPeriods();
     _refreshPublic(); _refreshAdmin();
     renderAllTeamViews();
@@ -6081,7 +6656,7 @@ function renderAlbumAdmin(){
   // その場で最新データを取り直す。管理画面を開いている場合は管理側の表示も更新する。
   async function forceRefreshAll(reason){
     try{
-      await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase(), loadTeamsFromSupabase(), loadRosterSubmissionsFromSupabase()]);
+      await Promise.all([loadCheersFromSupabase(), loadPhotosFromSupabase(), loadVideosFromSupabase(), loadDonorsFromSupabase(), loadGamesFromSupabase(), loadBlocksFromSupabase(), loadSettingsFromSupabase(), loadTeamsFromSupabase(), loadRosterSubmissionsFromSupabase()]);
       checkPeriods();
       _refreshPublic();
       renderAllTeamViews();
@@ -6268,6 +6843,8 @@ function switchPage(btn,pageId){
   document.getElementById('page-'+pageId).classList.add('on');
   // 寄付金ページに切り替えたらメーター同期
   if(pageId==='donation') syncDonationPage();
+  // 動画ページを離れる時はカメラ・マイクを確実に解放する（許可済みでも裏でストリームが張りっぱなしにならないように）
+  if(pageId!=='video') stopVideoCameraStream();
   // display:none→blockで再表示された直後は、iOS Safariで寄付者バナー・応援メッセージの
   // 流れるCSSアニメーションが再開せず止まったままになることがあるため、再キックする。
   // （非表示の間はアニメーションが完全に停止するため、テーマ変更うんぬんではなく
@@ -6290,7 +6867,7 @@ function syncDonationPage(){
 }
 
 /* ---------- 投稿期間チェック ---------- */
-let PERIODS={cheer:{start:'',end:''},photo:{start:'',end:''}};
+let PERIODS={cheer:{start:'',end:''},photo:{start:'',end:''},video:{start:'',end:''}};
 
 async function loadSettingsFromSupabase(){
   const {data,error}=await sb.from('settings').select('*');
@@ -6300,6 +6877,8 @@ async function loadSettingsFromSupabase(){
     if(row.key==='cheer_end')   PERIODS.cheer.end  =row.value||'';
     if(row.key==='photo_start') PERIODS.photo.start=row.value||'';
     if(row.key==='photo_end')   PERIODS.photo.end  =row.value||'';
+    if(row.key==='video_start') PERIODS.video.start=row.value||'';
+    if(row.key==='video_end')   PERIODS.video.end  =row.value||'';
     if(row.key==='best_shots'){
       try{ bestShots=JSON.parse(row.value)||{}; }catch(e){ bestShots={}; }
     }
@@ -6424,6 +7003,29 @@ function checkPeriods(){
     }
   }
   if(afterEl) afterEl.style.display=afterEnd?'block':'none';
+
+  // 動画メッセージ（セクション丸ごと制御、フォトベスト9と同パターン）
+  const v=PERIODS.video;
+  const vHasStart=v&&v.start;
+  const vHasEnd=v&&v.end;
+  const vBeforeStart=vHasStart && now < new Date(v.start);
+  const vAfterEnd=vHasEnd && now > new Date(v.end);
+  const vInPeriod=!vBeforeStart && !vAfterEnd;
+  const vNoPeriodSet=!vHasStart&&!vHasEnd;
+  const vInPeriodEl=document.getElementById('videoInPeriod');
+  const vBeforeEl=document.getElementById('videoBeforeNotice');
+  const vAfterEl=document.getElementById('videoAfterNotice');
+  if(vInPeriodEl) vInPeriodEl.style.display=(vInPeriod||vNoPeriodSet)?'block':'none';
+  if(vBeforeEl){
+    vBeforeEl.style.display=vBeforeStart?'block':'none';
+    if(vBeforeStart&&vHasStart){
+      const d=new Date(v.start);
+      const dateStr=d.toLocaleDateString('ja-JP',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const el=document.getElementById('videoBeforeDate');
+      if(el) el.textContent=dateStr+'から公開予定';
+    }
+  }
+  if(vAfterEl) vAfterEl.style.display=vAfterEnd?'block':'none';
 }
 checkPeriods();
 // 画面を開きっぱなしのまま投稿期間の開始/終了時刻をまたいでも表示が追随するよう、1分間隔で再チェックする
@@ -6474,8 +7076,13 @@ function renderPeriodAdmin(){
     if(document.getElementById('photoStart')) document.getElementById('photoStart').value=p.photo.start||'';
     if(document.getElementById('photoEnd')) document.getElementById('photoEnd').value=p.photo.end||'';
   }
+  if(p.video){
+    if(document.getElementById('videoStart')) document.getElementById('videoStart').value=p.video.start||'';
+    if(document.getElementById('videoEnd')) document.getElementById('videoEnd').value=p.video.end||'';
+  }
   updatePeriodStatusDisplay('cheer');
   updatePeriodStatusDisplay('photo');
+  updatePeriodStatusDisplay('video');
 }
 
 /* ---------- CSVドロップ：全チーム選手名簿（自チーム＋対戦チーム統合） ---------- */
@@ -7227,7 +7834,7 @@ async function submitTeamRoster(){
     let teamPhotoUrl=_tiExistingTeamPhotoUrl||undefined;
     if(_pendingTiTeamPhotoBlob){
       showInlineMsg('tiSuccess','集合写真をアップロード中…');
-      const path='roster/'+_tiCurrentToken+'_team_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(_pendingTiTeamPhotoBlob);
+      const path=STORAGE_PREFIX+'roster/'+_tiCurrentToken+'_team_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(_pendingTiTeamPhotoBlob);
       try{
         const {error:upErr}=await withTimeout(storageUpload(path, _pendingTiTeamPhotoBlob), 15000);
         if(!upErr){
@@ -7241,7 +7848,7 @@ async function submitTeamRoster(){
       showInlineMsg('tiSuccess','写真をアップロード中…（'+photoJobs.length+'枚）');
       for(let i=0;i<photoJobs.length;i++){
         const job=photoJobs[i];
-        const path='roster/'+_tiCurrentToken+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(job.blob);
+        const path=STORAGE_PREFIX+'roster/'+_tiCurrentToken+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+extFromBlob(job.blob);
         try{
           const {error:upErr}=await withTimeout(storageUpload(path, job.blob), 15000);
           if(!upErr){
@@ -8356,6 +8963,12 @@ function renderGameAdmin(){
 function applyFeatureFlags(){
   if(!FEATURES.donation){
     ['navDonationBtn','page-donation','dashSponsors','donationAdminTabGroup','donationResetBtn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+  }
+  if(!FEATURES.video){
+    ['navVideoBtn','page-video','videoAdminTabGroup'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.style.display='none';
     });
