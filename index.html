@@ -3093,6 +3093,15 @@ async function saveTeamsRoster(teams){
   }));
   const {error}=await sb.from('teams').upsert(rows,{onConflict:'name'});
   if(error){ console.error('teams保存エラー:',error); throw error; }
+  // 渡された配列に含まれないチームは削除する（Excel一括登録で対戦チームが入れ替わった場合に対応。
+  // 「配列＝全チームの正」とみなす考え方は、settings丸ごと置き換えだった旧方式を踏襲したもの）
+  const keepNames=teams.map(t=>t.name);
+  const {data:existing}=await sb.from('teams').select('name');
+  const toDelete=(existing||[]).map(r=>r.name).filter(n=>!keepNames.includes(n));
+  if(toDelete.length>0){
+    const {error:delErr}=await sb.from('teams').delete().in('name',toDelete);
+    if(delErr) console.error('teams削除エラー(除外分):',delErr);
+  }
   TEAMS_ROSTER=teams;
 }
 // teamsテーブルから選手名簿を読み込み、TEAMS_ROSTERに反映する
