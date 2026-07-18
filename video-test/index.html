@@ -52,19 +52,27 @@
 </style>
 </head>
 <body>
-
+ 
 <h1>🎬 5秒動画 録画テスト</h1>
 <p class="lead">本番サイトとは無関係の単体テストページです。設定を変えて録画し、実際のファイルサイズ・画質を確認してください。</p>
-
+ 
 <div class="card">
   <h2>① 録画設定</h2>
   <div class="row">
+    <label class="sel"><span>カメラ</span>
+      <select id="camSel">
+        <option value="environment" selected>外側(背面)</option>
+        <option value="user">内側(自撮り)</option>
+      </select>
+    </label>
     <label class="sel"><span>解像度</span>
       <select id="resSel">
         <option value="480">480p</option>
         <option value="720" selected>720p</option>
       </select>
     </label>
+  </div>
+  <div class="row">
     <label class="sel"><span>映像ビットレート</span>
       <select id="vBitSel">
         <option value="800000">800kbps</option>
@@ -88,7 +96,7 @@
     </label>
   </div>
 </div>
-
+ 
 <div class="card">
   <h2>② カメラプレビュー</h2>
   <div class="wrap">
@@ -98,7 +106,7 @@
   <button id="startBtn" style="margin-top:10px;">カメラを起動</button>
   <div id="err"></div>
 </div>
-
+ 
 <div class="card" id="resultCard" style="display:none;">
   <h2>③ 録画結果</h2>
   <video id="playback" controls playsinline></video>
@@ -112,9 +120,9 @@
   <button id="dlBtn">動画をダウンロード</button>
   <button id="retryBtn">もう一度録画</button>
 </div>
-
+ 
 <span class="badge" id="uaBadge"></span>
-
+ 
 <script>
 const preview = document.getElementById('preview');
 const playback = document.getElementById('playback');
@@ -125,10 +133,10 @@ const countdownEl = document.getElementById('countdown');
 const resultCard = document.getElementById('resultCard');
 const errEl = document.getElementById('err');
 document.getElementById('uaBadge').textContent = navigator.userAgent.slice(0, 80);
-
+ 
 let stream = null;
 let recordedBlob = null;
-
+ 
 function pickMimeType(){
   const candidates = [
     'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
@@ -142,41 +150,60 @@ function pickMimeType(){
   }
   return '';
 }
-
-startBtn.addEventListener('click', async () => {
+ 
+async function openCamera(){
   errEl.textContent = '';
-  if(!stream){
-    // カメラ起動フェーズ
-    try{
-      const res = document.getElementById('resSel').value;
-      const constraints = {
-        audio: true,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: res === '720' ? 1280 : 854 },
-          height: { ideal: res === '720' ? 720 : 480 }
-        }
-      };
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      preview.srcObject = stream;
-      startBtn.textContent = '🔴 5秒録画スタート';
-    }catch(e){
-      errEl.textContent = 'カメラ起動エラー: ' + e.message + '\n(HTTPS必須・カメラ許可を確認してください)';
+  const res = document.getElementById('resSel').value;
+  const cam = document.getElementById('camSel').value;
+  const constraints = {
+    audio: true,
+    video: {
+      facingMode: { exact: cam },
+      width: { ideal: res === '720' ? 1280 : 854 },
+      height: { ideal: res === '720' ? 720 : 480 }
     }
+  };
+  try{
+    if(stream){ stream.getTracks().forEach(t => t.stop()); }
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  }catch(e){
+    // exactで失敗する端末(カメラが1つしかない等)向けにidealで再試行
+    try{
+      constraints.video.facingMode = { ideal: cam };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    }catch(e2){
+      errEl.textContent = 'カメラ起動エラー: ' + e2.message + '\n(HTTPS必須・カメラ許可を確認してください)';
+      stream = null;
+      return;
+    }
+  }
+  preview.srcObject = stream;
+  startBtn.textContent = '🔴 5秒録画スタート';
+}
+ 
+startBtn.addEventListener('click', async () => {
+  if(!stream){
+    await openCamera();
     return;
   }
-
   // 録画フェーズ
   startRecording();
 });
-
+ 
+document.getElementById('camSel').addEventListener('change', () => {
+  if(stream){
+    // 録画前ならその場で切り替え。録画中でなければ再起動する
+    openCamera();
+  }
+});
+ 
 function startRecording(){
   const mimeType = pickMimeType();
   const vBit = parseInt(document.getElementById('vBitSel').value, 10);
   const aBit = parseInt(document.getElementById('aBitSel').value, 10);
   const dur = parseInt(document.getElementById('durSel').value, 10);
   const res = document.getElementById('resSel').value;
-
+ 
   let recorder;
   try{
     recorder = new MediaRecorder(stream, {
@@ -188,7 +215,7 @@ function startRecording(){
     errEl.textContent = 'MediaRecorder初期化エラー: ' + e.message;
     return;
   }
-
+ 
   const chunks = [];
   const startTime = Date.now();
   recorder.ondataavailable = (e) => { if(e.data.size > 0) chunks.push(e.data); };
@@ -197,7 +224,7 @@ function startRecording(){
     recordedBlob = new Blob(chunks, { type: mimeType || 'video/webm' });
     showResult(actualDur, mimeType, res, vBit, aBit);
   };
-
+ 
   recorder.start();
   startBtn.disabled = true;
   countdownEl.style.display = 'block';
@@ -212,7 +239,7 @@ function startRecording(){
     }
   }, 1000);
 }
-
+ 
 function showResult(actualDur, mimeType, res, vBit, aBit){
   countdownEl.style.display = 'none';
   startBtn.disabled = false;
@@ -220,7 +247,7 @@ function showResult(actualDur, mimeType, res, vBit, aBit){
   // ストリーム停止(次回また起動しなおす想定。連続テストしたい場合はretryで維持)
   const url = URL.createObjectURL(recordedBlob);
   playback.src = url;
-
+ 
   const kb = (recordedBlob.size / 1024).toFixed(1);
   document.getElementById('stSize').textContent = kb + ' KB';
   const judgeEl = document.getElementById('stJudge');
@@ -233,13 +260,13 @@ function showResult(actualDur, mimeType, res, vBit, aBit){
   document.getElementById('stDur').textContent = actualDur + ' 秒';
   document.getElementById('stMime').textContent = mimeType || recordedBlob.type || '(不明)';
   document.getElementById('stSettings').textContent = `${res}p / ${vBit/1000}kbps / ${aBit/1000}kbps`;
-
+ 
   resultCard.style.display = 'block';
   dlBtn.style.display = 'block';
   retryBtn.style.display = 'block';
   resultCard.scrollIntoView({behavior:'smooth', block:'start'});
 }
-
+ 
 dlBtn.addEventListener('click', () => {
   if(!recordedBlob) return;
   const ext = (recordedBlob.type.includes('mp4')) ? 'mp4' : 'webm';
@@ -250,7 +277,7 @@ dlBtn.addEventListener('click', () => {
   a.click();
   a.remove();
 });
-
+ 
 retryBtn.addEventListener('click', () => {
   resultCard.style.display = 'none';
   dlBtn.style.display = 'none';
@@ -260,3 +287,4 @@ retryBtn.addEventListener('click', () => {
 </script>
 </body>
 </html>
+ 
