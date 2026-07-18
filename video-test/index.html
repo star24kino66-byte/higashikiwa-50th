@@ -35,6 +35,8 @@
   #startBtn{background:var(--accent); color:#fff;}
   #startBtn:disabled{background:#4a3a34; color:#8a8a8a;}
   #dlBtn{background:var(--accent2); color:#fff; margin-top:8px; display:none;}
+  #uploadBtn{background:var(--good); color:#06281a; margin-top:8px; display:none;}
+  #uploadBtn:disabled{background:#2a4a3c; color:#7a9a8a;}
   #retryBtn{background:#2a2e38; color:var(--text); margin-top:8px; display:none;}
   .countdown{
     position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff;
@@ -118,6 +120,12 @@
     <div class="stat"><span class="k">設定(解像度/映像/音声)</span><span class="v" id="stSettings">-</span></div>
   </div>
   <button id="dlBtn">動画をダウンロード</button>
+  <button id="uploadBtn">☁️ R2にアップロードして確認</button>
+  <div id="uploadResult" style="display:none; margin-top:10px;">
+    <div class="stat"><span class="k">アップロード</span><span class="v" id="upStatus">-</span></div>
+    <div class="stat"><span class="k">所要時間</span><span class="v" id="upTime">-</span></div>
+    <video id="r2playback" controls playsinline style="margin-top:8px; display:none;"></video>
+  </div>
   <button id="retryBtn">もう一度録画</button>
 </div>
  
@@ -263,6 +271,7 @@ function showResult(actualDur, mimeType, res, vBit, aBit){
  
   resultCard.style.display = 'block';
   dlBtn.style.display = 'block';
+  uploadBtn.style.display = 'block';
   retryBtn.style.display = 'block';
   resultCard.scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -278,9 +287,57 @@ dlBtn.addEventListener('click', () => {
   a.remove();
 });
  
+// R2アップロードテスト（既存の写真用Worker/バケットを流用、video-test/配下に隔離）
+const WORKER_BASE = 'https://higashikiwa-storage.star24kino66.workers.dev';
+const R2_PUBLIC_BASE = 'https://pub-17f3a29307714893bbca16a3d26a1d6f.r2.dev';
+const uploadBtn = document.getElementById('uploadBtn');
+const uploadResult = document.getElementById('uploadResult');
+const upStatus = document.getElementById('upStatus');
+const upTime = document.getElementById('upTime');
+const r2playback = document.getElementById('r2playback');
+ 
+uploadBtn.addEventListener('click', async () => {
+  if(!recordedBlob) return;
+  const ext = (recordedBlob.type.includes('mp4')) ? 'mp4' : 'webm';
+  const key = `video-test/test_${Date.now()}.${ext}`;
+  uploadResult.style.display = 'block';
+  upStatus.textContent = 'アップロード中...';
+  upStatus.className = 'v';
+  upTime.textContent = '-';
+  r2playback.style.display = 'none';
+  uploadBtn.disabled = true;
+ 
+  const t0 = performance.now();
+  try{
+    const res = await fetch(`${WORKER_BASE}/${key}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': recordedBlob.type || 'application/octet-stream' },
+      body: recordedBlob
+    });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+    upTime.textContent = elapsed + ' 秒';
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error(`HTTP ${res.status}: ${t}`);
+    }
+    upStatus.textContent = '✓ 成功';
+    upStatus.className = 'v good';
+    const publicUrl = `${R2_PUBLIC_BASE}/${key}`;
+    r2playback.src = publicUrl + '?t=' + Date.now();
+    r2playback.style.display = 'block';
+  }catch(e){
+    upStatus.textContent = '✗ 失敗: ' + e.message;
+    upStatus.className = 'v warn';
+  }finally{
+    uploadBtn.disabled = false;
+  }
+});
+ 
 retryBtn.addEventListener('click', () => {
   resultCard.style.display = 'none';
   dlBtn.style.display = 'none';
+  uploadBtn.style.display = 'none';
+  uploadResult.style.display = 'none';
   retryBtn.style.display = 'none';
   recordedBlob = null;
 });
@@ -288,3 +345,9 @@ retryBtn.addEventListener('click', () => {
 </body>
 </html>
  
+
+
+
+
+
+
