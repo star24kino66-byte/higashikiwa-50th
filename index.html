@@ -4603,13 +4603,22 @@ function playCurrentTopicVoice(){
   const banner=document.getElementById('videoTopicBanner');
   const path=STORAGE_PREFIX+'voice/'+topic.id+'.mp3';
   return new Promise((resolve)=>{
-    let done=false;
+    let done=false, fallbackTriggered=false;
     const finish=()=>{ if(done) return; done=true; if(banner) banner.classList.remove('speaking'); resolve(); };
+    // 音声ファイルの読み込み失敗は「errorイベント」と「play()のPromise reject」の
+    // 両方が発火することがあり、そのままだとフォールバック音声合成が2回呼ばれ、
+    // 「2回再生される／待ち時間が伸びて5秒に食い込む」不具合の原因になっていた。
+    // フラグで1回だけに制限する。
+    const triggerFallback=()=>{
+      if(fallbackTriggered) return;
+      fallbackTriggered=true;
+      speakTopicFallback(topic.text).then(finish);
+    };
     const audio=new Audio(storageGetUrl(path));
     if(banner) banner.classList.add('speaking');
     audio.addEventListener('ended', finish);
-    audio.addEventListener('error', ()=>{ speakTopicFallback(topic.text).then(finish); });
-    audio.play().catch(()=>{ speakTopicFallback(topic.text).then(finish); });
+    audio.addEventListener('error', triggerFallback);
+    audio.play().catch(triggerFallback);
     // 音声ファイルが極端に長い・止まった場合の保険（最大6秒で強制的に次へ進める）
     setTimeout(finish, 6000);
   });
@@ -4671,7 +4680,6 @@ async function beginCaptureFlow(rerollFirst){
   if(rerollFirst) rerollTopic();
   if(!_currentTopic) rerollTopic();
   unlockSpeechSynthesis(); // iOS Safari対策：ユーザー操作の中で一度発話しておく
-  const facingToggle=document.getElementById('videoFacingToggle');
   const camBtn=document.getElementById('videoStartCameraBtn');
   try{
     _videoStream=await navigator.mediaDevices.getUserMedia({
@@ -4690,7 +4698,7 @@ async function beginCaptureFlow(rerollFirst){
   document.getElementById('videoRetakeBtn').style.display='none';
   document.getElementById('videoFormFields').style.display='none';
   if(camBtn) camBtn.style.display='none';
-  if(facingToggle) facingToggle.style.display='none';
+  // カメラ選択（自分撮り／奥のカメラ）トグルは常に表示したままにする（要望により非表示にしない）
   document.querySelectorAll('.video-topic-btn').forEach(b=>b.disabled=true);
 
   await runChimeVoiceThenRecord();
