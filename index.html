@@ -4539,6 +4539,16 @@ const VIDEO_TOPICS=[
 ];
 let _currentTopic=null;
 
+// iOS Safari対策：ユーザー操作（クリック）の呼び出しスタック内で一度でも speak() を
+// 呼んでおくと、その後の非同期処理内からの speak() も鳴りやすくなることがある。
+function unlockSpeechSynthesis(){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    const u=new SpeechSynthesisUtterance(' ');
+    u.volume=0;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
 function pickRandomTopic(){
   const list=VIDEO_TOPICS;
   return list[Math.floor(Math.random()*list.length)];
@@ -4577,21 +4587,39 @@ function playCurrentTopicVoice(){
     setTimeout(finish, 6000);
   });
 }
-function speakTopicFallback(text){
+// iOS Safari等は音声合成の「声」一覧が非同期で読み込まれるため、
+// 読み込み前にspeak()すると無音のまま失敗することがある。voiceschangedイベントを待つ。
+function ensureVoicesLoaded(){
   return new Promise((resolve)=>{
-    try{
-      if(!('speechSynthesis' in window)){ resolve(); return; }
-      const banner=document.getElementById('videoTopicBanner');
-      window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(text);
-      u.lang='ja-JP';
-      u.rate=1.0;
+    if(!('speechSynthesis' in window)){ resolve(); return; }
+    const voices=window.speechSynthesis.getVoices();
+    if(voices && voices.length>0){ resolve(); return; }
+    let done=false;
+    const finish=()=>{ if(done) return; done=true; resolve(); };
+    window.speechSynthesis.addEventListener('voiceschanged', finish, {once:true});
+    setTimeout(finish, 500); // 最大0.5秒待って諦める（それでも0件なら日本語音声非搭載の端末とみなす）
+  });
+}
+async function speakTopicFallback(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    await ensureVoicesLoaded();
+    const banner=document.getElementById('videoTopicBanner');
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='ja-JP';
+    u.rate=1.0;
+    const voices=window.speechSynthesis.getVoices();
+    const jaVoice=voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('ja'));
+    if(jaVoice) u.voice=jaVoice; // lang指定だけでは声が見つからず無音になる端末があるため明示的に指定
+    await new Promise((resolve)=>{
       if(banner) banner.classList.add('speaking');
       u.onend=()=>{ if(banner) banner.classList.remove('speaking'); resolve(); };
       u.onerror=()=>{ if(banner) banner.classList.remove('speaking'); resolve(); };
       window.speechSynthesis.speak(u);
-    }catch(e){ console.warn('音声合成フォールバックに失敗:',e); resolve(); }
-  });
+      setTimeout(resolve, 6000); // 保険（発火しないまま固まるのを防ぐ）
+    });
+  }catch(e){ console.warn('音声合成フォールバックに失敗:',e); }
 }
 
 // ---- カメラ・録画 ----
@@ -4605,6 +4633,7 @@ let _videoCountdownTimer=null;
 
 async function startVideoCamera(keepTopic){
   if(!keepTopic) rerollTopic(); // カメラを起動するたびに新しいお題をランダムに引き直す（撮り直し時は同じお題を維持）
+  unlockSpeechSynthesis(); // iOS Safari対策：ユーザー操作の中で一度発話しておく
   try{
     _videoStream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:_videoFacingMode, width:{ideal:720}, height:{ideal:1280}},
@@ -4671,35 +4700,61 @@ function roundRectPath(ctx,x,y,w,h,r){
   ctx.arcTo(x,y,x+w,y,r);
   ctx.closePath();
 }
+function drawCoverImage(ctx, video, vw, vh, dw, dh){
+  // CSSのobject-fit:coverと同じロジックで、はみ出た部分を切り取りつつ隙間なく描画する
+  const srcRatio=vw/vh, dstRatio=dw/dh;
+  let sx,sy,sw,sh;
+  if(srcRatio>dstRatio){ sh=vh; sw=vh*dstRatio; sx=(vw-sw)/2; sy=0; }
+  else { sw=vw; sh=vw/dstRatio; sx=0; sy=(vh-sh)/2; }
+  ctx.drawImage(video, sx,sy,sw,sh, 0,0,dw,dh);
+}
+function drawTopicOverlay(ctx, topicText, w, h){
+  const pad=Math.round(w*0.045);
+  const fontSize=Math.max(20,Math.round(w*0.062));
+  ctx.font='bold '+fontSize+'px sans-serif';
+  const lines=wrapCanvasText(ctx, topicText, w-pad*2);
+  const lineH=Math.round(fontSize*1.3);
+  const labelH=Math.round(fontSize*0.55);
+  const boxH=labelH+8+lineH*lines.length+pad*1.2;
+  const boxY=h-boxH-Math.round(h*0.035);
+  ctx.fillStyle='rgba(10,14,40,0.64)';
+  roundRectPath(ctx,pad*0.5,boxY,w-pad,boxH,14);
+  ctx.fill();
+  ctx.textBaseline='top';
+  ctx.fillStyle='#ffd76a';
+  ctx.font='bold '+Math.round(fontSize*0.42)+'px sans-serif';
+  ctx.fillText('今日のお題',pad,boxY+pad*0.55);
+  ctx.fillStyle='#fff';
+  ctx.font='bold '+fontSize+'px sans-serif';
+  let ty=boxY+pad*0.55+labelH+8;
+  lines.forEach(line=>{ ctx.fillText(line,pad,ty); ty+=lineH; });
+}
 function startCanvasCompositeStream(topicText){
   const video=document.getElementById('videoCameraPreview');
   const canvas=document.getElementById('videoRecordCanvas');
-  const w=video.videoWidth||720, h=video.videoHeight||1280;
-  canvas.width=w; canvas.height=h;
+  // 出力は常に固定の縦長解像度に統一する。iOSではカメラの生フレームが向きに関わらず
+  // 横向きの数値（videoWidth>videoHeight）のまま渡ってくることがあり、それをそのまま
+  // Canvasサイズに使うと表示上の縦長比率とズレて、文字オーバーレイが画面外にはみ出て
+  // 見切れる不具合が起きていた。そのため出力サイズは固定し、毎フレーム向きを判定して補正する。
+  const OUT_W=720, OUT_H=1280;
+  canvas.width=OUT_W; canvas.height=OUT_H;
   const ctx=canvas.getContext('2d');
   video.style.display='none';
   canvas.style.display='block';
   function draw(){
-    ctx.drawImage(video,0,0,w,h);
-    const pad=Math.round(w*0.045);
-    const fontSize=Math.max(20,Math.round(w*0.062));
-    ctx.font='bold '+fontSize+'px sans-serif';
-    const lines=wrapCanvasText(ctx, topicText, w-pad*2);
-    const lineH=Math.round(fontSize*1.3);
-    const labelH=Math.round(fontSize*0.55);
-    const boxH=labelH+8+lineH*lines.length+pad*1.2;
-    const boxY=h-boxH-Math.round(h*0.035);
-    ctx.fillStyle='rgba(10,14,40,0.64)';
-    roundRectPath(ctx,pad*0.5,boxY,w-pad,boxH,14);
-    ctx.fill();
-    ctx.textBaseline='top';
-    ctx.fillStyle='#ffd76a';
-    ctx.font='bold '+Math.round(fontSize*0.42)+'px sans-serif';
-    ctx.fillText('今日のお題',pad,boxY+pad*0.55);
-    ctx.fillStyle='#fff';
-    ctx.font='bold '+fontSize+'px sans-serif';
-    let ty=boxY+pad*0.55+labelH+8;
-    lines.forEach(line=>{ ctx.fillText(line,pad,ty); ty+=lineH; });
+    const vw=video.videoWidth||OUT_W, vh=video.videoHeight||OUT_H;
+    ctx.save();
+    ctx.clearRect(0,0,OUT_W,OUT_H);
+    if(vw>vh){
+      // 生フレームが横向きの場合は縦向きに回転させてから描画する
+      ctx.translate(OUT_W,0);
+      ctx.rotate(Math.PI/2);
+      drawCoverImage(ctx, video, vw, vh, OUT_H, OUT_W);
+    } else {
+      drawCoverImage(ctx, video, vw, vh, OUT_W, OUT_H);
+    }
+    ctx.restore();
+    drawTopicOverlay(ctx, topicText, OUT_W, OUT_H);
     _canvasDrawLoopId=requestAnimationFrame(draw);
   }
   draw();
