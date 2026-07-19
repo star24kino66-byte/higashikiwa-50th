@@ -1105,7 +1105,12 @@ img{
 
 .video-record-area{position:relative;width:100%;max-width:280px;aspect-ratio:9/16;margin:0 auto 1rem;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
 .video-record-area video,.video-record-area canvas{width:100%;height:100%;object-fit:cover;display:block;}
+.video-facing-toggle{display:flex;gap:6px;margin-top:.6rem;}
+.video-facing-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#cfd4ee;border-radius:999px;padding:6px 4px;font-size:11px;font-weight:700;cursor:pointer;}
+.video-facing-btn.on{background:#ffd76a;border-color:#ffd76a;color:#332600;}
+
 .video-record-idle-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8891b0;font-size:12.5px;text-align:center;padding:0 1rem;}
+.video-flow-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;text-align:center;padding:0 1.2rem;background:rgba(10,14,40,.55);backdrop-filter:blur(1px);}
 .video-record-ring{position:absolute;top:10px;right:10px;width:46px;height:46px;border-radius:50%;background:rgba(200,39,60,.92);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 0 0 4px rgba(200,39,60,.25);animation:videoRecPulse 1s ease-in-out infinite;}
 @keyframes videoRecPulse{0%,100%{box-shadow:0 0 0 4px rgba(200,39,60,.25);}50%{box-shadow:0 0 0 8px rgba(200,39,60,.12);}}
 .video-rec-dot{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);border-radius:999px;padding:4px 9px 4px 7px;color:#fff;font-size:10.5px;font-weight:700;}
@@ -1489,11 +1494,15 @@ img{
         <div class="video-topic-banner" id="videoTopicBanner">
           <div class="video-topic-label">今日のお題</div>
           <div class="video-topic-text" id="videoTopicText">…</div>
+          <div class="video-facing-toggle" id="videoFacingToggle">
+            <button class="video-facing-btn on" data-facing="user" onclick="setVideoFacing('user',this)">🤳 自分撮り</button>
+            <button class="video-facing-btn" data-facing="environment" onclick="setVideoFacing('environment',this)">📷 奥のカメラ</button>
+          </div>
           <div class="video-topic-actions">
             <button class="video-topic-btn" onclick="rerollTopic()">🔁 お題を変える</button>
-            <button class="video-topic-btn" onclick="startRandomTopicFlow()">🎲 ランダムで撮影</button>
+            <button class="video-topic-btn" onclick="beginCaptureFlow(true)">🎲 ランダムで撮影</button>
           </div>
-          <button class="ubtn" id="videoStartCameraBtn" style="margin-top:.7rem;" onclick="startVideoCamera()">📷 このお題で撮影する</button>
+          <button class="ubtn" id="videoStartCameraBtn" style="margin-top:.7rem;" onclick="beginCaptureFlow(false)">📷 このお題で撮影する</button>
         </div>
 
         <div class="video-record-area" id="videoRecordArea">
@@ -1502,15 +1511,12 @@ img{
           <video id="videoPlaybackPreview" playsinline controls style="display:none;"></video>
           <div class="video-rec-dot" id="videoRecDot" style="display:none;">REC</div>
           <div class="video-record-ring" id="videoRecordRing" style="display:none;"><span id="videoCountdownNum">5</span></div>
+          <div class="video-flow-status" id="videoFlowStatus" style="display:none;"></div>
           <div class="video-record-idle-hint" id="videoIdleHint">📷 上のボタンで撮影を始めてください</div>
         </div>
 
         <div class="video-record-controls" id="videoRecordControls">
-          <div class="video-record-controls-row" id="videoRecordControlsRow" style="display:none;">
-            <button class="video-icon-btn" id="videoFlipBtn" onclick="flipVideoCamera()">🔄 カメラ切替</button>
-            <button class="video-icon-btn" id="videoRetakeBtn" style="display:none;" onclick="retakeVideo()">↺ 撮り直す</button>
-          </div>
-          <button class="ubtn" id="videoRecordBtn" style="display:none;background:#c8273c;" onclick="startVideoRecording()">⏺ 撮影スタート</button>
+          <button class="video-icon-btn" id="videoRetakeBtn" style="display:none;max-width:280px;" onclick="retakeVideo()">↺ 撮り直す</button>
         </div>
 
 
@@ -4579,10 +4585,13 @@ function rerollTopic(){
   // 呼び出しスタック内でないと再生が無音でブロックされることがあるため（音声が出ない不具合の原因）。
   // 音声は必ずボタンのonclickから直接呼ばれるplayCurrentTopicVoice()側で鳴らす。
 }
-// 「🎲ランダムで撮影」ボタン：お題を変更しつつ、そのままカメラ起動→撮影の流れに直行する
-function startRandomTopicFlow(){
-  rerollTopic();
-  startVideoCamera();
+// カメラ選択（自分撮り／奥のカメラ）は撮影を始める"前"に選んでおく方式。
+// 「ランダムで撮影」等を押した瞬間はそのままカメラ起動→撮影まで自動で進むため、
+// 撮影の途中で切り替えることはできない（あらかじめ選んでおく）。
+function setVideoFacing(mode, btn){
+  _videoFacingMode=mode;
+  document.querySelectorAll('.video-facing-btn').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
 }
 // 音声：VOICEVOX等で事前生成した音声ファイル（voice/<id>.mp3）があればそれを再生し、
 // ファイルが無い・再生失敗の場合はブラウザ標準の音声合成（Web Speech API）に自動フォールバックする。
@@ -4650,10 +4659,20 @@ let _recordedThumbBlob=null;
 let _videoCountdownTimer=null;
 let VIDEO_DURATION_SEC=5; // 管理画面（大会情報タブ）で5〜10秒の範囲で設定可能。settingsのvideo_duration_secから読み込む。
 
-async function startVideoCamera(){
-  // お題は変更しない（画面に表示中のお題のままカメラを起動する）。
-  // お題を変えたい場合は「🔁お題を変える」、変更しつつ即撮影したい場合は「🎲ランダムで撮影」を使う。
+function updateFlowStatus(text){
+  const el=document.getElementById('videoFlowStatus');
+  if(!el) return;
+  el.textContent=text;
+  el.style.display=text?'flex':'none';
+}
+// 「📷このお題で撮影する」「🎲ランダムで撮影」共通の入り口。
+// カメラ起動→効果音→お題読み上げ→録画、までを自動で一気に進める（途中で手動操作は挟まない）。
+async function beginCaptureFlow(rerollFirst){
+  if(rerollFirst) rerollTopic();
+  if(!_currentTopic) rerollTopic();
   unlockSpeechSynthesis(); // iOS Safari対策：ユーザー操作の中で一度発話しておく
+  const facingToggle=document.getElementById('videoFacingToggle');
+  const camBtn=document.getElementById('videoStartCameraBtn');
   try{
     _videoStream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:_videoFacingMode, width:{ideal:720}, height:{ideal:1280}},
@@ -4668,29 +4687,21 @@ async function startVideoCamera(){
   preview.style.display='block';
   document.getElementById('videoPlaybackPreview').style.display='none';
   document.getElementById('videoIdleHint').style.display='none';
-  const camBtn=document.getElementById('videoStartCameraBtn');
-  if(camBtn) camBtn.style.display='none';
-  document.getElementById('videoRecordControlsRow').style.display='flex';
-  document.getElementById('videoFlipBtn').style.display='inline-block';
-  document.getElementById('videoRecordBtn').style.display='block';
   document.getElementById('videoRetakeBtn').style.display='none';
   document.getElementById('videoFormFields').style.display='none';
-}
-async function flipVideoCamera(){
-  _videoFacingMode=(_videoFacingMode==='user')?'environment':'user';
-  if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); }
-  try{
-    _videoStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:_videoFacingMode, width:{ideal:720}, height:{ideal:1280}},
-      audio:true
-    });
-    document.getElementById('videoCameraPreview').srcObject=_videoStream;
-  }catch(e){ showInlineMsg('videoSubmitError','カメラの切り替えに失敗しました。'); }
+  if(camBtn) camBtn.style.display='none';
+  if(facingToggle) facingToggle.style.display='none';
+  document.querySelectorAll('.video-topic-btn').forEach(b=>b.disabled=true);
+
+  await runChimeVoiceThenRecord();
+
+  document.querySelectorAll('.video-topic-btn').forEach(b=>b.disabled=false);
 }
 function stopVideoCameraStream(){
   if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
   if(_videoCountdownTimer){ clearInterval(_videoCountdownTimer); _videoCountdownTimer=null; }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  updateFlowStatus('');
 }
 function pickRecorderMimeType(){
   const candidates=['video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
@@ -4816,17 +4827,16 @@ function playStartChime(){
     }catch(e){ resolve(); }
   });
 }
-async function startVideoRecording(){
+async function runChimeVoiceThenRecord(){
   if(!_videoStream || !_currentTopic) return;
-  const btn=document.getElementById('videoRecordBtn');
-  document.getElementById('videoFlipBtn').style.display='none';
-  if(btn){ btn.disabled=true; btn.textContent='🔔 まもなくスタート…'; }
+  updateFlowStatus('🔔 まもなくスタート…');
   await playStartChime();
-  if(btn) btn.textContent='🔊 お題を読み上げ中…';
+  updateFlowStatus('🔊 お題を読み上げ中…');
   await playCurrentTopicVoice();
-  if(!_videoStream){ if(btn){ btn.disabled=false; btn.textContent='⏺ 撮影スタート'; } return; } // 再生中にカメラが停止された場合は中止
-  if(btn){ btn.textContent='⏺ 撮影スタート'; btn.disabled=false; btn.style.display='none'; }
-  document.getElementById('videoRecordControlsRow').style.display='none';
+  // ここに到達した時点で、効果音・お題読み上げは完全に終わっている。
+  // この後始まる録画（VIDEO_DURATION_SEC秒）には音声再生の時間は一切含まれない。
+  if(!_videoStream){ updateFlowStatus(''); return; } // 再生中にカメラが停止された場合は中止
+  updateFlowStatus('');
 
   _recordedChunks=[];
   const mimeType=pickRecorderMimeType();
@@ -4838,30 +4848,30 @@ async function startVideoRecording(){
   }catch(e){
     showInlineMsg('videoSubmitError','この端末・ブラウザは動画録画に対応していません。');
     stopCanvasCompositeLoop();
-    if(btn) btn.style.display='block';
-    document.getElementById('videoRecordControlsRow').style.display='flex';
     return;
   }
-  _mediaRecorder.ondataavailable=(e)=>{ if(e.data && e.data.size>0) _recordedChunks.push(e.data); };
-  _mediaRecorder.onstop=onVideoRecordingStop;
-  document.getElementById('videoRecDot').style.display='flex';
-  const ring=document.getElementById('videoRecordRing');
-  const num=document.getElementById('videoCountdownNum');
-  ring.style.display='flex';
-  // 録画の長さは管理画面で設定（5〜10秒）。音声の読み上げは録画開始"前"に完了しているため、
-  // ここでカウントする秒数には含まれず、録画される映像は純粋にこの秒数ぶんになる。
-  let remain=VIDEO_DURATION_SEC;
-  num.textContent=remain;
-  _mediaRecorder.start();
-  _videoCountdownTimer=setInterval(()=>{
-    remain--;
-    if(remain<=0){
-      clearInterval(_videoCountdownTimer); _videoCountdownTimer=null;
-      if(_mediaRecorder && _mediaRecorder.state==='recording') _mediaRecorder.stop();
-      return;
-    }
+  await new Promise((resolveStop)=>{
+    _mediaRecorder.ondataavailable=(e)=>{ if(e.data && e.data.size>0) _recordedChunks.push(e.data); };
+    _mediaRecorder.onstop=()=>{ onVideoRecordingStop(); resolveStop(); };
+    document.getElementById('videoRecDot').style.display='flex';
+    const ring=document.getElementById('videoRecordRing');
+    const num=document.getElementById('videoCountdownNum');
+    ring.style.display='flex';
+    // 録画の長さは管理画面で設定（5〜10秒）。音声の読み上げは録画開始"前"に完了しているため、
+    // ここでカウントする秒数には含まれず、録画される映像は純粋にこの秒数ぶんになる。
+    let remain=VIDEO_DURATION_SEC;
     num.textContent=remain;
-  },1000);
+    _mediaRecorder.start();
+    _videoCountdownTimer=setInterval(()=>{
+      remain--;
+      if(remain<=0){
+        clearInterval(_videoCountdownTimer); _videoCountdownTimer=null;
+        if(_mediaRecorder && _mediaRecorder.state==='recording') _mediaRecorder.stop();
+        return;
+      }
+      num.textContent=remain;
+    },1000);
+  });
 }
 async function onVideoRecordingStop(){
   document.getElementById('videoRecDot').style.display='none';
@@ -4906,7 +4916,7 @@ function retakeVideo(){
   document.getElementById('videoPlaybackPreview').src='';
   document.getElementById('videoRetakeBtn').style.display='none';
   document.getElementById('videoFormFields').style.display='none';
-  startVideoCamera(); // お題は変更しない（同じお題のまま撮り直す）
+  beginCaptureFlow(false); // お題は変更せず、同じお題のまま撮り直す
 }
 
 async function submitVideoEntry(){
@@ -4962,9 +4972,8 @@ async function submitVideoEntry(){
     document.getElementById('videoPlaybackPreview').src='';
     document.getElementById('videoFormFields').style.display='none';
     document.getElementById('videoRetakeBtn').style.display='none';
-    document.getElementById('videoRecordControlsRow').style.display='none';
-    document.getElementById('videoRecordBtn').style.display='none';
     document.getElementById('videoStartCameraBtn').style.display='block';
+    document.getElementById('videoFacingToggle').style.display='flex';
     document.getElementById('videoIdleHint').style.display='flex';
     rerollTopic();
 
