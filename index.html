@@ -4650,6 +4650,7 @@ function setupPinchZoomForCurrentTrack(){
     if(caps && caps.zoom && caps.zoom.max>caps.zoom.min){
       _videoZoomTrack=track;
       _videoZoomRange={min:caps.zoom.min, max:caps.zoom.max, step:caps.zoom.step||0.1};
+      _currentZoomValue=_videoZoomRange.min; // 起動直後は最小（等倍）から開始
       console.log('[動画]ズーム対応:', _videoZoomRange);
     }else{
       console.log('[動画]この端末・カメラはハードウェアズーム非対応です');
@@ -4664,6 +4665,7 @@ function _pinchTouchDistance(touches){
 function applyVideoZoom(value){
   if(!_videoZoomTrack || !_videoZoomRange) return;
   const clamped=Math.min(_videoZoomRange.max, Math.max(_videoZoomRange.min, value));
+  _currentZoomValue=clamped; // getSettings()を介さず自前で正として保持（縮小方向が効かない不具合の対策）
   _videoZoomTrack.applyConstraints({advanced:[{zoom:clamped}]}).catch(()=>{});
 }
 // ピンチズームのイベント登録（ページ読み込み時に一度だけ）
@@ -4673,8 +4675,7 @@ function applyVideoZoom(value){
   el.addEventListener('touchstart', function(e){
     if(e.touches.length===2 && _videoZoomTrack){
       _pinchStartDist=_pinchTouchDistance(e.touches);
-      const settings=_videoZoomTrack.getSettings ? _videoZoomTrack.getSettings() : {};
-      _pinchStartZoom=(settings.zoom!==undefined) ? settings.zoom : _videoZoomRange.min;
+      _pinchStartZoom=_currentZoomValue; // track.getSettings()は端末により不正確なため自前追跡値を使う
       e.preventDefault();
     }
   }, {passive:false});
@@ -4692,6 +4693,23 @@ function applyVideoZoom(value){
     if(e.touches.length<2) _pinchStartDist=0;
   });
 })();
+// タブが非表示・バックグラウンドになった時はカメラ・マイクを止める
+// （画面ロックや他アプリへの切り替え中もストリームが張りっぱなしにならないように）。
+// 再び表示された時、まだ動画ページを開いたままで録画前なら自動でプレビューを再開する。
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden){
+    if(_mediaRecorder && _mediaRecorder.state==='recording'){
+      _mediaRecorder.stop(); // 録画中に非表示になった場合はそこで打ち切る（onstopで後処理される）
+    }else if(_videoStream){
+      stopVideoCameraStream();
+    }
+  }else{
+    const videoPage=document.getElementById('page-video');
+    if(videoPage && videoPage.classList.contains('on') && !_videoStream && !_recordedBlob){
+      previewCamera();
+    }
+  }
+});
 // 音声：VOICEVOX等で事前生成した音声ファイル（voice/<id>.mp3）があればそれを再生し、
 // ファイルが無い・再生失敗の場合はブラウザ標準の音声合成（Web Speech API）に自動フォールバックする。
 // Promiseを返し、再生完了（またはエラーで即諦めた場合）にresolveする。
@@ -4774,6 +4792,7 @@ let _videoZoomTrack=null;   // ズーム操作対象のトラック（対応時�
 let _videoZoomRange=null;   // {min,max,step}
 let _pinchStartDist=0;
 let _pinchStartZoom=1;
+let _currentZoomValue=1;    // 実際に適用中のズーム値（track.getSettings()に頼らず自前で追跡。端末によりgetSettings()の戻り値が不正確なため）
 
 function updateFlowStatus(text){
   const el=document.getElementById('videoFlowStatus');
