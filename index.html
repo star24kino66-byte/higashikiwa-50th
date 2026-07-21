@@ -1090,23 +1090,23 @@ img{
 .video-grid-item .video-caption{position:absolute;left:0;right:0;bottom:0;padding:5px 6px 4px;font-size:10px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.75));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .video-empty-msg{grid-column:1/-1;text-align:center;color:#999;font-size:12px;padding:1.4rem 0;}
 
-.video-topic-banner{position:relative;border-radius:14px;padding:1rem 1.1rem;margin-bottom:1.1rem;
+.video-topic-banner{position:relative;border-radius:14px;padding:.7rem .85rem;margin-bottom:.6rem;
   background:linear-gradient(135deg,#1a2350,#3a2a6b 55%,#7a2f5c);
   box-shadow:0 4px 14px rgba(26,35,80,.35);overflow:hidden;}
 .video-topic-banner::before{content:'🎤';position:absolute;right:-6px;bottom:-14px;font-size:64px;opacity:.14;transform:rotate(-12deg);}
-.video-topic-label{font-size:10px;letter-spacing:.12em;font-weight:700;color:#ffd76a;text-transform:uppercase;margin-bottom:4px;}
-.video-topic-text{font-size:17px;font-weight:800;color:#fff;line-height:1.4;text-shadow:0 1px 3px rgba(0,0,0,.3);min-height:1.4em;}
-.video-topic-actions{display:flex;gap:8px;margin-top:.7rem;}
-.video-topic-btn{flex:1;max-width:160px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;backdrop-filter:blur(2px);}
+.video-topic-label{font-size:10px;letter-spacing:.12em;font-weight:700;color:#ffd76a;text-transform:uppercase;margin-bottom:2px;}
+.video-topic-text{font-size:15.5px;font-weight:800;color:#fff;line-height:1.3;text-shadow:0 1px 3px rgba(0,0,0,.3);min-height:1.3em;}
+.video-topic-actions{display:flex;gap:8px;margin-top:.5rem;}
+.video-topic-btn{flex:1;max-width:160px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 4px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s;backdrop-filter:blur(2px);}
 .video-topic-btn:hover{background:rgba(255,255,255,.26);}
 .video-topic-btn:active{transform:scale(.97);}
 .video-topic-banner.speaking .video-topic-text{animation:videoTopicPulse 1s ease-in-out infinite;}
 @keyframes videoTopicPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
 
-.video-record-area{position:relative;width:100%;max-width:280px;aspect-ratio:9/16;margin:0 auto 1rem;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+.video-record-area{position:relative;width:100%;max-width:240px;aspect-ratio:9/16;margin:0 auto .6rem;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
 .video-record-area video,.video-record-area canvas{width:100%;height:100%;object-fit:cover;display:block;}
-.video-facing-toggle{display:flex;gap:6px;margin-top:.6rem;}
-.video-facing-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#cfd4ee;border-radius:999px;padding:6px 4px;font-size:11px;font-weight:700;cursor:pointer;}
+.video-facing-toggle{display:flex;gap:6px;margin-top:.4rem;}
+.video-facing-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#cfd4ee;border-radius:999px;padding:5px 4px;font-size:10.5px;font-weight:700;cursor:pointer;}
 .video-facing-btn.on{background:#ffd76a;border-color:#ffd76a;color:#332600;}
 
 .video-record-idle-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8891b0;font-size:12.5px;text-align:center;padding:0 1rem;}
@@ -1116,8 +1116,8 @@ img{
 .video-rec-dot{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);border-radius:999px;padding:4px 9px 4px 7px;color:#fff;font-size:10.5px;font-weight:700;}
 .video-rec-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:#ff3b3b;animation:videoRecPulse 1s ease-in-out infinite;}
 
-.video-record-controls{display:flex;flex-direction:column;gap:10px;align-items:center;}
-.video-record-controls-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;width:100%;max-width:280px;}
+.video-record-controls{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.video-record-controls-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;width:100%;max-width:240px;}
 .video-icon-btn{flex:1;background:#fff;border:1px solid #ddd;color:#333;border-radius:999px;padding:9px 10px;font-size:12px;font-weight:700;cursor:pointer;}
 .video-icon-btn:hover{background:#f5f5f5;}
 #videoStartCameraBtn,#videoRecordBtn{max-width:280px;}
@@ -1486,9 +1486,8 @@ img{
 
       <div class="uf" id="videoRecordCard">
         <div class="ut">🎬 動画を撮影して投稿する</div>
-        <div class="notice-box" style="margin-bottom:.6rem;">
-          ✅ 投稿動画は<b>承認後</b>に掲載します。個人情報が写り込んでいるもの・不適切なものは掲載を見送る場合があります。<br>
-          <span style="color:#666;">📱 投稿はこの端末からいつでも確認・削除できます（<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿を見る</a>）。</span>
+        <div class="notice-box" style="margin-bottom:.5rem;padding:.5rem .7rem;font-size:10.5px;">
+          ✅ 投稿動画は<b>承認後</b>に掲載します。<span style="color:#666;">投稿の確認・削除は<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿</a>からいつでも。</span>
         </div>
 
         <div class="video-topic-banner" id="videoTopicBanner">
@@ -1502,7 +1501,7 @@ img{
             <button class="video-topic-btn" onclick="rerollTopic()">🔁 お題を変える</button>
             <button class="video-topic-btn" onclick="beginCaptureFlow(true)">🎲 ランダムで撮影</button>
           </div>
-          <button class="ubtn" id="videoStartCameraBtn" style="margin-top:.7rem;" onclick="beginCaptureFlow(false)">📷 このお題で撮影する</button>
+          <button class="ubtn" id="videoStartCameraBtn" style="margin-top:.5rem;" onclick="beginCaptureFlow(false)">📷 このお題で撮影する</button>
         </div>
 
         <div class="video-record-area" id="videoRecordArea">
@@ -4592,6 +4591,30 @@ function setVideoFacing(mode, btn){
   _videoFacingMode=mode;
   document.querySelectorAll('.video-facing-btn').forEach(b=>b.classList.remove('on'));
   if(btn) btn.classList.add('on');
+  previewCamera(); // 選んだ瞬間にその場でプレビューを開き直し、画角を事前確認できるようにする
+}
+function buildVideoConstraints(){
+  // 自分撮り(フロントカメラ)は望遠寄りで画角が狭く「腕を伸ばしても近すぎる」ことが多いため、
+  // 解像度の指定を緩めてブラウザがより広い画角を選びやすくする。zoom指定は非対応環境が多いため
+  // advanced欄にも重ねて試す（両方とも非対応なら単に無視されるだけで安全）。
+  if(_videoFacingMode==='user'){
+    return {facingMode:'user', aspectRatio:{ideal:9/16}, advanced:[{zoom:1}]};
+  }
+  return {facingMode:'environment', width:{ideal:720}, height:{ideal:1280}};
+}
+// カメラ選択（自分撮り／奥のカメラ）を選んだ時点でライブプレビューを開始する。
+// 録画はまだ始めない。「撮影スタート」を押した時に、この起動済みのストリームをそのまま使う
+// （カメラの再起動待ちが無くなり、事前に画角も確認できる）。
+async function previewCamera(){
+  if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
+  try{
+    _videoStream=await navigator.mediaDevices.getUserMedia({ video:buildVideoConstraints(), audio:true });
+  }catch(e){ return; } // プレビュー時点の失敗は静かに諦める（撮影ボタン押下時に改めてエラー表示する）
+  const preview=document.getElementById('videoCameraPreview');
+  preview.srcObject=_videoStream;
+  preview.style.display='block';
+  document.getElementById('videoPlaybackPreview').style.display='none';
+  document.getElementById('videoIdleHint').style.display='none';
 }
 // 音声：VOICEVOX等で事前生成した音声ファイル（voice/<id>.mp3）があればそれを再生し、
 // ファイルが無い・再生失敗の場合はブラウザ標準の音声合成（Web Speech API）に自動フォールバックする。
@@ -4681,24 +4704,13 @@ async function beginCaptureFlow(rerollFirst){
   if(!_currentTopic) rerollTopic();
   unlockSpeechSynthesis(); // iOS Safari対策：ユーザー操作の中で一度発話しておく
   const camBtn=document.getElementById('videoStartCameraBtn');
-  // 自分撮り(フロントカメラ)は望遠寄りで画角が狭く「腕を伸ばしても近すぎる」ことが多いため、
-  // ズームを最小(=画角最大)に指定し、解像度も少し控えめにして広い画角が選ばれやすくする。
-  // 対応していない端末では単に無視されるだけなので安全（動画も少し軽くなる副次効果あり）。
-  const videoConstraints=(_videoFacingMode==='user')
-    ? {facingMode:'user', width:{ideal:480}, height:{ideal:854}, zoom:{ideal:1}}
-    : {facingMode:'environment', width:{ideal:720}, height:{ideal:1280}};
-  try{
-    _videoStream=await navigator.mediaDevices.getUserMedia({
-      video:videoConstraints,
-      audio:true
-    });
-  }catch(e){
-    showInlineMsg('videoSubmitError','カメラ・マイクへのアクセスが許可されませんでした。ブラウザの設定をご確認ください。');
-    return;
+  if(!_videoStream){
+    await previewCamera();
+    if(!_videoStream){
+      showInlineMsg('videoSubmitError','カメラ・マイクへのアクセスが許可されませんでした。ブラウザの設定をご確認ください。');
+      return;
+    }
   }
-  const preview=document.getElementById('videoCameraPreview');
-  preview.srcObject=_videoStream;
-  preview.style.display='block';
   document.getElementById('videoPlaybackPreview').style.display='none';
   document.getElementById('videoIdleHint').style.display='none';
   document.getElementById('videoRetakeBtn').style.display='none';
@@ -6977,6 +6989,8 @@ function switchPage(btn,pageId){
   if(pageId==='donation') syncDonationPage();
   // 動画ページを離れる時はカメラ・マイクを確実に解放する（許可済みでも裏でストリームが張りっぱなしにならないように）
   if(pageId!=='video') stopVideoCameraStream();
+  // 動画ページに入った瞬間、まだ録画済みでなければ画角を事前確認できるようプレビューを自動起動する
+  if(pageId==='video' && !_videoStream && !_recordedBlob) previewCamera();
   // display:none→blockで再表示された直後は、iOS Safariで寄付者バナー・応援メッセージの
   // 流れるCSSアニメーションが再開せず止まったままになることがあるため、再キックする。
   // （非表示の間はアニメーションが完全に停止するため、テーマ変更うんぬんではなく
