@@ -1103,7 +1103,7 @@ img{
 .video-topic-banner.speaking .video-topic-text{animation:videoTopicPulse 1s ease-in-out infinite;}
 @keyframes videoTopicPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
 
-.video-record-area{position:relative;width:100%;max-width:240px;aspect-ratio:9/16;margin:0 auto .6rem;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+.video-record-area{position:relative;width:100%;max-width:190px;aspect-ratio:9/16;margin:0 auto .5rem;border-radius:16px;overflow:hidden;background:#0b0b12;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
 .video-record-area video,.video-record-area canvas{width:100%;height:100%;object-fit:cover;display:block;}
 .video-facing-toggle{display:flex;gap:6px;margin-top:.4rem;}
 .video-facing-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#cfd4ee;border-radius:999px;padding:5px 4px;font-size:10.5px;font-weight:700;cursor:pointer;}
@@ -4594,13 +4594,21 @@ function setVideoFacing(mode, btn){
   previewCamera(); // 選んだ瞬間にその場でプレビューを開き直し、画角を事前確認できるようにする
 }
 function buildVideoConstraints(){
-  // 自分撮り(フロントカメラ)は望遠寄りで画角が狭く「腕を伸ばしても近すぎる」ことが多いため、
-  // 解像度の指定を緩めてブラウザがより広い画角を選びやすくする。zoom指定は非対応環境が多いため
-  // advanced欄にも重ねて試す（両方とも非対応なら単に無視されるだけで安全）。
   if(_videoFacingMode==='user'){
-    return {facingMode:'user', aspectRatio:{ideal:9/16}, advanced:[{zoom:1}]};
+    // 自分撮りは機種によってはレンズが1つしかなく広角化できない場合が多い。可能な範囲でaspectRatioのみ指定。
+    return {facingMode:'user', aspectRatio:{ideal:9/16}};
   }
   return {facingMode:'environment', width:{ideal:720}, height:{ideal:1280}};
+}
+// 背面カメラに「広角(0.5x等)」の物理レンズが別デバイスとして存在する場合、そちらを優先的に使う。
+// フロントカメラは機種によってはレンズが1つしかないことが多く、この方法では改善できない場合がある。
+async function pickWideBackCameraDeviceId(){
+  try{
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const cams=devices.filter(d=>d.kind==='videoinput');
+    const wide=cams.find(d=>/ultra|wide|0\.5|広角/i.test(d.label));
+    return wide ? wide.deviceId : null;
+  }catch(e){ return null; }
 }
 // カメラ選択（自分撮り／奥のカメラ）を選んだ時点でライブプレビューを開始する。
 // 録画はまだ始めない。「撮影スタート」を押した時に、この起動済みのストリームをそのまま使う
@@ -4609,6 +4617,19 @@ async function previewCamera(){
   if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
   try{
     _videoStream=await navigator.mediaDevices.getUserMedia({ video:buildVideoConstraints(), audio:true });
+    // 最初の許可取得後（デバイス名が見えるようになった後）、背面カメラなら広角レンズが
+    // 別デバイスとして存在しないか確認し、あれば広角レンズに切り替える。
+    if(_videoFacingMode==='environment'){
+      const wideId=await pickWideBackCameraDeviceId();
+      if(wideId){
+        const wideConstraints={deviceId:{exact:wideId}, width:{ideal:720}, height:{ideal:1280}};
+        try{
+          const wideStream=await navigator.mediaDevices.getUserMedia({video:wideConstraints, audio:true});
+          _videoStream.getTracks().forEach(t=>t.stop());
+          _videoStream=wideStream;
+        }catch(e){ /* 広角取得に失敗した場合は最初に取れたストリームのまま続行 */ }
+      }
+    }
   }catch(e){ return; } // プレビュー時点の失敗は静かに諦める（撮影ボタン押下時に改めてエラー表示する）
   const preview=document.getElementById('videoCameraPreview');
   preview.srcObject=_videoStream;
