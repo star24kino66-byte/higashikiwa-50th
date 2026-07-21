@@ -4636,7 +4636,62 @@ async function previewCamera(){
   preview.style.display='block';
   document.getElementById('videoPlaybackPreview').style.display='none';
   document.getElementById('videoIdleHint').style.display='none';
+  setupPinchZoomForCurrentTrack();
 }
+// 現在の映像トラックがハードウェアズームに対応しているか確認し、対応していれば
+// _videoZoomTrack / _videoZoomRange をセットする（ピンチ操作の準備）。
+function setupPinchZoomForCurrentTrack(){
+  _videoZoomTrack=null;
+  _videoZoomRange=null;
+  const track=_videoStream ? _videoStream.getVideoTracks()[0] : null;
+  if(!track) return;
+  try{
+    const caps=track.getCapabilities ? track.getCapabilities() : {};
+    if(caps && caps.zoom && caps.zoom.max>caps.zoom.min){
+      _videoZoomTrack=track;
+      _videoZoomRange={min:caps.zoom.min, max:caps.zoom.max, step:caps.zoom.step||0.1};
+      console.log('[動画]ズーム対応:', _videoZoomRange);
+    }else{
+      console.log('[動画]この端末・カメラはハードウェアズーム非対応です');
+    }
+  }catch(e){ console.log('[動画]ズーム対応確認エラー:', e); }
+}
+function _pinchTouchDistance(touches){
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+function applyVideoZoom(value){
+  if(!_videoZoomTrack || !_videoZoomRange) return;
+  const clamped=Math.min(_videoZoomRange.max, Math.max(_videoZoomRange.min, value));
+  _videoZoomTrack.applyConstraints({advanced:[{zoom:clamped}]}).catch(()=>{});
+}
+// ピンチズームのイベント登録（ページ読み込み時に一度だけ）
+(function initVideoPinchZoom(){
+  const el=document.getElementById('videoCameraPreview');
+  if(!el) return;
+  el.addEventListener('touchstart', function(e){
+    if(e.touches.length===2 && _videoZoomTrack){
+      _pinchStartDist=_pinchTouchDistance(e.touches);
+      const settings=_videoZoomTrack.getSettings ? _videoZoomTrack.getSettings() : {};
+      _pinchStartZoom=(settings.zoom!==undefined) ? settings.zoom : _videoZoomRange.min;
+      e.preventDefault();
+    }
+  }, {passive:false});
+  el.addEventListener('touchmove', function(e){
+    if(e.touches.length===2 && _videoZoomTrack && _pinchStartDist>0){
+      const dist=_pinchTouchDistance(e.touches);
+      const ratio=dist/_pinchStartDist;
+      const range=_videoZoomRange.max-_videoZoomRange.min;
+      const newZoom=_pinchStartZoom + (ratio-1)*range*0.6; // 0.6は感度調整（指の動きに対するズーム量）
+      applyVideoZoom(newZoom);
+      e.preventDefault();
+    }
+  }, {passive:false});
+  el.addEventListener('touchend', function(e){
+    if(e.touches.length<2) _pinchStartDist=0;
+  });
+})();
 // 音声：VOICEVOX等で事前生成した音声ファイル（voice/<id>.mp3）があればそれを再生し、
 // ファイルが無い・再生失敗の場合はブラウザ標準の音声合成（Web Speech API）に自動フォールバックする。
 // Promiseを返し、再生完了（またはエラーで即諦めた場合）にresolveする。
@@ -4711,6 +4766,14 @@ let _recordedBlob=null;
 let _recordedThumbBlob=null;
 let _videoCountdownTimer=null;
 let VIDEO_DURATION_SEC=5; // 管理画面（大会情報タブ）で5〜10秒の範囲で設定可能。settingsのvideo_duration_secから読み込む。
+// ---- ピンチズーム（指で拡大縮小） ----
+// ハードウェアのzoom capability（MediaStreamTrack.applyConstraints）を使う方式。
+// プレビュー表示だけでなく実際に録画される映像そのものにズームが反映される。
+// 端末・カメラが非対応の場合はcapabilities.zoomが存在せず、ピンチしても何も起きない（静かに諦める）。
+let _videoZoomTrack=null;   // ズーム操作対象のトラック（対応時のみセット）
+let _videoZoomRange=null;   // {min,max,step}
+let _pinchStartDist=0;
+let _pinchStartZoom=1;
 
 function updateFlowStatus(text){
   const el=document.getElementById('videoFlowStatus');
@@ -4746,6 +4809,7 @@ async function beginCaptureFlow(rerollFirst){
 }
 function stopVideoCameraStream(){
   if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
+  _videoZoomTrack=null; _videoZoomRange=null;
   if(_videoCountdownTimer){ clearInterval(_videoCountdownTimer); _videoCountdownTimer=null; }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   updateFlowStatus('');
@@ -4832,6 +4896,7 @@ async function onVideoRecordingStop(){
   document.getElementById('videoRecDot').style.display='none';
   document.getElementById('videoRecordRing').style.display='none';
   if(_videoStream){ _videoStream.getTracks().forEach(t=>t.stop()); _videoStream=null; }
+  _videoZoomTrack=null; _videoZoomRange=null;
   const mimeType=(_mediaRecorder&&_mediaRecorder.mimeType)||'video/webm';
   _recordedBlob=new Blob(_recordedChunks,{type:mimeType});
   const url=URL.createObjectURL(_recordedBlob);
