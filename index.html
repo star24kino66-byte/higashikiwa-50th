@@ -786,6 +786,7 @@ img.clickable-photo{cursor:zoom-in;}
 .period-before .period-notice-text b{color:#8a6800;}
 .period-after .period-notice-text b{color:#555;}
 .period-notice-text span{font-size:11px;color:#888;}
+.deadline-notice{font-size:12px;font-weight:700;color:#8a6800;background:#fff8ec;border:1px solid #f5c842;border-radius:8px;padding:.5rem .8rem;margin:0 0 .6rem;text-align:center;}
 .best9-description{display:flex;align-items:center;justify-content:center;gap:8px;margin:.4rem 0 .8rem;padding:.5rem .8rem;background:linear-gradient(90deg,#f0f4ff,#fff8f0);border-radius:10px;border:1px solid #dde3f5;}
 .best9-desc-item{font-size:12px;color:#1b2a4a;}
 .best9-desc-sep{font-size:14px;font-weight:700;color:#c9a227;}
@@ -803,7 +804,7 @@ img.clickable-photo{cursor:zoom-in;}
 .best9-pub-no{padding:4px 6px 0;}
 .best9-pub-title{font-size:10px;font-weight:700;color:#1b2a4a;padding:4px 6px 1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .best9-pub-title.wait-msg{white-space:normal;overflow:visible;text-overflow:clip;text-align:center;color:#9aa0b8;font-weight:600;padding:6px 6px 2px;}
-.best9-pub-team,.best9-pub-cat{font-size:9px;color:#888;padding:0 6px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.best9-pub-team,.best9-pub-cat{font-size:9px;color:#888;padding:0 6px 4px;line-height:1.3;white-space:normal;overflow-wrap:break-word;}
 .best9-pub-empty-icon{height:72px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#ccc;}
 .best9-pub-empty-txt{font-size:10px;color:#bbb;text-align:center;padding-bottom:6px;}
 .top3-cat{font-size:9.5px;color:#888;display:block;margin-top:1px;}
@@ -1243,6 +1244,7 @@ img{
     </div>
     <div class="uf" id="cheerFormCard">
       <div class="ut">💬 応援メッセージを送る</div>
+      <div id="cheerDeadlineNotice" style="display:none;" class="deadline-notice"></div>
       <div id="cheerFormFields">
         <div class="notice-box" style="margin-bottom:.6rem;">
           ✅ 投稿いただいたメッセージは<b>承認後</b>に掲載します。内容によっては掲載を見送る場合があります。<br>
@@ -1301,11 +1303,12 @@ img{
     <button class="more-btn" onclick="openModal('photo')">すべての投稿写真を見る</button>
   <div class="uf">
     <div class="ut">📸 写真を投稿する</div>
+    <div id="photoDeadlineNotice" style="display:none;" class="deadline-notice"></div>
     <div id="photoPeriodNotice" style="display:none;" class="notice-box">⏰ フォトベスト9の受付期間外です。</div>
     <div id="photoFormFields">
       <div class="notice-box" style="margin-bottom:.6rem;">
         ✅ 投稿写真は<b>承認後</b>に掲載します。個人情報が写り込んでいるもの・不適切なものは掲載を見送る場合があります。<br>
-        <span style="color:#666;">📝 掲載時は選手の個人名は表示されません（チーム名のみ表示）。</span><br>
+        <span style="color:#666;">📝 個人を特定されたくない場合は、対象チームのみを選択してください（選手個人を指定すると選手名も表示されます）。</span><br>
         <span style="color:#666;">📱 投稿はこの端末からいつでも確認・削除できます（<a href="javascript:void(0)" onclick="openModal('myposts')" style="color:#1a3260;font-weight:700;text-decoration:underline;">マイ投稿を見る</a>）。</span>
       </div>
       <div class="fr">
@@ -3742,7 +3745,7 @@ function renderBest9Grid(){
     // 賞名が長い場合（例：ベストショット賞）はバッジのフォントを一段小さくして1行に収める
     const badgeLongCls=(catName&&catName.length>=7)?' badge-long':'';
     const titleHtml=isDummy?'投稿をお待ちしています！':(photo.n||'');
-    const teamHtml=isDummy?'':(photo.team||'');
+    const teamHtml=isDummy?'':(photo.team||'')+((photo.player&&photo.player!=='（チーム全体）')?'・'+photo.player:'');
     card.innerHTML=`
       <div class="best9-pub-badge${badgeLongCls}">${catIco} ${catName}</div>
       ${imgHtml}
@@ -3771,7 +3774,7 @@ function renderBest9Grid(){
       ?`<img src="${pThumbSrc}" data-full="${p.thumb||''}" class="best9-pub-img clickable-photo" onclick="openLightbox(this.dataset.full||this.src)" onerror="imgRetry(this)">`
       :`<div class="best9-pub-emoji">📷</div>`;
     const titleHtml=isDummy?'投稿をお待ちしています！':(p.n||'');
-    const catHtml=isDummy?'':(catLabel[p.cat]||p.team||'');
+    const catHtml=isDummy?'':(catLabel[p.cat]||p.team||'')+((!isDummy&&p.player&&p.player!=='（チーム全体）')?'・'+p.player:'');
     card.innerHTML=`
       <div class="best9-pub-badge like-badge">${likeMedals[i]} ${i+1}位</div>
       ${imgHtml}
@@ -4229,6 +4232,7 @@ function renderGamesModalBlock(blockId){
 }
 
 let _modalPhotoCatFilter=''; // ''=すべての賞をまとめて表示
+let _modalPhotoTeamFilter=''; // ''=すべてのチーム
 const MODAL_PHOTO_PAGE_SIZE=10;
 let _modalPhotoPage=0;
 function changeModalPhotoPage(delta){
@@ -4241,10 +4245,18 @@ function renderPhotoModalList(keepPage){
   const title=document.getElementById('modalTitle');
   const totalCount=CATS.reduce((sum,[key])=>sum+((PH[key]||[]).length),0);
   if(title) title.textContent='投稿写真 一覧（全'+totalCount+'件）';
-  let html=`<div style="margin-bottom:10px;">
+  // チーム別の件数集計（賞・チームどちらのフィルタにも依存しない全体件数）
+  const teamCounts={};
+  CATS.forEach(([key])=>(PH[key]||[]).forEach(p=>{ if(p.team){ teamCounts[p.team]=(teamCounts[p.team]||0)+1; } }));
+  const teamNames=Object.keys(teamCounts).sort((a,b)=>a.localeCompare(b,'ja'));
+  let html=`<div style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">
     <select id="modalPhotoCatSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;" onchange="_modalPhotoCatFilter=this.value;renderPhotoModalList();">
       <option value="">🏆 すべての賞（${totalCount}件）</option>
       ${CATS.map(([key,label,icon])=>`<option value="${key}" ${key===_modalPhotoCatFilter?'selected':''}>${icon} ${label}（${(PH[key]||[]).length}件）</option>`).join('')}
+    </select>
+    <select id="modalPhotoTeamSelect" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #d8dce8;border-radius:10px;background:#f8f9fb;color:#1a3260;font-weight:600;cursor:pointer;" onchange="_modalPhotoTeamFilter=this.value;renderPhotoModalList();">
+      <option value="">👥 すべてのチーム（${totalCount}件）</option>
+      ${teamNames.map(t=>`<option value="${esc(t)}" ${t===_modalPhotoTeamFilter?'selected':''}>${esc(t)}（${teamCounts[t]}件）</option>`).join('')}
     </select>
   </div>`;
   // 対象の賞（未選択なら全賞まとめて）の写真を集める
@@ -4256,6 +4268,8 @@ function renderPhotoModalList(keepPage){
       items.push({...p,idx:i,cat:catKey,isBest:!!(p._id&&p._id===bestId)});
     });
   });
+  // チームフィルタ（賞フィルタと組み合わせ可能）
+  if(_modalPhotoTeamFilter) items=items.filter(p=>p.team===_modalPhotoTeamFilter);
   // 賞の順番→ベスト優先→いいね数の順に並べる
   items.sort((a,b)=>{
     if(a.cat!==b.cat) return catsToShow.indexOf(a.cat)-catsToShow.indexOf(b.cat);
@@ -4275,7 +4289,7 @@ function renderPhotoModalList(keepPage){
   html+='<div class="photo-modal-grid">';
   pageItems.forEach(p=>{
     const k=p.cat+'_'+p.idx,lk=liked[k];
-    const teamStr=p.team?`<div class="photo-modal-card-team">チーム：${esc(p.team)}</div>`:'';
+    const teamStr=p.team?`<div class="photo-modal-card-team">${esc(p.team)}${(p.player&&p.player!=='（チーム全体）')?'・'+esc(p.player):''}</div>`:'';
     const authorStr=p.author?`<div class="photo-modal-card-author">投稿者：${esc(p.author)}</div>`:'';
     const dateStr=p.submittedAt?`<div class="photo-modal-card-date">${new Date(p.submittedAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} 投稿</div>`:'';
     const bestBadge=p.isBest?`<div class="best-badge">🏆 ${esc(catLabel[p.cat]||p.cat)} 受賞</div>`:'';
@@ -4408,6 +4422,7 @@ function mergeApprovedPhotos(){
         n:p.n,
         author:p.author,
         team:p.team,
+        player:p.player,
         l:p.l||0,
         _id:p._id,
         seqNo:p.seqNo,
@@ -6550,6 +6565,17 @@ function checkPeriods(){
     }
   }
   if(cheerAfterEl) cheerAfterEl.style.display=cAfterEnd?'block':'none';
+  const cheerDeadlineEl=document.getElementById('cheerDeadlineNotice');
+  if(cheerDeadlineEl){
+    if(cheerIn&&cHasEnd){
+      const d=new Date(cp.end);
+      const dateStr=d.toLocaleDateString('ja-JP',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      cheerDeadlineEl.textContent='⏰ 受付期間：'+dateStr+' まで';
+      cheerDeadlineEl.style.display='block';
+    } else {
+      cheerDeadlineEl.style.display='none';
+    }
+  }
   // フォトベスト9（セクション丸ごと制御）
   const p=PERIODS.photo;
   const now=new Date();
@@ -6575,6 +6601,17 @@ function checkPeriods(){
     }
   }
   if(afterEl) afterEl.style.display=afterEnd?'block':'none';
+  const photoDeadlineEl=document.getElementById('photoDeadlineNotice');
+  if(photoDeadlineEl){
+    if(inPeriod&&hasEnd){
+      const d=new Date(p.end);
+      const dateStr=d.toLocaleDateString('ja-JP',{month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      photoDeadlineEl.textContent='⏰ 受付期間：'+dateStr+' まで';
+      photoDeadlineEl.style.display='block';
+    } else {
+      photoDeadlineEl.style.display='none';
+    }
+  }
 }
 checkPeriods();
 // 画面を開きっぱなしのまま投稿期間の開始/終了時刻をまたいでも表示が追随するよう、1分間隔で再チェックする
