@@ -2681,6 +2681,14 @@ function renderAwardWinnerRow(award, key, scopeLabel){
 async function handleAwardPhotoSelect(input, awardId, key){
   const file=input.files&&input.files[0];
   if(!file) return;
+  // 先に写真だけ選ばれた場合、保存処理は「未選出」とみなして写真を破棄してしまうため、
+  // チーム未選択のうちは受け付けずに案内する（アップロードした写真が黙って消えるのを防ぐ）
+  const teamSel=document.getElementById(`awdteam_${awardId}_${key}`);
+  if(!teamSel||!teamSel.value){
+    alert('先に受賞チーム（必要なら選手）を選んでください。');
+    input.value='';
+    return;
+  }
   try{
     const blob=await openCropModal(file,1); // 正方形に切り取り
     _pendingAwardPhotoBlobs[awardId+'_'+key]=blob;
@@ -6300,6 +6308,7 @@ function renderAlbumAdmin(){
     loadDonorsFromSupabase(),
     loadPhotosFromSupabase(),
     loadAlbumFromSupabase(),
+    loadAwardsFromSupabase(),
   ]);
   mergeApproved();
   rp(ct);
@@ -6316,6 +6325,11 @@ function renderAlbumAdmin(){
   updateDashboard();
   // 選手名簿（自チーム＋対戦チーム）の各種フォーム・タブを初期描画（選手宛メッセージ反映）
   renderAllTeamViews();
+  // 表彰：AWARDS/BLOCKS/TEAMS_ROSTERは並列読み込みのため、どれが最後に完了しても
+  // 3つ揃った状態で必ず1回描画されるよう、全読み込み完了後にここで明示的に描画する。
+  // （teamsの完了時には描画関数を呼んでいないため、これが無いと選手写真・チーム一覧が欠ける）
+  renderMvpAwards();
+  renderMvpAwardAdminList();
   // 大会要綱の初期描画
   renderTournamentInfo(getDisplayTournamentInfo());
   renderInfoImages();
@@ -6403,6 +6417,9 @@ function renderAlbumAdmin(){
   const _scheduleTeamsSync=_makeBurstSync(async()=>{
     await loadTeamsFromSupabase();
     _safeRender('チーム関連表示', ()=>renderAllTeamViews());
+    // 表彰の表示はチーム名簿（選手写真・チーム一覧）に依存するため、名簿更新時にも描画し直す
+    _safeRender('表彰表示', ()=>renderMvpAwards());
+    _safeRender('表彰管理', ()=>renderMvpAwardAdminList());
   });
   // roster_submissions（選手名簿の提出・承認待ち一覧）
   const _scheduleRosterSubmissionsSync=_makeBurstSync(async()=>{
@@ -6528,6 +6545,7 @@ const RESET_LABELS={
 const RESET_DETAILS={
   games:'・試合結果データ（gamesテーブル）をすべて削除します。',
   players:'・選手名簿データ（teamsテーブル：選手名・学年・背番号・ポジション・将来の夢・写真URLなど）をすべて削除します。'
+    +'<br>・表彰（MVP・敢闘賞など）の選出結果もあわせて白紙に戻します（賞の名前・範囲の設定は残ります）。'
     +'<br>⚠️写真ファイル自体はR2ストレージに残りますが、紐付け情報が消えるため実質探し出せなくなります。事前にバックアップを推奨します。',
   info:'・大会設定を初期値に戻し、大会情報ページの掲載画像リストをクリアします。'
     +'<br>⚠️画像ファイル自体はR2ストレージに残りますが、紐付けが切れます。',
@@ -6585,6 +6603,16 @@ async function execReset(target){
       case 'players':
         await sb.from('teams').delete().neq('id','00000000-0000-0000-0000-000000000000');
         TEAMS_ROSTER=[];
+        // 表彰の選出結果はチーム・選手に紐づくため、選手データを消したら選出も白紙に戻す。
+        // （賞の名前・アイコン・範囲の定義自体は残す＝次の大会でもそのまま使い回せるようにする）
+        // 賞用に個別アップロードした写真は、ここで実体も削除して孤児ファイルを残さない。
+        {
+          const oldAwardPhotos=[];
+          AWARDS.forEach(a=>Object.values(a.winners||{}).forEach(w=>{ if(w&&w.photo_url) oldAwardPhotos.push(w.photo_url); }));
+          await sb.from('awards').update({winners:{}}).neq('id','__dummy__');
+          oldAwardPhotos.forEach(u=>deleteStorageFileByUrl(u).catch(()=>{}));
+          await loadAwardsFromSupabase();
+        }
         renderAllTeamViews();
         break;
       case 'info':
