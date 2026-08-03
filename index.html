@@ -6603,16 +6603,29 @@ async function checkResetPw2(){
     document.getElementById('resetPw2Error').style.display='block';
   }
 }
+// 【2026/8/3追加】削除件数が「消したかった件数」と一致しているかを確認するヘルパー。
+// RLSでセッションが無効化されている等の理由で実際は0件しか消えていないのに、
+// エラーが返らず「成功したように見える」サイレント失敗を検知するために使う。
+function _resetSilentFailMsg(target){
+  return `⚠️「${RESET_LABELS[target]}」を削除できませんでした（対象0件）。\nログインセッションが切れている可能性があります。一度ログアウト→再ログインしてから、もう一度お試しください。`;
+}
 async function execReset(target){
   try{
     switch(target){
-      case 'games':
-        await sb.from('games').delete().neq('id','__dummy__');
+      case 'games':{
+        const before=GAMES.length;
+        const {data,error}=await sb.from('games').delete().neq('id','__dummy__').select('id');
+        if(error) throw error;
+        if(before>0 && (!data||data.length===0)){ alert(_resetSilentFailMsg(target)); return; }
         await loadGamesFromSupabase();
         renderGameAdmin();
         break;
-      case 'players':
-        await sb.from('teams').delete().neq('id','00000000-0000-0000-0000-000000000000');
+      }
+      case 'players':{
+        const before=TEAMS_ROSTER.length;
+        const {data,error}=await sb.from('teams').delete().neq('id','00000000-0000-0000-0000-000000000000').select('id');
+        if(error) throw error;
+        if(before>0 && (!data||data.length===0)){ alert(_resetSilentFailMsg(target)); return; }
         TEAMS_ROSTER=[];
         // 表彰の選出結果はチーム・選手に紐づくため、選手データを消したら選出も白紙に戻す。
         // （賞の名前・アイコン・範囲の定義自体は残す＝次の大会でもそのまま使い回せるようにする）
@@ -6620,12 +6633,14 @@ async function execReset(target){
         {
           const oldAwardPhotos=[];
           AWARDS.forEach(a=>Object.values(a.winners||{}).forEach(w=>{ if(w&&w.photo_url) oldAwardPhotos.push(w.photo_url); }));
-          await sb.from('awards').update({winners:{}}).neq('id','__dummy__');
+          const {error:awardsErr}=await sb.from('awards').update({winners:{}}).neq('id','__dummy__');
+          if(awardsErr){ console.error('awards初期化エラー:',awardsErr); }
           oldAwardPhotos.forEach(u=>deleteStorageFileByUrl(u).catch(()=>{}));
           await loadAwardsFromSupabase();
         }
         renderAllTeamViews();
         break;
+      }
       case 'info':
         {
           const def=getDefaultTournamentInfo();
@@ -6635,32 +6650,43 @@ async function execReset(target){
           renderInfoImages();
         }
         break;
-      case 'cheers':
+      case 'cheers':{
         // 却下・削除方式に統一（photos側と同じ考え方：DELETEで確実にリセット）
-        await sb.from('messages').delete().neq('id','00000000-0000-0000-0000-000000000000');
+        const before=CHEERS.length;
+        const {data,error}=await sb.from('messages').delete().neq('id','00000000-0000-0000-0000-000000000000').select('id');
+        if(error) throw error;
+        if(before>0 && (!data||data.length===0)){ alert(_resetSilentFailMsg(target)); return; }
         await loadCheersFromSupabase();
         CHEERS.length=0;
         rebuildCheerRows(true);
         renderAdminCounts();
         if(_plCurrentTeam) renderTeamPlayerCards(_plCurrentTeam);
         break;
-      case 'photos':
-        {
-          const {data:allPhotoIds}=await sb.from('photos').select('id');
-          await sb.from('photos').delete().neq('id','__dummy__');
-          if(allPhotoIds&&allPhotoIds.length) deletePhotoStorageFiles(allPhotoIds.map(r=>r.id));
-        }
+      }
+      case 'photos':{
+        const {data:allPhotoIds}=await sb.from('photos').select('id');
+        const before=(allPhotoIds||[]).length;
+        const {data,error}=await sb.from('photos').delete().neq('id','__dummy__').select('id');
+        if(error) throw error;
+        if(before>0 && (!data||data.length===0)){ alert(_resetSilentFailMsg(target)); return; }
+        if(allPhotoIds&&allPhotoIds.length) deletePhotoStorageFiles(allPhotoIds.map(r=>r.id));
         await loadPhotosFromSupabase();
         mergeApproved();
         rp(ct);
         renderAdminCounts();
         break;
-      case 'donation':
-        await sb.from('donors').delete().neq('id','__dummy__');
-        await sb.from('donation_settings').upsert({key:'goal',value:'1000000'});
+      }
+      case 'donation':{
+        const before=DONORS_EXTRA.length;
+        const {data,error}=await sb.from('donors').delete().neq('id','__dummy__').select('id');
+        if(error) throw error;
+        if(before>0 && (!data||data.length===0)){ alert(_resetSilentFailMsg(target)); return; }
+        const {error:goalErr}=await sb.from('donation_settings').upsert({key:'goal',value:'1000000'});
+        if(goalErr){ console.error('donation_settings初期化エラー:',goalErr); }
         await loadDonorsFromSupabase();
         animateMeter();rebuildDonorRows();rebuildSponsorRow();renderDonationAdmin();
         break;
+      }
     }
     renderAdminAll();
     alert(`「${RESET_LABELS[target]}」をリセットしました。`);
